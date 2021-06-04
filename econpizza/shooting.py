@@ -54,9 +54,8 @@ def parse(mfile):
     try:
         exec(func_str, globals())
         func = njit(func_raw)
-    except Exception as e:
-        print(func_str)
-        raise e
+    except Exception as error:
+        raise type(error)(str(error) + '\n\n This is the transition function as I tried to compile it:\n\n' + func_str)
 
     model['func'] = func
     model['func_str'] = func_str

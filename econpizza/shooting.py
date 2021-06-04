@@ -17,7 +17,6 @@ def parse(mfile):
     f.close()
 
     mtxt = mtxt.replace('^', '**')
-    mtxt = mtxt.replace(';', '')
     mtxt = re.sub(r"@ ?\n", " ", mtxt)
     model = yaml.safe_load(mtxt)
 
@@ -112,10 +111,11 @@ def solve_stst(model):
     rdict = dict(zip(evars, res['x']))
     model['stst'] = rdict
     model['stst_vals'] = np.array(list(rdict.values()))
+
     return rdict
 
 
-def solve_current(model, XLag, XPrime):
+def solve_current(model, XLag, XPrime, tol):
 
     func = model['func']
     par = model['parameters']
@@ -130,26 +130,31 @@ def solve_current(model, XLag, XPrime):
         raise Exception('Current state not found')
 
     err = np.max(np.abs(func_current(res['x'])))
-    if err > 1e-8:
+    if err > tol:
         print("Maximum error exceeds tolerance with %s." % err)
 
     return res['x']
 
 
-def find_path(model, x0, n=30, max_horizon=100, max_iter=200, eps=1e-16, root_options=None, verbose=True):
+def find_path(model, x0, T=30, max_horizon=500, max_iter=None, eps=1e-16, tol=1e-8, root_options=None, verbose=True):
+
+    if max_iter is None:
+        max_iter = max_horizon
 
     stst = list(model['stst'].values())
     evars = model['variables']
     model['root_options'] = root_options
 
-    x = np.ones((n+max_horizon, len(evars)))*np.array(stst)
+    x_fin = np.empty((T+1, len(evars)))
+    x_fin[0] = list(x0)
+
+    x = np.ones((T+max_horizon, len(evars)))*np.array(stst)
     x[0] = list(x0)
 
     flag = np.zeros(3)
 
-    for i in range(n):
+    for i in range(T):
 
-        cond = False
         cnt = 2
 
         while True:
@@ -158,41 +163,26 @@ def find_path(model, x0, n=30, max_horizon=100, max_iter=200, eps=1e-16, root_op
             imax = min(cnt, max_horizon)
 
             for t in range(imax):
-                x[t+1] = solve_current(model, x[t], x[t+2])
+                x[t+1] = solve_current(model, x[t], x[t+2], tol)
 
-            if np.abs(x_old - x[1]).max() < eps and cnt > 2:
-                break
+            flag[0] = cnt == max_iter
+            flag[1] = np.any(np.isnan(x))
+            flag[2] = np.any(np.isinf(x))
 
-            if cnt == max_iter:
-                flag[0] = 1
-                break
-
-            if np.any(np.isnan(x)):
-                flag[1] = 1
-                break
-
-            if np.any(np.isinf(x)):
-                flag[2] = 1
+            if (np.abs(x_old - x[1]).max() < eps and cnt > 2) or flag.any():
                 break
 
             cnt += 1
 
-    fin_flag = 0
-    mess = ''
+        x_fin[i+1] = x[1]
+        x = x[1:]
 
-    if flag[0]:
-        fin_flag += 1
-        mess += ', max_iter reached'
+    fin_flag = np.array((1, 2, 4)) @ flag
 
-    if flag[1]:
-        fin_flag += 2
-        mess += ', contains NaNs'
-
-    if flag[2]:
-        fin_flag += 4
-        mess += ', contains infs'
+    msgs = ', max_iter reached', ', contains NaNs', ', contains infs'
+    mess = [i*bool(j) for i, j in zip(msgs, flag)]
 
     if verbose:
-        print('Pizza done%s.' % mess)
+        print('Pizza done%s.' % ''.join(mess))
 
-    return x[:n], fin_flag
+    return x_fin, fin_flag

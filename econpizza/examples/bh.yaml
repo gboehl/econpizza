@@ -1,0 +1,35 @@
+# bh.yaml ---
+#
+# Description: the chaotic example from Boehl & Hommes (2021)
+# Author: Gregor Boehl [mail@gregorboehl.com]
+# Last-Updated: 04/06/21
+
+name: 'bh'
+variables: [x, xm1, xm2, n]
+
+# for stuff you don't actually want to track:
+aux_equations:
+    - prof_re = (xLag - R*xm1Lag)**2 - C
+    - prof_br = (xLag - R*xm1Lag) * (gamma*xm2Lag - R*xm1Lag)
+
+equations:
+    - n - 1/(1 + exp(beta*(prof_br-prof_re)))
+    - x - (n*xPrime + (1-n)*gamma*xLag)/R
+    - xm1 - xLag
+    - xm2 - xm1Lag
+
+parameters:
+    R: 1.1
+    beta: 2.5
+    gamma: 1.15
+    C: .5
+
+steady_state:
+    fixed_values:
+        x: 0
+        xm1: 0
+        xm2: 0
+        xm3: 0
+
+    init_guesses:
+        n: .5

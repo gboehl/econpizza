@@ -20,6 +20,7 @@ There is no formal documentation (yet). An example small-scale New Keynesian mod
     from econpizza import * 
     
     # load the example. The steady state is automatically solved for
+    # example_nk is nothing else but the path to the yaml, hence you could also use `filename = 'path_to/model.yaml'`
     mod = parse(example_nk)
 
     # get the steady state as an initial state
@@ -58,7 +59,7 @@ Lets go for a second, numerically more challenging example: the chaotic rational
     # parse the yaml
     mod = parse(example_bh)
 
-    # choose an ineresting initial state
+    # choose an interesting initial state
     state = np.zeros(len(mod['variables']))
     state[:-1] = [.1, .2, 0.]
 

@@ -4,7 +4,7 @@ econpizza
 
 Contains simple tools to simulate perfect foresight models. The method is similar to the one introduced in Boehl & Hommes (2021), where we use it to solve for chaotic asset price dynamics.
 
-The code is in alpha state and provided for reasons of collaboration, replicability and code sharing in the spirit of open science. You are very welcome to get in touch if you are interested working with the package.
+The code is in alpha state and provided for reasons of collaboration, replicability and code sharing in the spirit of open science. You are welcome to get in touch if you are interested working with the package.
 
 
 
@@ -14,26 +14,36 @@ Documentation
 There is some no formal documentation (yet). An example small-scale New Keynesian model is provided `as an example <https://pydsge.readthedocs.io/en/latest/getting_started.html>`_.
 
 
-.. code-block::
+.. code-block:: python
 
     import numpy as np
     import matplotlib.pyplot as plt
     from econpizza import * 
-
+    
+    # load the example. The steady state is automatically solved for
     mod = parse(example)
 
+    # get the steady state as an initial state
     state = mod['stst'].copy()
+    # increase the discount factor by one percent
     state['beta'] *= 1.01
 
+    # simulate the model
     x, flag = find_path(mod, state.values())
 
+    # plotting
     for i,v in enumerate(mod['variables']):
 
         plt.figure()
         plt.plot(x[:,i])
         plt.title(v)
 
-The `nk.yaml` file follows a simple structure. First, define all variables and shocks. Second, provide the nonlinear equations. Note that the dash is *not* a minus! Then provide the parameters. Lastly, you can optionally provide some steady state values and/or values for initial guesses.
+The `nk.yaml <https://pydsge.readthedocs.io/en/latest/getting_started.html>`_ file follows a simple structure:
+
+1. define all variables and shocks
+2. provide the nonlinear equations. Note that the dash at the beginning of each line is *not* a minus! 
+3. provide the parameters and values. 
+4. optionally provide some steady state values and/or values for initial guesses
 
 
 Citation

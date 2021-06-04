@@ -110,10 +110,8 @@ def solve_stst(model):
 
 def solve_current(model, XLag, XPrime):
 
-    evars = model['variables']
     sys = model['sys']
     par = model['parameters']
-    inits = model.get('init')
     stst = model.get('stst')
     shocks = model.get('shocks') or ()
 

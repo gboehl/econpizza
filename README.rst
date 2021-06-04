@@ -11,7 +11,7 @@ The code is in alpha state and provided for reasons of collaboration, replicabil
 Documentation
 -------
 
-There is some no formal documentation (yet). An example small-scale New Keynesian model is provided `as an example <https://pydsge.readthedocs.io/en/latest/getting_started.html>`_.
+There is some no formal documentation (yet). An example small-scale New Keynesian model is provided `as an example <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_. Here is how to simulate and plot some nonlinear impulse responses:
 
 
 .. code-block:: python
@@ -38,7 +38,7 @@ There is some no formal documentation (yet). An example small-scale New Keynesia
         plt.plot(x[:,i])
         plt.title(v)
 
-The `nk.yaml <https://pydsge.readthedocs.io/en/latest/getting_started.html>`_ file follows a simple structure:
+The `nk.yaml <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_ file follows a simple structure:
 
 1. define all variables and shocks
 2. provide the nonlinear equations. Note that the dash at the beginning of each line is *not* a minus! 

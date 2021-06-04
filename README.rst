@@ -10,7 +10,7 @@ The code is in alpha state and provided for reasons of collaboration, replicabil
 Documentation
 -------
 
-There is no formal documentation (yet). An example small-scale New Keynesian model is provided `as an example <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_. Here is how to simulate and plot some nonlinear impulse responses:
+There is no formal documentation (yet). An small-scale nonlinear New Keynesian model with ZLB is provided `as an example <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_. Here is how to simulate and plot some nonlinear impulse responses:
 
 
 .. code-block:: python
@@ -20,6 +20,7 @@ There is no formal documentation (yet). An example small-scale New Keynesian mod
     from econpizza import * 
     
     # load the example. The steady state is automatically solved for
+    # example_nk is nothing else but the path to the yaml, hence you could also use `filename = 'path_to/model.yaml'`
     mod = parse(example_nk)
 
     # get the steady state as an initial state
@@ -37,7 +38,7 @@ There is no formal documentation (yet). An example small-scale New Keynesian mod
         plt.plot(x[:,i])
         plt.title(v)
 
-The impulse responses follow the usual dynamics of a nonlinear DSGE which includes the zero bound.
+The impulse responses follow the usual dynamics of a nonlinear DSGE.
 
 The `yaml files <https://github.com/gboehl/econpizza/tree/master/econpizza/examples>`_ follow a simple structure:
 
@@ -58,12 +59,12 @@ Lets go for a second, numerically more challenging example: the chaotic rational
     # parse the yaml
     mod = parse(example_bh)
 
-    # choose an ineresting initial state
+    # choose an interesting initial state
     state = np.zeros(len(mod['variables']))
     state[:-1] = [.1, .2, 0.]
 
     # solve and simulate. The lower eps is not actually necessary
-    x, flag = find_path(mod, state, n=1000, max_horizon=1000, eps=1e-8)
+    x, flag = find_path(mod, state, T=1000, max_horizon=1000, eps=1e-8)
 
     # plotting
     for i,v in enumerate(mod['variables']):

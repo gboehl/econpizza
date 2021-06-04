@@ -21,7 +21,7 @@ There is some no formal documentation (yet). An example small-scale New Keynesia
     from econpizza import * 
     
     # load the example. The steady state is automatically solved for
-    mod = parse(example)
+    mod = parse(example_nk)
 
     # get the steady state as an initial state
     state = mod['stst'].copy()

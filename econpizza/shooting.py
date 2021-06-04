@@ -25,7 +25,8 @@ def parse(mfile):
     shocks = model.get('shocks') or ()
     par = model['parameters']
     stst = model.get('steady_state').get('fixed_values')
-    eqns = (' F[%s] = %s' % (i, e) for i, e in enumerate(model['equations']))
+    eqns = ('F[%s] = %s' % (i, e) for i, e in enumerate(model['equations']))
+    eqns_aux = model.get('aux_equations')
 
     for k in stst:
         if isinstance(stst[k], str):
@@ -40,7 +41,7 @@ def parse(mfile):
     else:
         shock_str = shocks[0] + ' = shocks[0]'
 
-    sys_str = '''def sys_raw(XLag, X, XPrime, XSS, shocks, pars):\n %s\n %s\n %s\n %s\n %s\n %s\n F=np.empty(%s)\n%s\n return F''' % (
+    func_str = '''def func_raw(XLag, X, XPrime, XSS, shocks, pars):\n %s\n %s\n %s\n %s\n %s\n %s\n F=np.empty(%s)\n %s\n %s\n return F''' % (
         ', '.join(v + 'Lag' for v in evars)+' = XLag',
         ', '.join(evars)+' = X',
         ', '.join(v + 'Prime' for v in evars)+' = XPrime',
@@ -48,12 +49,18 @@ def parse(mfile):
         shock_str,
         ', '.join(par.keys())+' = pars',
         str(len(evars)),
-        '\n'.join(eqns))
+        '\n '.join(eqns_aux) if eqns_aux else '',
+        '\n '.join(eqns))
 
-    exec(sys_str, globals())
-    sys = njit(sys_raw)
+    try:
+        exec(func_str, globals())
+        func = njit(func_raw)
+    except Exception as e:
+        print(func_str)
+        raise e
 
-    model['sys'] = sys
+    model['func'] = func
+    model['func_str'] = func_str
     solve_stst(model)
 
     return model
@@ -62,13 +69,13 @@ def parse(mfile):
 def solve_stst(model):
 
     evars = model['variables']
-    sys = model['sys']
+    func = model['func']
     par = model['parameters']
     inits = model['steady_state'].get('init_guesses')
     stst = model.get('stst')
     shocks = model.get('shocks') or ()
 
-    def sys_stst(x):
+    def func_stst(x):
 
         xss = ()
         for i, v in enumerate(evars):
@@ -80,7 +87,7 @@ def solve_stst(model):
         XSS = np.array(x)
         trueXSS = np.array(xss)
 
-        return sys(XSS, XSS, XSS, trueXSS, np.zeros(len(shocks)), np.array(list(par.values())))
+        return func(XSS, XSS, XSS, trueXSS, np.zeros(len(shocks)), np.array(list(par.values())))
 
     init = ()
     for v in evars:
@@ -97,9 +104,9 @@ def solve_stst(model):
         else:
             init += 1.,
 
-    res = so.root(sys_stst, init)
+    res = so.root(func_stst, init)
 
-    if not res['success'] or np.any(np.abs(sys_stst(res['x'])) > 1e-8):
+    if not res['success'] or np.any(np.abs(func_stst(res['x'])) > 1e-8):
         raise Exception('Steady state not found')
 
     rdict = dict(zip(evars, res['x']))
@@ -110,29 +117,30 @@ def solve_stst(model):
 
 def solve_current(model, XLag, XPrime):
 
-    sys = model['sys']
+    func = model['func']
     par = model['parameters']
     stst = model.get('stst')
     shocks = model.get('shocks') or ()
 
-    def sys_current(x): return sys(XLag, x, XPrime, np.array(
+    def func_current(x): return func(XLag, x, XPrime, np.array(
         list(stst.values())), np.zeros(len(shocks)), np.array(list(par.values())))
-    res = so.root(sys_current, XPrime)
+    res = so.root(func_current, XPrime, options=model['root_options'])
 
     if not res['success']:
         raise Exception('Current state not found')
 
-    err = np.max(np.abs(sys_current(res['x'])))
+    err = np.max(np.abs(func_current(res['x'])))
     if err > 1e-8:
         print("Maximum error exceeds tolerance with %s." % err)
 
     return res['x']
 
 
-def find_path(model, x0, n=30, max_horizon=100, max_iter=200, eps=1e-16, verbose=True):
+def find_path(model, x0, n=30, max_horizon=100, max_iter=200, eps=1e-16, root_options=None, verbose=True):
 
     stst = list(model['stst'].values())
     evars = model['variables']
+    model['root_options'] = root_options
 
     x = np.ones((n+max_horizon, len(evars)))*np.array(stst)
     x[0] = list(x0)
@@ -185,6 +193,6 @@ def find_path(model, x0, n=30, max_horizon=100, max_iter=200, eps=1e-16, verbose
         mess += ', contains infs'
 
     if verbose:
-        print('Pizza done%s.' %mess)
+        print('Pizza done%s.' % mess)
 
     return x[:n], fin_flag

@@ -37,13 +37,46 @@ There is no formal documentation (yet). An example small-scale New Keynesian mod
         plt.plot(x[:,i])
         plt.title(v)
 
-The `nk.yaml <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_ file follows a simple structure:
+The impulse responses follow the usual dynamics of a nonlinear DSGE which includes the zero bound.
+
+The `yaml files <https://github.com/gboehl/econpizza/tree/master/econpizza/examples>`_ follow a simple structure:
 
 1. define all variables and shocks
-2. provide the nonlinear equations. Note that the dash at the beginning of each line is *not* a minus! 
+2. provide the nonlinear equations. Note that the dash at the beginning of each line is *not* a minus! Each equation must be normalized to zero, so don't use equal signs (`=`).
 3. provide the parameters and values. 
 4. optionally provide some steady state values and/or values for initial guesses
+5. optionally provide some auxilliary equations that are not directly part of the nonlinear system. Here you must use `=` (see the `yaml for the BH model <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/bh.yaml>`_)
 
+Lets go for a second, numerically more challenging example: the chaotic rational expectations model of Boehl & Hommes (2021)
+
+.. code-block:: python
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from econpizza import * 
+
+    # parse the yaml
+    mod = parse(example_bh)
+
+    # choose an ineresting initial state
+    state = np.zeros(len(mod['variables']))
+    state[:-1] = [.1, .2, 0.]
+
+    # solve and simulate. The lower eps is not actually necessary
+    x, flag = find_path(mod, state, n=1000, max_horizon=1000, eps=1e-8)
+
+    # plotting
+    for i,v in enumerate(mod['variables']):
+
+        plt.figure()
+        plt.plot(x[:,i])
+        plt.title(v)
+
+This will give you:
+
+.. image:: docs/p_and_n.png
+  :width: 400
+  :alt: Dynamics of prices and fractions
 
 Citation
 --------

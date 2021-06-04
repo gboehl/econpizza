@@ -11,7 +11,7 @@ The code is in alpha state and provided for reasons of collaboration, replicabil
 Documentation
 -------
 
-There is some no formal documentation (yet). An example small-scale New Keynesian model is provided `as an example <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_. Here is how to simulate and plot some nonlinear impulse responses:
+There is no formal documentation (yet). An example small-scale New Keynesian model is provided `as an example <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_. Here is how to simulate and plot some nonlinear impulse responses:
 
 
 .. code-block:: python

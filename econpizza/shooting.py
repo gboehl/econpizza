@@ -131,7 +131,7 @@ def solve_current(model, XLag, XPrime):
     return res['x']
 
 
-def find_path(model, x0, n=30, max_horizon=100, max_iter=200, eps=1e-16):
+def find_path(model, x0, n=30, max_horizon=100, max_iter=200, eps=1e-16, verbose=True):
 
     stst = list(model['stst'].values())
     evars = model['variables']
@@ -171,4 +171,22 @@ def find_path(model, x0, n=30, max_horizon=100, max_iter=200, eps=1e-16):
 
             cnt += 1
 
-    return x[:n], flag
+    fin_flag = 0
+    mess = ''
+
+    if flag[0]:
+        fin_flag += 1
+        mess += ', max_iter reached'
+
+    if flag[1]:
+        fin_flag += 2
+        mess += ', contains NaNs'
+
+    if flag[2]:
+        fin_flag += 4
+        mess += ', contains infs'
+
+    if verbose:
+        print('Pizza done%s.' %mess)
+
+    return x[:n], fin_flag

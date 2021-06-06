@@ -30,7 +30,7 @@ def parse(mfile):
             lhs, rhs = eqn.split('=')
             eqns[i] = 'F[%s] = ' % i + lhs + '- ('+rhs+')'
         else:
-            eqns[i] = 'F[%s] = ' %i + eqn
+            eqns[i] = 'F[%s] = ' % i + eqn
 
     eqns_aux = model.get('aux_equations')
 
@@ -90,10 +90,9 @@ def solve_stst(model):
             else:
                 xss += x[i],
 
-        XSS = np.array(x)
-        trueXSS = np.array(xss)
+        XSS = np.array(xss)
 
-        return func(XSS, XSS, XSS, trueXSS, np.zeros(len(shocks)), np.array(list(par.values())))
+        return func(XSS, XSS, XSS, XSS, np.zeros(len(shocks)), np.array(list(par.values())))
 
     init = ()
     for v in evars:
@@ -114,6 +113,9 @@ def solve_stst(model):
 
     if not res['success'] or np.any(np.abs(func_stst(res['x'])) > 1e-8):
         raise Exception('Steady state not found')
+
+    for v in stst:
+        res['x'][evars.index(v)] = stst[v]
 
     rdict = dict(zip(evars, res['x']))
     model['stst'] = rdict
@@ -145,6 +147,14 @@ def find_path(model, x0, T=30, init_path=None, max_horizon=500, max_iter=None, t
 
     stst = list(model['stst'].values())
     evars = model['variables']
+
+    if root_options is None:
+        root_options = {}
+
+    # precision of root finding should be some magnitudes higher than of solver
+    if 'xtol' not in root_options:
+        root_options['xtol'] = tol*1e-3
+
     model['root_options'] = root_options
 
     x_fin = np.empty((T+1, len(evars)))
@@ -156,12 +166,13 @@ def find_path(model, x0, T=30, init_path=None, max_horizon=500, max_iter=None, t
     if init_path is not None:
         x[1:len(init_path)] = init_path[1:]
 
-    flag = np.zeros(5, dtype=bool)
+    fin_flag = np.zeros(5, dtype=bool)
 
     try:
         for i in range(T):
 
             cnt = 2
+            flag = np.zeros(5, dtype=bool)
 
             while True:
 
@@ -178,7 +189,10 @@ def find_path(model, x0, T=30, init_path=None, max_horizon=500, max_iter=None, t
                 flag[3] |= cnt == flag_ftol
                 flag[4] |= cnt == max_iter
 
-                if (np.abs(x_old - x[1]).max() < tol and cnt > 2) or flag.any():
+                fin_flag |= flag
+                err = np.abs(x_old - x[1]).max()
+
+                if (err < tol and cnt > 2) or flag.any():
                     break
 
                 cnt += 1
@@ -192,7 +206,7 @@ def find_path(model, x0, T=30, init_path=None, max_horizon=500, max_iter=None, t
 
     msgs = ', non-convergence in root finding', ', contains NaNs', ', contains infs', ', ftol not reached in root finding', ', max_iter reached',
     mess = [i*bool(j) for i, j in zip(msgs, flag)]
-    fin_flag = 2**np.arange(5) @ flag
+    fin_flag = 2**np.arange(5) @ fin_flag
 
     if verbose:
         print('Pizza done%s.' % ''.join(mess))

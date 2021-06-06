@@ -26,7 +26,7 @@ There is no formal documentation (yet). An small-scale nonlinear New Keynesian m
     # get the steady state as an initial state
     state = mod['stst'].copy()
     # increase the discount factor by one percent
-    state['beta'] *= 1.01
+    state['beta'] *= 1.03
 
     # simulate the model
     x, flag = find_path(mod, state.values())
@@ -38,15 +38,15 @@ There is no formal documentation (yet). An small-scale nonlinear New Keynesian m
         plt.plot(x[:,i])
         plt.title(v)
 
-The impulse responses follow the usual dynamics of a nonlinear DSGE.
+The impulse responses are the usual dynamics of a nonlinear DSGE.
 
 The `yaml files <https://github.com/gboehl/econpizza/tree/master/econpizza/examples>`_ follow a simple structure:
 
 1. define all variables and shocks
-2. provide the nonlinear equations. Note that the dash at the beginning of each line is *not* a minus! Each equation must be normalized to zero, so don't use equal signs (`=`).
+2. provide the nonlinear equations. Note that the dash at the beginning of each line is *not* a minus! 
 3. provide the parameters and values. 
 4. optionally provide some steady state values and/or values for initial guesses
-5. optionally provide some auxilliary equations that are not directly part of the nonlinear system. Here you must use `=` (see the `yaml for the BH model <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/bh.yaml>`_)
+5. optionally provide some auxilliary equations that are not directly part of the nonlinear system (see the `yaml for the BH model <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/bh.yaml>`_)
 
 Lets go for a second, numerically more challenging example: the chaotic rational expectations model of Boehl & Hommes (2021)
 
@@ -64,7 +64,7 @@ Lets go for a second, numerically more challenging example: the chaotic rational
     state[:-1] = [.1, .2, 0.]
 
     # solve and simulate. The lower eps is not actually necessary
-    x, flag = find_path(mod, state, T=1000, max_horizon=1000, eps=1e-8)
+    x, flag = find_path(mod, state, T=1000, max_horizon=1000, tol=1e-8)
 
     # plotting
     for i,v in enumerate(mod['variables']):

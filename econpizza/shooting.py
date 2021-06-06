@@ -23,15 +23,16 @@ def parse(mfile):
     evars = model['variables']
     shocks = model.get('shocks') or ()
     par = model['parameters']
-    stst = model.get('steady_state').get('fixed_values')
-    eqns = ('F[%s] = %s' % (i, e) for i, e in enumerate(model['equations']))
+    eqns = model['equations']
+
+    for i, eqn in enumerate(eqns):
+        if '=' in eqn:
+            lhs, rhs = eqn.split('=')
+            eqns[i] = 'F[%s] = ' % i + lhs + '- ('+rhs+')'
+        else:
+            eqns[i] = 'F[%s] = ' %i + eqn
+
     eqns_aux = model.get('aux_equations')
-
-    for k in stst:
-        if isinstance(stst[k], str):
-            stst[k] = eval(stst[k])
-
-    model['stst'] = stst
 
     if not shocks:
         shock_str = ''
@@ -55,7 +56,8 @@ def parse(mfile):
         exec(func_str, globals())
         func = njit(func_raw)
     except Exception as error:
-        raise type(error)(str(error) + '\n\n This is the transition function as I tried to compile it:\n\n' + func_str)
+        raise type(error)(str(
+            error) + '\n\n This is the transition function as I tried to compile it:\n\n' + func_str)
 
     model['func'] = func
     model['func_str'] = func_str
@@ -70,8 +72,14 @@ def solve_stst(model):
     func = model['func']
     par = model['parameters']
     inits = model['steady_state'].get('init_guesses')
-    stst = model.get('stst')
     shocks = model.get('shocks') or ()
+
+    stst = model['steady_state'].get('fixed_values')
+    for k in stst:
+        if isinstance(stst[k], str):
+            stst[k] = eval(stst[k])
+
+    model['stst'] = stst
 
     def func_stst(x):
 
@@ -123,19 +131,14 @@ def solve_current(model, XLag, XPrime, tol):
 
     def func_current(x): return func(XLag, x, XPrime, np.array(
         list(stst.values())), np.zeros(len(shocks)), np.array(list(par.values())))
+
     res = so.root(func_current, XPrime, options=model['root_options'])
-
-    if not res['success']:
-        raise Exception('Current state not found')
-
     err = np.max(np.abs(func_current(res['x'])))
-    if err > tol:
-        print("Maximum error exceeds tolerance with %s." % err)
 
-    return res['x']
+    return res['x'], not res['success'], err > tol
 
 
-def find_path(model, x0, T=30, max_horizon=500, max_iter=None, eps=1e-16, tol=1e-8, root_options=None, verbose=True):
+def find_path(model, x0, T=30, init_path=None, max_horizon=500, max_iter=None, tol=1e-5, root_options=None, debug=False, verbose=True):
 
     if max_iter is None:
         max_iter = max_horizon
@@ -147,39 +150,49 @@ def find_path(model, x0, T=30, max_horizon=500, max_iter=None, eps=1e-16, tol=1e
     x_fin = np.empty((T+1, len(evars)))
     x_fin[0] = list(x0)
 
-    x = np.ones((T+max_horizon, len(evars)))*np.array(stst)
+    x = np.ones((T+max_horizon+1, len(evars)))*np.array(stst)
     x[0] = list(x0)
 
-    flag = np.zeros(3)
+    if init_path is not None:
+        x[1:len(init_path)] = init_path[1:]
 
-    for i in range(T):
+    flag = np.zeros(5, dtype=bool)
 
-        cnt = 2
+    try:
+        for i in range(T):
 
-        while True:
+            cnt = 2
 
-            x_old = x[1].copy()
-            imax = min(cnt, max_horizon)
+            while True:
 
-            for t in range(imax):
-                x[t+1] = solve_current(model, x[t], x[t+2], tol)
+                x_old = x[1].copy()
+                imax = min(cnt, max_horizon)
 
-            flag[0] = cnt == max_iter
-            flag[1] = np.any(np.isnan(x))
-            flag[2] = np.any(np.isinf(x))
+                for t in range(imax):
+                    x[t+1], flag_root, flag_ftol = solve_current(
+                        model, x[t], x[t+2], tol)
 
-            if (np.abs(x_old - x[1]).max() < eps and cnt > 2) or flag.any():
-                break
+                flag[0] |= cnt == flag_root
+                flag[1] |= np.any(np.isnan(x))
+                flag[2] |= np.any(np.isinf(x))
+                flag[3] |= cnt == flag_ftol
+                flag[4] |= cnt == max_iter
 
-            cnt += 1
+                if (np.abs(x_old - x[1]).max() < tol and cnt > 2) or flag.any():
+                    break
 
-        x_fin[i+1] = x[1]
-        x = x[1:]
+                cnt += 1
 
-    fin_flag = np.array((1, 2, 4)) @ flag
+            x_fin[i+1] = x[1].copy()
+            x = x[1:]
 
-    msgs = ', max_iter reached', ', contains NaNs', ', contains infs'
+    except Exception as error:
+        raise type(error)("The following error was raised in t=%s at iteration no. %s for forecast %s steps ahead:\n\n" % (
+            i, cnt, t) + str(error))
+
+    msgs = ', non-convergence in root finding', ', contains NaNs', ', contains infs', ', ftol not reached in root finding', ', max_iter reached',
     mess = [i*bool(j) for i, j in zip(msgs, flag)]
+    fin_flag = 2**np.arange(5) @ flag
 
     if verbose:
         print('Pizza done%s.' % ''.join(mess))

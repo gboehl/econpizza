@@ -5,29 +5,33 @@
 # Last-Updated: 06/04/21
 
 name: 'nk'
-variables: [y, pi, r, beta, w]
+variables: [y, c, pi, r, rn, beta, w]
 shocks: [e_beta]
 
 equations:
-    - 1 - beta*y/yPrime*r/piPrime
-    - psi*(pi - 1)*pi - (1-theta) - theta*w - psi*beta*(piPrime - 1)*piPrime
-    - r - max(1, rSS*(pi/piSS)**phi_pi*(y/ySS)**phi_y)
-    - w - chi*y**(1+eta)
-    - log(beta) - (1-rho_beta)*log(betaSS) - rho_beta*log(betaLag) - e_beta
+    - w = chi*(c - h*cLag)*y**eta
+    - 1 = r*betaPrime*(c - h*cLag)/(cPrime - h*c)/piPrime
+    - psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*beta*(c-h*cLag)/(cPrime-h*c)*(piPrime/piSS - 1)*piPrime/piSS*yPrime/y
+    - c = (1-psi*(pi/piSS - 1)**2/2)*y
+    - rn = (rSS*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*rnLag**rho
+    - log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta
+    - r = max(1, rn)
 
 parameters:
     theta: 6.
-    psi: 58.25
-    phi_pi: 1.5
-    phi_y: .125
+    psi: 96
+    phi_pi: 4
+    phi_y: 1.5
+    h: .44
+    rho: .8
     eta: .33
     chi: .33
-    rho_beta: .96
+    rho_beta: .8
 
 steady_state:
     fixed_values:
-        beta: 0.99
+        beta: 0.9984
         pi: 1.02^.25
 
     init_guesses:
-        y: 2.
+        y: 3.

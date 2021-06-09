@@ -11,5 +11,5 @@ logging.basicConfig(level=logging.INFO)
 
 pth = os.path.dirname(__file__)
 
-example_nk = os.path.join(pth, 'examples', 'nk.yaml')
-example_bh = os.path.join(pth, 'examples', 'bh.yaml')
+example_nk = os.path.join(pth, "examples", "nk.yaml")
+example_bh = os.path.join(pth, "examples", "bh.yaml")

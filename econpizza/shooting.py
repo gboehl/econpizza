@@ -3,6 +3,7 @@
 
 import yaml
 import re
+import warnings
 from numpy import *
 import numpy as np
 import matplotlib.pyplot as plt
@@ -61,12 +62,12 @@ def parse(mfile):
 
     model['func'] = func
     model['func_str'] = func_str
-    solve_stst(model)
+    solve_stst(model, raise_error=False)
 
     return model
 
 
-def solve_stst(model):
+def solve_stst(model, raise_error=True):
 
     evars = model['variables']
     func = model['func']
@@ -112,7 +113,10 @@ def solve_stst(model):
     res = so.root(func_stst, init)
 
     if not res['success'] or np.any(np.abs(func_stst(res['x'])) > 1e-8):
-        raise Exception('Steady state not found')
+        if raise_error:
+            raise Exception("Steady state not found. Root finding reports:\n\n" + str(res))
+        else:
+            warnings.warn('Steady state not found', RuntimeWarning)
 
     for v in stst:
         res['x'][evars.index(v)] = stst[v]
@@ -153,7 +157,7 @@ def find_path(model, x0, T=30, init_path=None, max_horizon=500, max_iter=None, t
 
     # precision of root finding should be some magnitudes higher than of solver
     if 'xtol' not in root_options:
-        root_options['xtol'] = tol*1e-3
+        root_options['xtol'] = max(tol*1e-3, 1e-8)
 
     model['root_options'] = root_options
 

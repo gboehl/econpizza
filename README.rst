@@ -86,12 +86,13 @@ Citation
 
 .. code-block::
 
-    @Software{boehl2021,
-      Title  = {econpizza -- A package to simulate nonlinear perfect foresight models},
-      Author = {Gregor Boehl},
-      Year   = {2021},
-      Url    = {https://github.com/gboehl/econpizza},
+    @techreport{boehl2021rational,
+    title         = {Rational vs. Irrational Beliefs in a Complex World},
+    author        = {Boehl, Gregor and Hommes, Cars},
+    year          = 2021,
+    institution   = {IMFS Working Paper Series}
     }
+
 
 We appreciate citations for **econpizza** because it helps us to find out how people have been using the package and it motivates further work.
 
@@ -99,4 +100,4 @@ We appreciate citations for **econpizza** because it helps us to find out how pe
 References
 ----------
 
-Boehl, Gregor and Hommes, Cars (2021). `Rational vs. Irrational Beliefs in a Complex World <https://gregorboehl.com/live/rational_chaos_bh.pdf>`_. *Unpublished Manuscript*
+Boehl, Gregor and Hommes, Cars (2021). `Rational vs. Irrational Beliefs in a Complex World <https://gregorboehl.com/live/rational_chaos_bh.pdf>`_. *IMFS Working papers*

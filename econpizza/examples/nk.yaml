@@ -26,7 +26,7 @@ parameters:
     rho: .8
     eta: .33
     chi: .33
-    rho_beta: .8
+    rho_beta: .9
 
 steady_state:
     fixed_values:

@@ -26,7 +26,7 @@ There is no formal documentation (yet). An small-scale nonlinear New Keynesian m
     # get the steady state as an initial state
     state = mod['stst'].copy()
     # increase the discount factor by one percent
-    state['beta'] *= 1.03
+    state['beta'] *= 1.02
 
     # simulate the model
     x, flag = find_path(mod, state.values())

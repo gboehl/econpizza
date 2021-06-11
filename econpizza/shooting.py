@@ -53,19 +53,16 @@ def parse(mfile, verbose=True):
     else:
         shock_str = shocks[0] + " = shocks[0]"
 
-    func_str = (
-        """def func_raw(XLag, X, XPrime, XSS, shocks, pars):\n %s\n %s\n %s\n %s\n %s\n %s\n F=np.empty(%s)\n %s\n %s\n return F"""
-        % (
-            ", ".join(v + "Lag" for v in evars) + " = XLag",
-            ", ".join(evars) + " = X",
-            ", ".join(v + "Prime" for v in evars) + " = XPrime",
-            ", ".join(v + "SS" for v in evars) + " = XSS",
-            shock_str,
-            ", ".join(par.keys()) + " = pars",
-            str(len(evars)),
-            "\n ".join(eqns_aux) if eqns_aux else "",
-            "\n ".join(eqns),
-        )
+    func_str = """def func_raw(XLag, X, XPrime, XSS, shocks, pars):\n %s\n %s\n %s\n %s\n %s\n %s\n F=np.empty(%s)\n %s\n %s\n return F""" % (
+        ", ".join(v + "Lag" for v in evars) + " = XLag",
+        ", ".join(evars) + " = X",
+        ", ".join(v + "Prime" for v in evars) + " = XPrime",
+        ", ".join(v + "SS" for v in evars) + " = XSS",
+        shock_str,
+        ", ".join(par.keys()) + " = pars",
+        str(len(evars)),
+        "\n ".join(eqns_aux) if eqns_aux else "",
+        "\n ".join(eqns),
     )
 
     try:
@@ -178,7 +175,6 @@ def find_path(
     tol=1e-5,
     reverse=False,
     root_options=None,
-    debug=False,
     verbose=True,
 ):
     """Find the expected trajectory given an initial state. A good strategy is to first set `tol` to a low value (e.g. 1e-3) and check for a good max_horizon. Then, set max_horizon to a reasonable value and let max_loops be high.
@@ -205,8 +201,6 @@ def find_path(
         whether to start each iteration with the values most far in the future. Normally not a good idea.
     root_options : dict, optional
         dictionary with solver-specific options to be passed on to `scipy.optimize.root`
-    debug : bool, optional
-        debug mode. Currently not functional
     verbose : bool, optional
         degree of verbosity. 0/`False` is silent
 

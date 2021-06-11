@@ -88,11 +88,11 @@ def parse(mfile, verbose=True):
     return model
 
 
-def solve_stst(model, raise_error=True, verbose=True):
+def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
 
     evars = model["variables"]
     func = model["func"]
-    par = model["parameters"]
+    par = np.array(list(model["parameters"].values()))
     inits = model["steady_state"].get("init_guesses")
     shocks = model.get("shocks") or ()
 
@@ -103,50 +103,40 @@ def solve_stst(model, raise_error=True, verbose=True):
 
     model["stst"] = stst
 
+    # draw a random sequence and hope that its columns are linearly independent
+    np.random.seed(0)
+    shifter = np.random.normal(size=(len(evars), len(stst)))
+
     def func_stst(x):
 
-        xss = ()
-        for i, v in enumerate(evars):
-            if v in stst:
-                xss += (stst[v],)
-            else:
-                xss += (x[i],)
+        # use the random sequence to force root finding to set st.st values
+        corr = [x[evars.index(v)] - stst[v] for i, v in enumerate(stst)]
 
-        XSS = np.array(xss)
+        return func(x, x, x, x, np.zeros(len(shocks)), par) + shifter @ corr
 
-        return func(
-            XSS, XSS, XSS, XSS, np.zeros(len(shocks)), np.array(list(par.values()))
-        )
+    init = np.ones(len(evars)) * 1.1
 
-    init = ()
-    for v in evars:
+    if isinstance(inits, dict):
+        for v in inits:
+            init[evars.index(v)] = inits[v]
 
-        ininit = False
-        if isinstance(inits, dict):
-            if v in inits.keys():
-                ininit = True
-
-        if v in stst.keys():
-            init += (stst[v],)
-        elif ininit:
-            init += (inits[v],)
-        else:
-            init += (1.0,)
+    for v in stst:
+        init[evars.index(v)] = stst[v]
 
     res = so.root(func_stst, init)
+    err = np.abs(func_stst(res["x"])).max()
 
-    if not res["success"] or np.any(np.abs(func_stst(res["x"])) > 1e-8):
+    if err > tol:
         if raise_error:
+            print(res)
             raise Exception(
-                "Steady state not found. Root finding reports:\n\n" + str(res)
+                "Steady state not found (error is %1.2e). See the root finding result above. Be aware that the root finding report might be missleading because fixed st.st. values are overwriting the guess."
+                % err
             )
         else:
             warnings.warn("Steady state not found", RuntimeWarning)
     elif verbose:
         print("Steady state found.")
-
-    for v in stst:
-        res["x"][evars.index(v)] = stst[v]
 
     rdict = dict(zip(evars, res["x"]))
     model["stst"] = rdict
@@ -299,7 +289,7 @@ def find_path(
                 err = np.abs(x_old - x[1]).max()
 
                 clock = time.time()
-                if verbose and clock - old_clock > 1:
+                if verbose and clock - old_clock > 0.5:
                     old_clock = clock
                     print(
                         "Period{:>4d} | loop{:>5d} | iter.{:>5d} | error: {:>1.8e}".format(

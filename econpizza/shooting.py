@@ -77,10 +77,13 @@ def parse(mfile, verbose=True):
 
     model["func"] = func
     model["func_str"] = func_str
-    solve_stst(model, raise_error=False, verbose=verbose)
+    model["root_options"] = {}
 
     if verbose:
         print("Parsing done.")
+
+    solve_stst(model, raise_error=False, verbose=verbose)
+    check_evs(model, raise_error=False, verbose=verbose)
 
     return model
 
@@ -164,6 +167,53 @@ def solve_current(model, XLag, XPrime, tol):
     return res["x"], not res["success"], err > tol
 
 
+def check_evs(model, x=None, eps=1e-5, tol=1e-8, raise_error=True, verbose=True):
+
+    stst = list(model["stst"].values())
+
+    if x is None:
+        x = np.array(stst)
+
+    A = np.empty((len(stst), len(stst)))
+    B = A.copy()
+
+    for i in range(len(stst)):
+        XLag = x.copy()
+        XPrime = x.copy()
+        XLag[i] += eps
+        XPrime[i] += eps
+        A[:, i] = (solve_current(model, x, XPrime, tol)[0] - x) / eps
+        B[:, i] = (solve_current(model, XLag, x, tol)[0] - x) / eps
+
+    Aev = np.abs(np.linalg.eig(A)[0]) > 1
+    Bev = np.abs(np.linalg.eig(B)[0]) > 1
+
+    mess = ""
+    if Aev.any():
+        mess += "%s forward looking EV%s larger than unity" % (
+            Aev.sum(),
+            "s are" if Aev.sum() > 1 else " is",
+        )
+    if Aev.any() and Bev.any():
+        mess += " and "
+    if Bev.any():
+        mess += "%s backward looking EV%s larger than unity" % (
+            Bev.sum(),
+            "s are" if Bev.sum() > 1 else " is",
+        )
+    if mess:
+        mess += "."
+        if raise_error:
+            raise Exception(mess)
+        warnings.warn(mess)
+        return False
+
+    elif verbose:
+        print("All eigenvalues are good.")
+
+    return True
+
+
 def find_path(
     model,
     x0,
@@ -225,14 +275,12 @@ def find_path(
     stst = list(model["stst"].values())
     evars = model["variables"]
 
-    if root_options is None:
-        root_options = {}
+    if root_options:
+        model["root_options"] = root_options
 
     # precision of root finding should be some magnitudes higher than of solver
-    if "xtol" not in root_options:
-        root_options["xtol"] = max(tol * 1e-3, 1e-8)
-
-    model["root_options"] = root_options
+    if "xtol" not in model["root_options"]:
+        model["root_options"]["xtol"] = max(tol * 1e-3, 1e-8)
 
     x_fin = np.empty((T + 1, len(evars)))
     x_fin[0] = list(x0)

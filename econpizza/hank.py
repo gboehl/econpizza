@@ -66,17 +66,17 @@ def find_stst_dist(bins, x, fx, prob, max_iter=1000, tol=1e-8, weights=None):
     else:
         wths = weights
 
-    # chose new bins such that the original bins are approximately their midpoints
     new_bins = np.empty(n + 1)
-    diff = np.diff(bins) / 2
-    new_bins[0] = bins[0] - diff[0]
-    new_bins[1:-1] = bins[:-1] + diff
-    new_bins[-1] = bins[-1] + diff[-1]
+    # chose new bins such that the original bins are their midpoints
+    new_bins[1:-1] = bins[:-1] + np.diff(bins) / 2
+    # first and last bin catch everything that is off-grid
+    new_bins[0] = -np.inf
+    new_bins[-1] = np.inf
 
     grid = np.hstack((interp(x[1], fx, bins), interp(x[0], fx, bins)))
     sorting_index = np.argsort(grid)
     sorted_grid = grid[sorting_index]
-    bin_index = np.searchsorted(sorted_grid, new_bins, "left")
+    bin_index = np.searchsorted(sorted_grid, new_bins)
 
     new_wths = np.empty_like(grid)
 

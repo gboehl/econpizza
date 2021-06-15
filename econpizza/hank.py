@@ -10,7 +10,7 @@ from interpolation import interp
 @njit(cache=True, fastmath=True)
 def egm_ces_1asset(bs, par, max_iter=1000, tol=1e-8):
 
-    rb, rl, sigma, beta, p, inc_b, inc_g = par
+    rb, rl, sigma, beta, prob_g, prob_b, inc_g, inc_b = par
     x = np.vstack((bs, bs))
     cnt = 0
     flag = False
@@ -32,17 +32,25 @@ def egm_ces_1asset(bs, par, max_iter=1000, tol=1e-8):
         fg = interp(x[0], bs, bs)
         fb = interp(x[1], bs, bs)
 
-        c = (
+        cg = (
             beta
             * rPrime
             * (
-                p * (inc_g - fg + rPrime * bs) ** -sigma
-                + (1 - p) * (inc_b - fb + rPrime * bs) ** -sigma
+                prob_g * (inc_g - fg + rPrime * bs) ** -sigma
+                + (1 - prob_g) * (inc_b - fb + rPrime * bs) ** -sigma
+            )
+        ) ** (1 / -sigma)
+        cb = (
+            beta
+            * rPrime
+            * (
+                prob_b * (inc_g - fg + rPrime * bs) ** -sigma
+                + (1 - prob_b) * (inc_b - fb + rPrime * bs) ** -sigma
             )
         ) ** (1 / -sigma)
 
-        x[0] = bs + c - inc_g
-        x[1] = bs + c - inc_b
+        x[0] = bs + cg - inc_g
+        x[1] = bs + cb - inc_b
 
         r[:] = rb
         r[0][x[0] >= 0] = rl
@@ -53,16 +61,20 @@ def egm_ces_1asset(bs, par, max_iter=1000, tol=1e-8):
         if np.abs(x - x_old).max() < tol:
             break
 
-    return x, flag
+    c = np.vstack((cg, cb))
+
+    return x, c, flag
 
 
-@njit(cache=True, fastmath=True)
-def find_stst_dist(bins, x, fx, prob, max_iter=1000, tol=1e-8, weights=None):
+# @njit(cache=True, fastmath=True)
+def find_stst_dist(bins, x, fx, probs, max_iter=1000, tol=1e-8, weights=None):
 
     n = len(bins)
+    prob_g, prob_b = probs
 
     if weights is None:
-        wths = np.ones(n) / n
+        wths = np.ones((2, n)) / n
+        wths *= stationary_dist_mc(probs).reshape(-1, 1)
     else:
         wths = weights
 
@@ -73,12 +85,16 @@ def find_stst_dist(bins, x, fx, prob, max_iter=1000, tol=1e-8, weights=None):
     new_bins[0] = -np.inf
     new_bins[-1] = np.inf
 
-    grid = np.hstack((interp(x[1], fx, bins), interp(x[0], fx, bins)))
-    sorting_index = np.argsort(grid)
-    sorted_grid = grid[sorting_index]
-    bin_index = np.searchsorted(sorted_grid, new_bins)
+    grid_g = interp(x[0], fx, bins)
+    grid_b = interp(x[1], fx, bins)
+    sorting_index_g = np.argsort(grid_g)
+    sorting_index_b = np.argsort(grid_b)
+    sorted_grid_g = grid_g[sorting_index_g]
+    sorted_grid_b = grid_b[sorting_index_b]
+    bin_index_g = np.searchsorted(sorted_grid_g, new_bins)
+    bin_index_b = np.searchsorted(sorted_grid_b, new_bins)
 
-    new_wths = np.empty_like(grid)
+    new_wths = np.empty_like(wths)
 
     cnt = 0
     flag = False
@@ -93,14 +109,27 @@ def find_stst_dist(bins, x, fx, prob, max_iter=1000, tol=1e-8, weights=None):
 
         old_wths = wths.copy()
 
-        new_wths[:n] = (1 - prob) * wths
-        new_wths[n:] = prob * wths
+        new_wths[0, :] = prob_g * wths[0] + prob_b * wths[1]
+        new_wths[1, :] = (1 - prob_g) * wths[0] + (1 - prob_b) * wths[1]
 
-        sorted_new_wths = new_wths[sorting_index]
-        cum_new_wths = np.hstack((np.zeros(1), sorted_new_wths.cumsum()))
-        wths = np.diff(cum_new_wths[bin_index])
+        sorted_new_wths_g = new_wths[0][sorting_index_g]
+        sorted_new_wths_b = new_wths[1][sorting_index_b]
+        cum_new_wths_g = np.hstack((np.zeros(1), sorted_new_wths_g.cumsum()))
+        cum_new_wths_b = np.hstack((np.zeros(1), sorted_new_wths_b.cumsum()))
+        wths[0, :] = np.diff(cum_new_wths_g[bin_index_g])
+        wths[1, :] = np.diff(cum_new_wths_b[bin_index_b])
 
         if np.abs(wths - old_wths).max() < tol:
             break
 
     return wths, flag
+
+
+@njit(cache=True, fastmath=True)
+def stationary_dist_mc(*probs):
+
+    probs = np.array(probs)
+    mat = np.vstack((probs, 1 - probs))
+    v, w = np.linalg.eig(mat)
+
+    return np.ravel(w[:, v == 1] / np.sum(w[:, v == 1]))

@@ -65,60 +65,52 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
 
 
 def check_evs(model, x=None, eps=1e-5, tol=1e-20, raise_error=True, verbose=True):
+    """Does half-way SGU and uses Klein's method to check for determinancy"""
 
+    evars = model["variables"]
+    func = model["func"]
+    par = np.array(list(model["parameters"].values()))
+    shocks = model.get("shocks") or ()
     stst = list(model["stst"].values())
 
     if x is None:
         x = np.array(stst)
 
     AA = np.empty((len(stst), len(stst)))
+    BB = AA.copy()
     CC = AA.copy()
 
-    for i in range(len(stst)):
-        XLag = x.copy()
-        XPrime = x.copy()
-        XLag[i] += eps
-        XPrime[i] += eps
-        # AA[:, i] = (solve_current(model, x, XPrime, tol)[0] - x) / eps
-        # CC[:, i] = (solve_current(model, XLag, x, tol)[0] - x) / eps
-        AA[i, :] = (solve_current(model, x, XPrime, tol)[0] - x) / eps
-        CC[i, :] = (solve_current(model, XLag, x, tol)[0] - x) / eps
+    fx = func(x, x, x, x, np.zeros(len(shocks)), par)
+
+    for i in range(len(evars)):
+        X = x.copy()
+        X[i] += eps
+
+        CC[:, i] = (func(X, x, x, x, np.zeros(len(shocks)), par) - fx) / eps
+        BB[:, i] = (func(x, X, x, x, np.zeros(len(shocks)), par) - fx) / eps
+        AA[:, i] = (func(x, x, X, x, np.zeros(len(shocks)), par) - fx) / eps
 
     I = np.eye(len(stst))
     Z = np.zeros_like(I)
-    # A = np.block([[AA, I], [I, Z]])
-    # B = np.block([[Z, CC], [-I, Z]])
-    A = np.block([[I, AA], [Z, Z]])
-    B = np.block([[Z, Z], [CC, I]])
+    A = np.block([[AA, BB], [Z, I]])
+    B = np.block([[Z, CC], [-I, Z]])
 
-    Aev = np.abs(np.linalg.eig(A)[0])
-    Aev_err = Aev > 1
-    Bev = np.abs(np.linalg.eig(B)[0])
-    Bev_err = Bev > 1
+    try:
+        from grgrlib import klein
 
-    mess = ""
-    if Aev_err.any():
-        mess += "%s forward looking EV%s larger than unity (%s)" % (
-            Aev_err.sum(),
-            "s are" if Aev_err.sum() > 1 else " is",
-            Aev[Aev_err],
-        )
-    if Aev_err.any() and Bev_err.any():
-        mess += " and "
-    if Bev_err.any():
-        mess += "%s backward looking EV%s larger than unity (%s)" % (
-            Bev_err.sum(),
-            "s are" if Bev_err.sum() > 1 else " is",
-            *Bev[Bev_err],
-        )
-    if mess:
-        mess += "."
-        if raise_error:
-            raise Exception(mess)
-        warnings.warn(mess)
+        omg, lam = klein(B, A, len(stst))
+        if verbose:
+            print("All eigenvalues are good.")
+        return True
+
+    except ImportError:
+        if verbose:
+            print("'grgrlib' not found, could not check eigenvalues.")
         return False
 
-    elif verbose:
-        print("All eigenvalues are good.")
-
-    return True
+    except Exception as error:
+        if raise_error:
+            raise error
+        else:
+            print(str(error))
+            return False

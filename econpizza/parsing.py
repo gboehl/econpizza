@@ -9,7 +9,7 @@ from numba import njit
 from .steady_state import solve_stst, check_evs
 
 
-def parse(mfile, verbose=True):
+def parse(mfile, raise_errors=True, verbose=True):
 
     f = open(mfile)
     mtxt = f.read()
@@ -34,6 +34,11 @@ def parse(mfile, verbose=True):
             "Model has %s variables but %s equations." % (len(evars), len(eqns))
         )
 
+    # collect number of foward and backward looking variables
+    model["no_fwd"] = sum(var + "Prime" in "".join(model["equations"]) for var in evars)
+    model["no_bwd"] = sum(var + "Lag" in "".join(model["equations"]) for var in evars)
+
+    # start compiling F
     for i, eqn in enumerate(eqns):
         if "=" in eqn:
             lhs, rhs = eqn.split("=")
@@ -79,7 +84,7 @@ def parse(mfile, verbose=True):
     if verbose:
         print("Parsing done.")
 
-    solve_stst(model, raise_error=False, verbose=verbose)
-    check_evs(model, raise_error=False, verbose=verbose)
+    solve_stst(model, raise_error=raise_errors, verbose=verbose)
+    check_evs(model, raise_error=raise_errors, verbose=verbose)
 
     return model

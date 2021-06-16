@@ -66,11 +66,11 @@ def egm_ces_1asset(bs, par, max_iter=1000, tol=1e-8):
     return x, c, flag
 
 
-# @njit(cache=True, fastmath=True)
+@njit(cache=True, fastmath=True)
 def find_stst_dist(bins, x, fx, probs, max_iter=1000, tol=1e-8, weights=None):
 
     n = len(bins)
-    prob_g, prob_b = probs
+    tmat = np.vstack((np.array(probs), 1 - np.array(probs)))
 
     if weights is None:
         wths = np.ones((2, n)) / n
@@ -87,14 +87,12 @@ def find_stst_dist(bins, x, fx, probs, max_iter=1000, tol=1e-8, weights=None):
 
     grid_g = interp(x[0], fx, bins)
     grid_b = interp(x[1], fx, bins)
-    sorting_index_g = np.argsort(grid_g)
-    sorting_index_b = np.argsort(grid_b)
-    sorted_grid_g = grid_g[sorting_index_g]
-    sorted_grid_b = grid_b[sorting_index_b]
-    bin_index_g = np.searchsorted(sorted_grid_g, new_bins)
-    bin_index_b = np.searchsorted(sorted_grid_b, new_bins)
-
-    new_wths = np.empty_like(wths)
+    sorting_inds_g = np.argsort(grid_g)
+    sorting_inds_b = np.argsort(grid_b)
+    sorted_grid_g = grid_g[sorting_inds_g]
+    sorted_grid_b = grid_b[sorting_inds_b]
+    bin_inds_g = np.searchsorted(sorted_grid_g, new_bins)
+    bin_inds_b = np.searchsorted(sorted_grid_b, new_bins)
 
     cnt = 0
     flag = False
@@ -108,16 +106,14 @@ def find_stst_dist(bins, x, fx, probs, max_iter=1000, tol=1e-8, weights=None):
             break
 
         old_wths = wths.copy()
+        wths = tmat @ wths
 
-        new_wths[0, :] = prob_g * wths[0] + prob_b * wths[1]
-        new_wths[1, :] = (1 - prob_g) * wths[0] + (1 - prob_b) * wths[1]
-
-        sorted_new_wths_g = new_wths[0][sorting_index_g]
-        sorted_new_wths_b = new_wths[1][sorting_index_b]
-        cum_new_wths_g = np.hstack((np.zeros(1), sorted_new_wths_g.cumsum()))
-        cum_new_wths_b = np.hstack((np.zeros(1), sorted_new_wths_b.cumsum()))
-        wths[0, :] = np.diff(cum_new_wths_g[bin_index_g])
-        wths[1, :] = np.diff(cum_new_wths_b[bin_index_b])
+        sorted_wths_g = wths[0][sorting_inds_g]
+        sorted_wths_b = wths[1][sorting_inds_b]
+        cum_wths_g = np.hstack((np.zeros(1), sorted_wths_g.cumsum()))
+        cum_wths_b = np.hstack((np.zeros(1), sorted_wths_b.cumsum()))
+        wths[0, :] = np.diff(cum_wths_g[bin_inds_g])
+        wths[1, :] = np.diff(cum_wths_b[bin_inds_b])
 
         if np.abs(wths - old_wths).max() < tol:
             break

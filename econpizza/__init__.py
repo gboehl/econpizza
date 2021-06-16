@@ -4,7 +4,9 @@
 import logging
 import os
 import numpy as np
-from .shooting import parse, find_path, solve_stst
+from .shooting import find_path
+from .parsing import parse
+from .steady_state import solve_stst, check_evs
 
 np.set_printoptions(threshold=np.inf)
 logging.basicConfig(level=logging.INFO)

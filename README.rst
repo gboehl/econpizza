@@ -11,7 +11,7 @@ Documentation
 -------
 
 There is no formal documentation (yet). Check
-`this documentation <https://pydsge.readthedocs.io/en/latest/installation_guide.html>`_ for an easy going instalation (using `econpizza` instead of `pydsge`). The package optionally depends on the `grgrlib` package to check for determinancy, so maybe also install it when you are at it.
+`this documentation <https://pydsge.readthedocs.io/en/latest/installation_guide.html>`_ for an easy going installation (using `econpizza` instead of `pydsge`). The package optionally depends on the `grgrlib` package to check for determinancy, so maybe also install it when you are at it.
 
 An small-scale nonlinear New Keynesian model with ZLB is provided `as an example <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_. Here is how to simulate it and plot some nonlinear impulse responses:
 

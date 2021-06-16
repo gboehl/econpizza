@@ -68,6 +68,9 @@ def egm_ces_1asset(bs, par, max_iter=1000, tol=1e-8):
 
 @njit(cache=True, fastmath=True)
 def find_stst_dist(bins, x, fx, probs, max_iter=1000, tol=1e-8, weights=None):
+    """find stationary distribution of 2-state markov chain by iterating on the distribution.
+    This is way faster than constructing the transition matrix and calculating the stationary distribution via unity eigenvalues!
+    """
 
     n = len(bins)
     tmat = np.vstack((np.array(probs), 1 - np.array(probs)))
@@ -81,18 +84,14 @@ def find_stst_dist(bins, x, fx, probs, max_iter=1000, tol=1e-8, weights=None):
     new_bins = np.empty(n + 1)
     # chose new bins such that the original bins are their midpoints
     new_bins[1:-1] = bins[:-1] + np.diff(bins) / 2
-    # first and last bin catch everything that is off-grid
+    # first and last bin catch everything that is off-grid (they won't carry any weight)
     new_bins[0] = -np.inf
     new_bins[-1] = np.inf
 
     grid_g = interp(x[0], fx, bins)
     grid_b = interp(x[1], fx, bins)
-    sorting_inds_g = np.argsort(grid_g)
-    sorting_inds_b = np.argsort(grid_b)
-    sorted_grid_g = grid_g[sorting_inds_g]
-    sorted_grid_b = grid_b[sorting_inds_b]
-    bin_inds_g = np.searchsorted(sorted_grid_g, new_bins)
-    bin_inds_b = np.searchsorted(sorted_grid_b, new_bins)
+    bin_inds_g = np.searchsorted(grid_g, new_bins)
+    bin_inds_b = np.searchsorted(grid_b, new_bins)
 
     cnt = 0
     flag = False
@@ -108,10 +107,8 @@ def find_stst_dist(bins, x, fx, probs, max_iter=1000, tol=1e-8, weights=None):
         old_wths = wths.copy()
         wths = tmat @ wths
 
-        sorted_wths_g = wths[0][sorting_inds_g]
-        sorted_wths_b = wths[1][sorting_inds_b]
-        cum_wths_g = np.hstack((np.zeros(1), sorted_wths_g.cumsum()))
-        cum_wths_b = np.hstack((np.zeros(1), sorted_wths_b.cumsum()))
+        cum_wths_g = np.hstack((np.zeros(1), wths[0].cumsum()))
+        cum_wths_b = np.hstack((np.zeros(1), wths[1].cumsum()))
         wths[0, :] = np.diff(cum_wths_g[bin_inds_g])
         wths[1, :] = np.diff(cum_wths_b[bin_inds_b])
 

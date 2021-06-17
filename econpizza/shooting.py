@@ -111,7 +111,7 @@ def find_path(
         x_dev[i+1] = model['lam'] @ x_dev[i]
 
     # x_dev = (1 + x_dev)*xss
-    x = x_dev.copy()*1.5
+    # x = x_dev.copy()*1.5
     x[0] = list(x0)
 
     # if init_path is not None:
@@ -148,6 +148,17 @@ def find_path(
                     flag_root, flag_ftol = False, False
                     x[t + 1] = FLag @ x[t] + FPrime @ x[t + 2]
 
+                for t in range(imax):
+
+                    # if reverse:
+                    t = imax - t - 1
+
+                    # x[t + 1], flag_root, flag_ftol = solve_current(
+                        # model, x[t], x[t + 2], tol
+                    # )
+                    flag_root, flag_ftol = False, False
+                    x[t + 1] = FLag @ x[t] + FPrime @ x[t + 2]
+
                 flag[0] |= flag_root
                 flag[1] |= not flag_root and flag_ftol
                 flag[2] |= np.any(np.isnan(x))
@@ -175,6 +186,13 @@ def find_path(
 
                 if (err < tol and cnt > 2) or flag.any():
                     break
+                # if (err < tol and cnt > 99) or flag.any():
+                # if (err < tol):
+                    # if t == 1:
+                        # print("{:>1.8e}".format(err))
+                    # if cnt > 20:
+                    # if cnt > 3:
+                        # break
 
                 cnt += 1
 
@@ -202,4 +220,5 @@ def find_path(
         duration = np.round(time.time() - st, 3)
         print("Pizza done after %s seconds%s." % (duration, "".join(mess)))
 
-    return x_fin, fin_flag, x_dev[:T+1]
+    # return x_fin, fin_flag, x_dev[:T+1]
+    return x_fin, fin_flag, x_dev

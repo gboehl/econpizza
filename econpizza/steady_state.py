@@ -97,7 +97,14 @@ def check_evs(model, x=None, eps=1e-5, tol=1e-20, raise_error=True, verbose=True
 
     # linear time iteration is the most simplest...
     F = np.eye(len(evars))
+    cnt = 0
+
     while True:
+        cnt += 1
+        if cnt > 1000:
+            print('error')
+            break
+
         F_old = F.copy()
         F = -nl.inv(BB + AA @ F) @ CC
 

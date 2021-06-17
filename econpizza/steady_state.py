@@ -95,10 +95,29 @@ def check_evs(model, x=None, eps=1e-5, tol=1e-20, raise_error=True, verbose=True
     A = np.block([[AA, BB], [Z, I]])
     B = np.block([[Z, CC], [-I, Z]])
 
+    import scipy.linalg as sl
+    import numpy.linalg as nl
+    S, T, alp, bet, Q, Z = sl.ordqz(A, B, sort='ouc')
+
+    dimq = len(stst)
+    # assume Z is already conj. transpose
+    Z11 = Z[:dimq, :dimq]
+    Z21 = Z[dimq:, :dimq]
+    S11 = S[:dimq, :dimq]
+    T11 = T[:dimq, :dimq]
+
+    # check for Blanchard-Kahn
+    # if not dimq == sum(ouc(alp, bet)):
+        # raise Exception('%s states but %s Evs' %(dimq, sum(ouc(alp, bet))))
+
+    # Klein stuff: original representation (assumes Z is already conj. transpose)
+    model['omg'] = Z21 @ nl.inv(Z11)
+    model['lam'] = -Z11 @ nl.inv(S11) @ T11 @ nl.inv(Z11)
+
     try:
         from grgrlib import klein
 
-        omg, lam = klein(B, A, len(stst))
+        # model['omg'], model['lam'] = klein(B, A, len(stst))
         if verbose:
             print("All eigenvalues are good.")
         return True

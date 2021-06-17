@@ -102,6 +102,16 @@ def find_path(
     x = np.ones((T + max_horizon + 1, len(evars))) * np.array(stst)
     x[0] = list(x0)
 
+    xss = np.array(stst)
+    x_dev = np.empty_like(x_fin)
+    x_dev[0] = x[0]/xss - 1
+    # x_dev[0] = x[0]
+
+    for i in range(T):
+        x_dev[i+1] = model['lam'] @ x_dev[i]
+
+    x_dev = (1 + x_dev)*xss
+
     if init_path is not None:
         x[1 : len(init_path)] = init_path[1:]
 
@@ -130,7 +140,7 @@ def find_path(
                     )
 
                 flag[0] |= flag_root
-                flag[1] |= flag_ftol
+                flag[1] |= not flag_root and flag_ftol
                 flag[2] |= np.any(np.isnan(x))
                 flag[3] |= np.any(np.isinf(x))
 
@@ -148,8 +158,8 @@ def find_path(
                 if verbose and clock - old_clock > 0.5:
                     old_clock = clock
                     print(
-                        "Period{:>4d} | loop{:>5d} | iter.{:>5d} | error: {:>1.8e}".format(
-                            i, loop, cnt, err
+                        "Period{:>4d} | loop{:>5d} | iter.{:>5d} | flag{:>2d} | error: {:>1.8e}".format(
+                            i, loop, cnt, 2 ** np.arange(5) @ fin_flag, err
                         )
                     )
 
@@ -182,4 +192,4 @@ def find_path(
         duration = np.round(time.time() - st, 3)
         print("Pizza done after %s seconds%s." % (duration, "".join(mess)))
 
-    return x_fin, fin_flag
+    return x_fin, fin_flag, x_dev

@@ -129,10 +129,10 @@ def find_path(
                         model, x[t], x[t + 2], tol
                     )
 
-                flag[0] |= cnt == flag_root
-                flag[1] |= np.any(np.isnan(x))
-                flag[2] |= np.any(np.isinf(x))
-                flag[3] |= cnt == flag_ftol
+                flag[0] |= flag_root
+                flag[1] |= flag_ftol
+                flag[2] |= np.any(np.isnan(x))
+                flag[3] |= np.any(np.isinf(x))
 
                 if cnt == max_iter:
                     if loop < max_loops:
@@ -170,9 +170,9 @@ def find_path(
 
     msgs = (
         ", non-convergence in root finding",
+        ", ftol not reached in root finding",
         ", contains NaNs",
         ", contains infs",
-        ", ftol not reached in root finding",
         ", max_iter reached",
     )
     mess = [i * bool(j) for i, j in zip(msgs, fin_flag)]

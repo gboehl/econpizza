@@ -2,7 +2,7 @@
 econpizza
 =========
 
-Contains simple tools to simulate perfect foresight models. The method is similar to the one introduced in Boehl & Hommes (2021), where we use it to solve for chaotic asset price dynamics. It can be understood as a policy function iteration where the initial state is the only fixed grid point and all other grid points are chosen endogenously (as in EGM) to map the expected trajectory. The main advantage (in terms of robustness) over Fair-Taylor comes from exploiting fact that any determined perfect forsight model must be a contraction mapping.
+Contains simple tools to simulate perfect foresight models. The method is similar to the one introduced in Boehl & Hommes (2021), where we use it to solve for chaotic asset price dynamics. It can be understood as a policy function iteration where the initial state is the only fixed grid point and all other grid points are chosen endogenously (as in a "reverse" EGM) to map the expected trajectory. The main advantage (in terms of robustness) over Fair-Taylor comes from exploiting the fact that any determined perfect forsight model must be a contraction mapping.
 
 The code is in alpha state and provided for reasons of collaboration, replicability and code sharing in the spirit of open science. You are welcome to get in touch if you are interested working with the package.
 
@@ -11,7 +11,7 @@ Documentation
 -------
 
 There is no formal documentation (yet). Check
-`this documentation <https://pydsge.readthedocs.io/en/latest/installation_guide.html>`_ for an easy going instalation (using `econpizza` instead of `pydsge`). The package optionally depends on the `grgrlib` package to check for determinancy, so maybe also install it when you are at it.
+`this documentation <https://pydsge.readthedocs.io/en/latest/installation_guide.html>`_ for easy-going installation instructions (using `econpizza` instead of `pydsge`). The package optionally depends on the `grgrlib` package to check for determinancy, so maybe also install that one since you are already at it.
 
 An small-scale nonlinear New Keynesian model with ZLB is provided `as an example <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_. Here is how to simulate it and plot some nonlinear impulse responses:
 

@@ -106,13 +106,13 @@ def find_path(
         x[1 : len(init_path)] = init_path[1:]
 
     fin_flag = np.zeros(5, dtype=bool)
+    old_clock = time.time()
 
     try:
         for i in range(T):
 
             loop = 1
             cnt = 2 - reverse
-            old_clock = time.time()
             flag = np.zeros(5, dtype=bool)
 
             while True:

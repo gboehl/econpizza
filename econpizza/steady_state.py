@@ -90,13 +90,32 @@ def check_evs(model, x=None, eps=1e-5, tol=1e-20, raise_error=True, verbose=True
         BB[:, i] = (func(x, X, x, x, np.zeros(len(shocks)), par) - fx) / eps
         AA[:, i] = (func(x, x, X, x, np.zeros(len(shocks)), par) - fx) / eps
 
+    model['ABC'] = AA, BB, CC
+
+    import scipy.linalg as sl
+    import numpy.linalg as nl
+
+    # linear time iteration is the most simplest...
+    F = np.eye(len(evars))
+    while True:
+        F_old = F.copy()
+        F = -nl.inv(BB + AA @ F) @ CC
+
+        if np.abs(F - F_old).max() < 1e-20:
+            break
+
+
+    model['lam'] = F
+
+    return True
+"""
+
+
     I = np.eye(len(stst))
     Z = np.zeros_like(I)
     A = np.block([[AA, BB], [Z, I]])
     B = np.block([[Z, CC], [-I, Z]])
 
-    import scipy.linalg as sl
-    import numpy.linalg as nl
     S, T, alp, bet, Q, Z = sl.ordqz(A, B, sort='ouc')
 
     dimq = len(stst)
@@ -133,3 +152,4 @@ def check_evs(model, x=None, eps=1e-5, tol=1e-20, raise_error=True, verbose=True
         else:
             print(str(error))
             return False
+        """

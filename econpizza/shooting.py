@@ -103,20 +103,27 @@ def find_path(
     x[0] = list(x0)
 
     xss = np.array(stst)
-    x_dev = np.empty_like(x_fin)
-    x_dev[0] = x[0]/xss - 1
-    # x_dev[0] = x[0]
+    x_dev = np.empty_like(x)
+    # x_dev[0] = x[0]/xss - 1
+    x_dev[0] = list(x0)
 
-    for i in range(T):
+    for i in range(T + max_horizon):
         x_dev[i+1] = model['lam'] @ x_dev[i]
 
-    x_dev = (1 + x_dev)*xss
+    # x_dev = (1 + x_dev)*xss
+    x = x_dev.copy()*1.5
+    x[0] = list(x0)
 
-    if init_path is not None:
-        x[1 : len(init_path)] = init_path[1:]
+    # if init_path is not None:
+        # x[1 : len(init_path)] = init_path[1:]
 
     fin_flag = np.zeros(5, dtype=bool)
     old_clock = time.time()
+    import numpy.linalg as nl
+    AA, BB, CC = model['ABC']
+    
+    FLag = -nl.inv(BB) @ CC 
+    FPrime = -nl.inv(BB) @ AA
 
     try:
         for i in range(T):
@@ -135,9 +142,11 @@ def find_path(
                     if reverse:
                         t = imax - t - 1
 
-                    x[t + 1], flag_root, flag_ftol = solve_current(
-                        model, x[t], x[t + 2], tol
-                    )
+                    # x[t + 1], flag_root, flag_ftol = solve_current(
+                        # model, x[t], x[t + 2], tol
+                    # )
+                    flag_root, flag_ftol = False, False
+                    x[t + 1] = FLag @ x[t] + FPrime @ x[t + 2]
 
                 flag[0] |= flag_root
                 flag[1] |= not flag_root and flag_ftol
@@ -145,6 +154,7 @@ def find_path(
                 flag[3] |= np.any(np.isinf(x))
 
                 if cnt == max_iter:
+                    print('asf')
                     if loop < max_loops:
                         loop += 1
                         cnt = 2
@@ -169,7 +179,7 @@ def find_path(
                 cnt += 1
 
             x_fin[i + 1] = x[1].copy()
-            x = x[1:]
+            x = x[1:].copy()
 
     except Exception as error:
         raise type(error)(
@@ -192,4 +202,4 @@ def find_path(
         duration = np.round(time.time() - st, 3)
         print("Pizza done after %s seconds%s." % (duration, "".join(mess)))
 
-    return x_fin, fin_flag, x_dev
+    return x_fin, fin_flag, x_dev[:T+1]

@@ -6,6 +6,11 @@ import numpy as np
 import scipy.optimize as so
 
 
+def updown(a):
+    yield from range(1,a)
+    yield from range(a, -1, -1)
+
+
 def solve_current(model, XLag, XPrime, tol):
 
     func = model["func"]
@@ -37,7 +42,6 @@ def find_path(
     max_loops=100,
     max_iter=None,
     tol=1e-5,
-    reverse=False,
     root_options=None,
     verbose=True,
 ):
@@ -61,8 +65,6 @@ def find_path(
         number of iterations. Default is `max_horizon`. It should not be lower than that (and will raise an error). Normally it should not be higher, better use `max_loops` instead.
     tol : float, optional
         convergence criterion
-    reverse : bool, optional
-        whether to start each iteration with the values most far in the future. Normally not a good idea.
     root_options : dict, optional
         dictionary with solver-specific options to be passed on to `scipy.optimize.root`
     verbose : bool, optional
@@ -108,10 +110,10 @@ def find_path(
     x_dev[0] = list(x0)
 
     for i in range(T + max_horizon):
-        x_dev[i+1] = model['lam'] @ x_dev[i]
+        x_dev[i+1] = -model['lam'] @ x_dev[i]
 
     # x_dev = (1 + x_dev)*xss
-    # x = x_dev.copy()*1.5
+    x = x_dev.copy()*1.5
     x[0] = list(x0)
 
     # if init_path is not None:
@@ -129,7 +131,7 @@ def find_path(
         for i in range(T):
 
             loop = 1
-            cnt = 2 - reverse
+            cnt = 0
             flag = np.zeros(5, dtype=bool)
 
             while True:
@@ -137,21 +139,7 @@ def find_path(
                 x_old = x[1].copy()
                 imax = min(cnt, max_horizon)
 
-                for t in range(imax):
-
-                    if reverse:
-                        t = imax - t - 1
-
-                    # x[t + 1], flag_root, flag_ftol = solve_current(
-                        # model, x[t], x[t + 2], tol
-                    # )
-                    flag_root, flag_ftol = False, False
-                    x[t + 1] = FLag @ x[t] + FPrime @ x[t + 2]
-
-                for t in range(imax):
-
-                    # if reverse:
-                    t = imax - t - 1
+                for t in updown(imax):
 
                     # x[t + 1], flag_root, flag_ftol = solve_current(
                         # model, x[t], x[t + 2], tol
@@ -184,15 +172,8 @@ def find_path(
                         )
                     )
 
-                if (err < tol and cnt > 2) or flag.any():
+                if err < tol or flag.any():
                     break
-                # if (err < tol and cnt > 99) or flag.any():
-                # if (err < tol):
-                    # if t == 1:
-                        # print("{:>1.8e}".format(err))
-                    # if cnt > 20:
-                    # if cnt > 3:
-                        # break
 
                 cnt += 1
 

@@ -92,58 +92,15 @@ def check_evs(model, x=None, eps=1e-5, tol=1e-20, raise_error=True, verbose=True
 
     model['ABC'] = AA, BB, CC
 
-    import scipy.linalg as sl
-    import numpy.linalg as nl
-
-    # linear time iteration is the most simplest...
-    F = np.eye(len(evars))
-    cnt = 0
-
-    while True:
-        cnt += 1
-        if cnt > 1000:
-            print('error')
-            break
-
-        F_old = F.copy()
-        F = -nl.inv(BB + AA @ F) @ CC
-
-        if np.abs(F - F_old).max() < 1e-20:
-            break
-
-
-    model['lam'] = F
-
-    return True
-"""
-
-
     I = np.eye(len(stst))
     Z = np.zeros_like(I)
     A = np.block([[AA, BB], [Z, I]])
     B = np.block([[Z, CC], [-I, Z]])
 
-    S, T, alp, bet, Q, Z = sl.ordqz(A, B, sort='ouc')
-
-    dimq = len(stst)
-    # assume Z is already conj. transpose
-    Z11 = Z[:dimq, :dimq]
-    Z21 = Z[dimq:, :dimq]
-    S11 = S[:dimq, :dimq]
-    T11 = T[:dimq, :dimq]
-
-    # check for Blanchard-Kahn
-    # if not dimq == sum(ouc(alp, bet)):
-        # raise Exception('%s states but %s Evs' %(dimq, sum(ouc(alp, bet))))
-
-    # Klein stuff: original representation (assumes Z is already conj. transpose)
-    model['omg'] = Z21 @ nl.inv(Z11)
-    model['lam'] = -Z11 @ nl.inv(S11) @ T11 @ nl.inv(Z11)
-
     try:
         from grgrlib import klein
 
-        # model['omg'], model['lam'] = klein(B, A, len(stst))
+        model['omg'], model['lam'] = klein(A, B, len(stst))
         if verbose:
             print("All eigenvalues are good.")
         return True
@@ -159,4 +116,3 @@ def check_evs(model, x=None, eps=1e-5, tol=1e-20, raise_error=True, verbose=True
         else:
             print(str(error))
             return False
-        """

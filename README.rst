@@ -2,7 +2,21 @@
 econpizza
 =========
 
-Contains simple tools to simulate perfect foresight models. The method is similar to the one introduced in Boehl & Hommes (2021), where we use it to solve for chaotic asset price dynamics. It can be understood as a policy function iteration where the initial state is the only fixed grid point and all other grid points are chosen endogenously (as in a "reverse" EGM) to map the expected trajectory. The main advantage (in terms of robustness) over Fair-Taylor comes from exploiting the fact that any determined perfect forsight model must be a contraction mapping.
+Contains simple tools to simulate perfect foresight models. The method is similar to the one introduced in Boehl & Hommes (2021), where we use it to solve for chaotic asset price dynamics. It can be understood as a policy function iteration where the initial state is the only fixed grid point and all other grid points are chosen endogenously (as in a "reverse" EGM) to map the expected trajectory. 
+
+The main advantage (in terms of robustness) over Fair-Taylor comes from exploiting the property that most determined perfect forsight models be a contraction mapping both, forward and backwards. The model is given by 
+
+.. math::
+    f(x_{t-1}, x_t, x_{t+1}) = 0.
+   
+We iterate on the expected trajectory itself instead of the policy function. We hence require
+
+.. math::
+
+   d f(x_{t-1}, x_t, x_{t+1} ) < d x_{t-1},
+   d f(x_{t-1}, x_t, x_{t+1} ) < d x_{t+1}.
+   
+This is also the weakness of the method: not every DSGE model is such backward-and-forward contraction. In most cases the algorithm converges anyways, but convergence is not guaranteed.
 
 The code is in alpha state and provided for reasons of collaboration, replicability and code sharing in the spirit of open science. You are welcome to get in touch if you are interested working with the package.
 

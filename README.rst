@@ -32,7 +32,7 @@ An small-scale nonlinear New Keynesian model with ZLB is provided `as an example
     state['beta'] *= 1.02
 
     # simulate the model
-    x, flag = find_path(mod, state.values())
+    x, _, flag = find_path(mod, state.values())
 
     # plotting
     for i,v in enumerate(mod['variables']):
@@ -67,7 +67,7 @@ Lets go for a second, numerically more challenging example: the chaotic rational
     state[:-1] = [.1, .2, 0.]
 
     # solve and simulate. The lower eps is not actually necessary
-    x, flag = find_path(mod, state, T=1000, max_horizon=1000, tol=1e-8)
+    x, _, flag = find_path(mod, state, T=1000, max_horizon=1000, tol=1e-8)
 
     # plotting
     for i,v in enumerate(mod['variables']):

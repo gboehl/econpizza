@@ -64,8 +64,17 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
     return rdict
 
 
-def check_evs(model, x=None, eps=1e-5, tol=1e-20, raise_error=True, verbose=True):
-    """Does half-way SGU and uses Klein's method to check for determinancy"""
+def check_evs(
+    model,
+    x=None,
+    eps=1e-5,
+    tol=1e-8,
+    raise_error=True,
+    check_contraction=False,
+    lti_max_iter=1000,
+    verbose=True,
+):
+    """Does half-way SGU and uses LTI to check for determinancy"""
 
     evars = model["variables"]
     func = model["func"]
@@ -90,29 +99,58 @@ def check_evs(model, x=None, eps=1e-5, tol=1e-20, raise_error=True, verbose=True
         BB[:, i] = (func(x, X, x, x, np.zeros(len(shocks)), par) - fx) / eps
         AA[:, i] = (func(x, x, X, x, np.zeros(len(shocks)), par) - fx) / eps
 
-    model['ABC'] = AA, BB, CC
+    model["ABC"] = AA, BB, CC
 
     I = np.eye(len(stst))
     Z = np.zeros_like(I)
-    A = np.block([[AA, BB], [Z, I]])
-    B = np.block([[Z, CC], [-I, Z]])
+    A0 = np.block([[BB, AA], [I, Z]])
+    B0 = np.block([[CC, Z], [Z, -I]])
+
+    mess = ""
+    success = True
 
     try:
         from grgrlib import klein
 
-        model['omg'], model['lam'] = klein(A, B, len(stst))
-        if verbose:
-            print("All eigenvalues are good.")
-        return True
+        _, model["lin_pol"] = klein(A0, B0, len(stst))
+        mess = "All eigenvalues are good."
 
     except ImportError:
-        if verbose:
-            print("'grgrlib' not found, could not check eigenvalues.")
-        return False
+        mess = "'grgrlib' not found, could not check eigenvalues."
 
     except Exception as error:
+        success = False
         if raise_error:
             raise error
         else:
-            print(str(error))
-            return False
+            mess = str(error)
+
+    if check_contraction:
+        A = np.linalg.inv(BB) @ AA
+        B = np.linalg.inv(BB) @ CC
+
+        Aev = np.abs(np.linalg.eig(A)[0])
+        Aev_err = Aev > 1
+        Bev = np.abs(np.linalg.eig(B)[0])
+        Bev_err = Bev > 1
+        flag += Aev_err.any() or Bev_err.any()
+        mess += ", but " if success else ""
+        if Aev_err.any():
+            mess += "%s forward looking EV%s larger than unity (%s)" % (
+                Aev_err.sum(),
+                "s are" if Aev_err.sum() > 1 else " is",
+                *Aev[Aev_err],
+            )
+        if Aev_err.any() and Bev_err.any():
+            mess += " and "
+        if Bev_err.any():
+            mess += "%s backward looking EV%s larger than unity (%s)" % (
+                Bev_err.sum(),
+                "s are" if Bev_err.sum() > 1 else " is",
+                *Bev[Bev_err],
+            )
+
+    if mess and verbose:
+        print(mess + ".")
+
+    return success

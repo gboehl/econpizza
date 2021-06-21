@@ -6,11 +6,6 @@ import numpy as np
 import scipy.optimize as so
 
 
-def updown(a):
-    yield from range(1,a)
-    yield from range(a, -1, -1)
-
-
 def solve_current(model, XLag, XPrime, tol):
 
     func = model["func"]
@@ -58,7 +53,7 @@ def find_path(
     init_path : array, optional
         a first guess on the trajectory. Normally not necessary
     max_horizon : int, optional
-        number of periods until the system is assumed to be back in the steady state. A good idea to set this corresponding to the respective problem
+        number of periods until the system is assumed to be back in the steady state. A good idea to set this corresponding to the respective problem. Note that a horizon too far away may cause the accumulation of numerical errors.
     max_loops : int, optional
         number of repetitions to iterate over the whole trajectory. Should eventually be high.
     max_iterations : int, optional
@@ -104,34 +99,32 @@ def find_path(
     x = np.ones((T + max_horizon + 1, len(evars))) * np.array(stst)
     x[0] = list(x0)
 
-    xss = np.array(stst)
-    x_dev = np.empty_like(x)
-    # x_dev[0] = x[0]/xss - 1
-    x_dev[0] = list(x0)
+    if model.get("lin_pol"):
+        xss = np.array(stst)
+        x_lin = np.empty_like(x)
+        x_lin[0] = x[0] / xss - 1 if xss.any() else list(x0)
 
-    for i in range(T + max_horizon):
-        x_dev[i+1] = -model['lam'] @ x_dev[i]
+        for i in range(T + max_horizon):
+            x_lin[i + 1] = -model["lin_pol"] @ x_lin[i]
 
-    # x_dev = (1 + x_dev)*xss
-    x = x_dev.copy()*1.5
-    x[0] = list(x0)
+        if xss.any():
+            x_lin = (1 + x_lin) * xss
+        x = x_lin.copy()
+        x_lin = x_lin[: T + 1]
+    else:
+        x_lin = None
 
-    # if init_path is not None:
-        # x[1 : len(init_path)] = init_path[1:]
+    if init_path is not None:
+        x[1 : len(init_path)] = init_path[1:]
 
     fin_flag = np.zeros(5, dtype=bool)
     old_clock = time.time()
-    import numpy.linalg as nl
-    AA, BB, CC = model['ABC']
-    
-    FLag = -nl.inv(BB) @ CC 
-    FPrime = -nl.inv(BB) @ AA
 
     try:
         for i in range(T):
 
             loop = 1
-            cnt = 0
+            cnt = 2
             flag = np.zeros(5, dtype=bool)
 
             while True:
@@ -139,13 +132,11 @@ def find_path(
                 x_old = x[1].copy()
                 imax = min(cnt, max_horizon)
 
-                for t in updown(imax):
+                for t in range(imax):
 
-                    # x[t + 1], flag_root, flag_ftol = solve_current(
-                        # model, x[t], x[t + 2], tol
-                    # )
-                    flag_root, flag_ftol = False, False
-                    x[t + 1] = FLag @ x[t] + FPrime @ x[t + 2]
+                    x[t + 1], flag_root, flag_ftol = solve_current(
+                        model, x[t], x[t + 2], tol
+                    )
 
                 flag[0] |= flag_root
                 flag[1] |= not flag_root and flag_ftol
@@ -153,7 +144,6 @@ def find_path(
                 flag[3] |= np.any(np.isinf(x))
 
                 if cnt == max_iter:
-                    print('asf')
                     if loop < max_loops:
                         loop += 1
                         cnt = 2
@@ -172,7 +162,7 @@ def find_path(
                         )
                     )
 
-                if err < tol or flag.any():
+                if (err < tol and cnt > 2) or flag.any():
                     break
 
                 cnt += 1
@@ -201,5 +191,4 @@ def find_path(
         duration = np.round(time.time() - st, 3)
         print("Pizza done after %s seconds%s." % (duration, "".join(mess)))
 
-    # return x_fin, fin_flag, x_dev[:T+1]
-    return x_fin, fin_flag, x_dev
+    return x_fin, x_lin, fin_flag

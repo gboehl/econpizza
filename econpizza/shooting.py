@@ -8,14 +8,13 @@ import scipy.optimize as so
 from numba import njit
 
 
-def solve_current(model, XLag, XPrime, tol):
+def solve_current(model, shock, XLag, XPrime, tol):
 
     func = model["func"]
     pars = np.array(list(model["parameters"].values()))
     stst = np.array(list(model["stst"].values()))
-    shocks = np.zeros(len(model.get("shocks") or ()))
 
-    func_current = lambda x: func(XLag, x, XPrime, stst, shocks, pars)
+    func_current = lambda x: func(XLag, x, XPrime, stst, shock, pars)
 
     res = so.root(func_current, XPrime, options=model["root_options"])
     err = np.max(np.abs(func_current(res["x"])))
@@ -31,7 +30,7 @@ def find_path_linear(model, T, x, use_linear_guess):
     if model.get("lin_pol") is not None:
         x_lin = np.empty_like(x)
         x_lin[0][sel] = (x[0] / stst - 1)[sel]
-        x_lin[0][~sel] = x[0][~sel]
+        x_lin[0][~sel] = 0
 
         for i in range(T):
             x_lin[i + 1] = -model["lin_pol"] @ x_lin[i]
@@ -48,7 +47,8 @@ def find_path_linear(model, T, x, use_linear_guess):
 
 def find_path(
     model,
-    x0,
+    x0=None,
+    shock=None,
     T=30,
     init_path=None,
     max_horizon=200,
@@ -104,6 +104,7 @@ def find_path(
 
     stst = np.array(list(model["stst"].values()))
     nvars = len(model["variables"])
+    shocks = model.get("shocks") or ()
 
     if root_options:
         model["root_options"] = root_options
@@ -113,7 +114,7 @@ def find_path(
         model["root_options"]["xtol"] = max(tol * 1e-3, 1e-8)
 
     x_fin = np.empty((T + 1, nvars))
-    x_fin[0] = list(x0)
+    x_fin[0] = list(x0) if x0 is not None else stst
 
     x = np.ones((T + max_horizon + 1, nvars)) * stst
     x[0] = list(x0)
@@ -123,6 +124,8 @@ def find_path(
 
     if init_path is not None:
         x[1 : len(init_path)] = init_path[1:]
+
+    tshock = np.zeros(len(shocks))
 
     fin_flag = np.zeros(5, dtype=bool)
     old_clock = time.time()
@@ -141,8 +144,13 @@ def find_path(
 
                 for t in range(imax):
 
+                    if not t and shock is not None:
+                        tshock[shocks.index(shock[0])] = shock[1]
+                    else:
+                        tshock[:] = 0
+
                     x[t + 1], flag_root, flag_ftol = solve_current(
-                        model, x[t], x[t + 2], tol
+                        model, tshock, x[t], x[t + 2], tol
                     )
 
                 flag[0] |= flag_root
@@ -204,6 +212,7 @@ def find_path(
 def find_path_stacked(
     model,
     x0,
+    shock=None,
     init_path=None,
     horizon=50,
     tol=None,
@@ -219,7 +228,7 @@ def find_path_stacked(
     nvars = len(model["variables"])
     func = model["func"]
     pars = np.array(list(model["parameters"].values()))
-    shocks = np.zeros(len(model.get("shocks") or ()))
+    shocks = model.get("shocks") or ()
 
     if root_options:
         model["root_options"] = root_options
@@ -231,7 +240,7 @@ def find_path_stacked(
             print("Specification of xtol in `root_options` overwrites `tol`")
         model["root_options"]["xtol"] = tol
 
-    x0 = np.array(list(x0))
+    x0 = np.array(list(x0)) if x0 is not None else stst
     x = np.ones((horizon + 1, nvars)) * stst
     x[0] = x0
 
@@ -240,16 +249,21 @@ def find_path_stacked(
     if init_path is not None:
         x[1 : len(init_path)] = init_path[1:]
 
+    zshock = np.zeros(len(shocks))
+    tshock = np.copy(zshock)
+    if shock is not None:
+        tshock[shocks.index(shock[0])] = shock[1]
+
     def stacked_func(x):
 
         X = x.reshape((horizon - 1, nvars))
         out = np.zeros_like(X)
 
-        out[0] = func(x0, X[0], X[1], stst, shocks, pars)
-        out[-1] = func(X[-2], X[-1], stst, stst, shocks, pars)
+        out[0] = func(x0, X[0], X[1], stst, tshock, pars)
+        out[-1] = func(X[-2], X[-1], stst, stst, zshock, pars)
 
         for t in range(1, horizon - 2):
-            out[t] = func(X[t - 1], X[t], X[t + 1], stst, shocks, pars)
+            out[t] = func(X[t - 1], X[t], X[t + 1], stst, zshock, pars)
 
         return out.flatten()
 

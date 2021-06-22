@@ -1,26 +1,21 @@
 #!/bin/python
 # -*- coding: utf-8 -*-
 
+import sys
 import time
 import numpy as np
 import scipy.optimize as so
+from numba import njit
 
 
 def solve_current(model, XLag, XPrime, tol):
 
     func = model["func"]
-    par = model["parameters"]
-    stst = model.get("stst")
-    shocks = model.get("shocks") or ()
+    pars = np.array(list(model["parameters"].values()))
+    stst = np.array(list(model["stst"].values()))
+    shocks = np.zeros(len(model.get("shocks") or ()))
 
-    func_current = lambda x: func(
-        XLag,
-        x,
-        XPrime,
-        np.array(list(stst.values())),
-        np.zeros(len(shocks)),
-        np.array(list(par.values())),
-    )
+    func_current = lambda x: func(XLag, x, XPrime, stst, shocks, pars)
 
     res = so.root(func_current, XPrime, options=model["root_options"])
     err = np.max(np.abs(func_current(res["x"])))
@@ -38,7 +33,7 @@ def find_path(
     max_iter=None,
     tol=1e-5,
     use_linear_guess=False,
-    root_options=None,
+    root_options={},
     verbose=True,
 ):
     """Find the expected trajectory given an initial state. A good strategy is to first set `tol` to a low value (e.g. 1e-3) and check for a good max_horizon. Then, set max_horizon to a reasonable value and let max_loops be high.
@@ -85,7 +80,7 @@ def find_path(
         )
 
     stst = np.array(list(model["stst"].values()))
-    evars = model["variables"]
+    nvars = len(model["variables"])
 
     if root_options:
         model["root_options"] = root_options
@@ -94,10 +89,10 @@ def find_path(
     if "xtol" not in model["root_options"]:
         model["root_options"]["xtol"] = max(tol * 1e-3, 1e-8)
 
-    x_fin = np.empty((T + 1, len(evars)))
+    x_fin = np.empty((T + 1, nvars))
     x_fin[0] = list(x0)
 
-    x = np.ones((T + max_horizon + 1, len(evars))) * stst
+    x = np.ones((T + max_horizon + 1, nvars)) * stst
     x[0] = list(x0)
 
     if model.get("lin_pol") is not None:
@@ -173,10 +168,10 @@ def find_path(
 
     except Exception as error:
         raise type(error)(
-            "The following error was raised in t=%s at iteration no. %s for forecast %s steps ahead:\n\n"
+            str(error)
+            + " (raised in t=%s at iteration no. %s for forecast %s steps ahead)"
             % (i, cnt, t)
-            + str(error)
-        )
+        ).with_traceback(sys.exc_info()[2])
 
     msgs = (
         ", non-convergence in root finding",
@@ -200,25 +195,33 @@ def find_path_stacked(
     x0,
     init_path=None,
     horizon=50,
-    tol=1e-5,
+    tol=None,
+    use_numba=False,
     use_linear_guess=False,
-    root_options=None,
+    root_options={},
     verbose=True,
 ):
 
     st = time.time()
 
     stst = np.array(list(model["stst"].values()))
-    evars = model["variables"]
+    nvars = len(model["variables"])
     func = model["func"]
-    par = model["parameters"]
-    shocks = model.get("shocks") or ()
+    pars = np.array(list(model["parameters"].values()))
+    shocks = np.zeros(len(model.get("shocks") or ()))
 
     if root_options:
         model["root_options"] = root_options
 
+    if "xtol" not in model["root_options"]:
+        if tol is None:
+            tol = 1e-5
+        elif "xtol" in root_options:
+            print("Specification of xtol in `root_options` overwrites `tol`")
+        model["root_options"]["xtol"] = tol
+
     x0 = np.array(list(x0))
-    x = np.ones((horizon + 1, len(evars))) * stst
+    x = np.ones((horizon + 1, nvars)) * stst
     x[0] = x0
 
     if model.get("lin_pol") is not None:
@@ -240,41 +243,28 @@ def find_path_stacked(
 
     def stacked_func(x):
 
-        X = x.reshape((horizon - 1, len(evars)))
+        X = x.reshape((horizon - 1, nvars))
         out = np.zeros_like(X)
 
-        out[0] = func(
-            x0, X[0], X[1], stst, np.zeros(len(shocks)), np.array(list(par.values()))
-        )
-        out[-1] = func(
-            X[-2],
-            X[-1],
-            stst,
-            stst,
-            np.zeros(len(shocks)),
-            np.array(list(par.values())),
-        )
+        out[0] = func(x0, X[0], X[1], stst, shocks, pars)
+        out[-1] = func(X[-2], X[-1], stst, stst, shocks, pars)
 
         for t in range(1, horizon - 2):
-            out[t] = func(
-                X[t - 1],
-                X[t],
-                X[t + 1],
-                stst,
-                np.zeros(len(shocks)),
-                np.array(list(par.values())),
-            )
+            out[t] = func(X[t - 1], X[t], X[t + 1], stst, shocks, pars)
 
         return out.flatten()
 
+    if use_numba:
+        stacked_func = njit(stacked_func)
+
     res = so.root(stacked_func, x[1:-1])
 
-    x[1:-1] = res["x"].reshape((horizon - 1, len(evars)))
+    x[1:-1] = res["x"].reshape((horizon - 1, nvars))
 
     mess = res["message"]
 
     if verbose:
         duration = np.round(time.time() - st, 3)
-        print("Stagging done after %s seconds. " % duration + mess)
+        print("Stacking done after %s seconds. " % duration + mess)
 
     return x, x_lin, res["success"]

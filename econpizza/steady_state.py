@@ -116,7 +116,7 @@ def check_evs(
         mess = "All eigenvalues are good."
 
     except ImportError:
-        mess = "'grgrlib' not found, could not check eigenvalues."
+        mess = "'grgrlib' not found, could not check eigenvalues"
 
     except Exception as error:
         success = False
@@ -124,6 +124,8 @@ def check_evs(
             raise error
         else:
             mess = str(error)
+            if mess[-1] == ".":
+                mess = mess[:-1]
 
     if check_contraction:
         A = np.linalg.inv(BB) @ AA

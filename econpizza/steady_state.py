@@ -4,6 +4,7 @@
 import warnings
 import numpy as np
 import scipy.optimize as so
+from scipy.linalg import block_diag
 from .shooting import solve_current
 
 
@@ -64,7 +65,7 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
     return rdict
 
 
-def check_evs(
+def solve_linear(
     model,
     x=None,
     eps=1e-5,
@@ -74,13 +75,14 @@ def check_evs(
     lti_max_iter=1000,
     verbose=True,
 ):
-    """Does half-way SGU and uses LTI to check for determinancy"""
+    """Does half-way SGU and uses Klein's method to check for determinancy and solve the system"""
 
     evars = model["variables"]
     func = model["func"]
     par = np.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
     stst = list(model["stst"].values())
+    nshc = len(shocks)
 
     if x is None:
         x = np.array(stst)
@@ -88,23 +90,35 @@ def check_evs(
     AA = np.empty((len(stst), len(stst)))
     BB = AA.copy()
     CC = AA.copy()
+    DD = np.empty((len(stst), nshc))
 
-    fx = func(x, x, x, x, np.zeros(len(shocks)), par)
+    zshock = np.zeros(len(shocks))
+    fx = func(x, x, x, x, np.zeros(nshc), par)
 
     for i in range(len(evars)):
         X = x.copy()
         X[i] += eps
 
-        CC[:, i] = (func(X, x, x, x, np.zeros(len(shocks)), par) - fx) / eps
-        BB[:, i] = (func(x, X, x, x, np.zeros(len(shocks)), par) - fx) / eps
-        AA[:, i] = (func(x, x, X, x, np.zeros(len(shocks)), par) - fx) / eps
+        CC[:, i] = (func(X, x, x, x, zshock, par) - fx) / eps
+        BB[:, i] = (func(x, X, x, x, zshock, par) - fx) / eps
+        AA[:, i] = (func(x, x, X, x, zshock, par) - fx) / eps
 
-    model["ABC"] = AA, BB, CC
+    for i in range(len(shocks)):
+        cshock = zshock.copy()
+        cshock[i] += eps
 
-    I = np.eye(len(stst))
+        DD[:, i] = (func(x, x, x, x, cshock, par) - fx) / eps
+
+    A = np.pad(AA, ((0, nshc), (0, nshc)))
+    B = block_diag(BB, np.eye(nshc))
+    C = np.block([[CC, DD], [np.zeros((nshc, A.shape[1]))]])
+
+    model["ABC"] = A, B, C
+
+    I = np.eye(len(stst) + nshc)
     Z = np.zeros_like(I)
-    A0 = np.block([[BB, AA], [I, Z]])
-    B0 = np.block([[CC, Z], [Z, -I]])
+    P = np.block([[B, A], [I, Z]])
+    M = np.block([[C, Z], [Z, -I]])
 
     mess = ""
     success = True
@@ -112,7 +126,8 @@ def check_evs(
     try:
         from grgrlib import klein
 
-        _, model["lin_pol"] = klein(A0, B0, len(stst))
+        _, lam = klein(P, M, len(stst) + nshc)
+        model["lin_pol"] = -lam[:-nshc, :-nshc], -lam[:-nshc, -nshc:]
         mess = "All eigenvalues are good."
 
     except ImportError:

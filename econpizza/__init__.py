@@ -6,7 +6,7 @@ import os
 import numpy as np
 from .shooting import find_path, find_path_stacked
 from .parsing import parse
-from .steady_state import solve_stst, check_evs
+from .steady_state import solve_stst, solve_linear
 
 np.set_printoptions(threshold=np.inf)
 logging.basicConfig(level=logging.INFO)

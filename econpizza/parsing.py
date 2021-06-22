@@ -6,7 +6,7 @@ import re
 import numpy as np
 from numpy import log, exp, sqrt
 from numba import njit
-from .steady_state import solve_stst, check_evs
+from .steady_state import solve_stst, solve_linear
 
 
 def parse(mfile, raise_errors=True, verbose=True):
@@ -85,6 +85,6 @@ def parse(mfile, raise_errors=True, verbose=True):
         print("Parsing done.")
 
     solve_stst(model, raise_error=raise_errors, verbose=verbose)
-    check_evs(model, raise_error=raise_errors, verbose=verbose)
+    solve_linear(model, raise_error=raise_errors, verbose=verbose)
 
     return model

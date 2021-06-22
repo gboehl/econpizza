@@ -22,18 +22,27 @@ def solve_current(model, shock, XLag, XPrime, tol):
     return res["x"], not res["success"], err > tol
 
 
-def find_path_linear(model, T, x, use_linear_guess):
-
-    stst = np.array(list(model["stst"].values()))
-    sel = stst.astype(bool)
+def find_path_linear(model, shock, T, x, use_linear_guess):
 
     if model.get("lin_pol") is not None:
+
+        stst = np.array(list(model["stst"].values()))
+        sel = stst.astype(bool)
+
+        shocks = model.get("shocks") or ()
+        tshock = np.zeros(len(shocks))
+        if shock is not None:
+            tshock[shocks.index(shock[0])] = shock[1]
+
         x_lin = np.empty_like(x)
         x_lin[0][sel] = (x[0] / stst - 1)[sel]
         x_lin[0][~sel] = 0
 
-        for i in range(T):
-            x_lin[i + 1] = -model["lin_pol"] @ x_lin[i]
+        for t in range(T):
+            x_lin[t + 1] = model["lin_pol"][0] @ x_lin[t]
+
+            if not t:
+                x_lin[t + 1] += model["lin_pol"][1] @ tshock
 
         x_lin[:, sel] = ((1 + x_lin) * stst)[:, sel]
 
@@ -119,7 +128,7 @@ def find_path(
     x = np.ones((T + max_horizon + 1, nvars)) * stst
     x[0] = list(x0)
 
-    x, x_lin = find_path_linear(model, T + max_horizon, x, use_linear_guess)
+    x, x_lin = find_path_linear(model, shock, T + max_horizon, x, use_linear_guess)
     x_lin = x_lin[: T + 1] if x_lin is not None else None
 
     if init_path is not None:
@@ -244,7 +253,7 @@ def find_path_stacked(
     x = np.ones((horizon + 1, nvars)) * stst
     x[0] = x0
 
-    x, x_lin = find_path_linear(model, horizon - 1, x, use_linear_guess)
+    x, x_lin = find_path_linear(model, shock, horizon, x, use_linear_guess)
 
     if init_path is not None:
         x[1 : len(init_path)] = init_path[1:]

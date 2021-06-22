@@ -4,7 +4,7 @@
 import logging
 import os
 import numpy as np
-from .shooting import find_path
+from .shooting import find_path, find_path_stacked
 from .parsing import parse
 from .steady_state import solve_stst, check_evs
 

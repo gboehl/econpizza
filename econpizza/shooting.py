@@ -37,6 +37,7 @@ def find_path(
     max_loops=100,
     max_iter=None,
     tol=1e-5,
+    use_linear_guess=False,
     root_options=None,
     verbose=True,
 ):
@@ -83,7 +84,7 @@ def find_path(
             % (max_iter, max_horizon)
         )
 
-    stst = list(model["stst"].values())
+    stst = np.array(list(model["stst"].values()))
     evars = model["variables"]
 
     if root_options:
@@ -96,20 +97,20 @@ def find_path(
     x_fin = np.empty((T + 1, len(evars)))
     x_fin[0] = list(x0)
 
-    x = np.ones((T + max_horizon + 1, len(evars))) * np.array(stst)
+    x = np.ones((T + max_horizon + 1, len(evars))) * stst
     x[0] = list(x0)
 
-    if model.get("lin_pol"):
-        xss = np.array(stst)
+    if model.get("lin_pol") is not None:
         x_lin = np.empty_like(x)
-        x_lin[0] = x[0] / xss - 1 if xss.any() else list(x0)
+        x_lin[0] = x[0] / stst - 1 if stst.any() else list(x0)
 
         for i in range(T + max_horizon):
             x_lin[i + 1] = -model["lin_pol"] @ x_lin[i]
 
-        if xss.any():
-            x_lin = (1 + x_lin) * xss
-        x = x_lin.copy()
+        if stst.any():
+            x_lin = (1 + x_lin) * stst
+        if use_linear_guess:
+            x = x_lin.copy()
         x_lin = x_lin[: T + 1]
     else:
         x_lin = None
@@ -192,3 +193,88 @@ def find_path(
         print("Pizza done after %s seconds%s." % (duration, "".join(mess)))
 
     return x_fin, x_lin, fin_flag
+
+
+def find_path_stacked(
+    model,
+    x0,
+    init_path=None,
+    horizon=50,
+    tol=1e-5,
+    use_linear_guess=False,
+    root_options=None,
+    verbose=True,
+):
+
+    st = time.time()
+
+    stst = np.array(list(model["stst"].values()))
+    evars = model["variables"]
+    func = model["func"]
+    par = model["parameters"]
+    shocks = model.get("shocks") or ()
+
+    if root_options:
+        model["root_options"] = root_options
+
+    x0 = np.array(list(x0))
+    x = np.ones((horizon + 1, len(evars))) * stst
+    x[0] = x0
+
+    if model.get("lin_pol") is not None:
+        x_lin = np.empty_like(x)
+        x_lin[0] = x[0] / stst - 1 if stst.any() else list(x0)
+
+        for i in range(horizon - 1):
+            x_lin[i + 1] = -model["lin_pol"] @ x_lin[i]
+
+        if stst.any():
+            x_lin = (1 + x_lin) * stst
+        if use_linear_guess:
+            x = x_lin.copy()
+    else:
+        x_lin = None
+
+    if init_path is not None:
+        x[1 : len(init_path)] = init_path[1:]
+
+    def stacked_func(x):
+
+        X = x.reshape((horizon - 1, len(evars)))
+        out = np.zeros_like(X)
+
+        out[0] = func(
+            x0, X[0], X[1], stst, np.zeros(len(shocks)), np.array(list(par.values()))
+        )
+        out[-1] = func(
+            X[-2],
+            X[-1],
+            stst,
+            stst,
+            np.zeros(len(shocks)),
+            np.array(list(par.values())),
+        )
+
+        for t in range(1, horizon - 2):
+            out[t] = func(
+                X[t - 1],
+                X[t],
+                X[t + 1],
+                stst,
+                np.zeros(len(shocks)),
+                np.array(list(par.values())),
+            )
+
+        return out.flatten()
+
+    res = so.root(stacked_func, x[1:-1])
+
+    x[1:-1] = res["x"].reshape((horizon - 1, len(evars)))
+
+    mess = res["message"]
+
+    if verbose:
+        duration = np.round(time.time() - st, 3)
+        print("Stagging done after %s seconds. " % duration + mess)
+
+    return x, x_lin, res["success"]

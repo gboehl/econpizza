@@ -23,6 +23,29 @@ def solve_current(model, XLag, XPrime, tol):
     return res["x"], not res["success"], err > tol
 
 
+def find_path_linear(model, T, x, use_linear_guess):
+
+    stst = np.array(list(model["stst"].values()))
+    sel = stst.astype(bool)
+
+    if model.get("lin_pol") is not None:
+        x_lin = np.empty_like(x)
+        x_lin[0][sel] = (x[0] / stst - 1)[sel]
+        x_lin[0][~sel] = x[0][~sel]
+
+        for i in range(T):
+            x_lin[i + 1] = -model["lin_pol"] @ x_lin[i]
+
+        x_lin[:, sel] = ((1 + x_lin) * stst)[:, sel]
+
+        if use_linear_guess:
+            return x_lin.copy(), x_lin
+        else:
+            return x, x_lin
+    else:
+        return x, None
+
+
 def find_path(
     model,
     x0,
@@ -95,20 +118,8 @@ def find_path(
     x = np.ones((T + max_horizon + 1, nvars)) * stst
     x[0] = list(x0)
 
-    if model.get("lin_pol") is not None:
-        x_lin = np.empty_like(x)
-        x_lin[0] = x[0] / stst - 1 if stst.any() else list(x0)
-
-        for i in range(T + max_horizon):
-            x_lin[i + 1] = -model["lin_pol"] @ x_lin[i]
-
-        if stst.any():
-            x_lin = (1 + x_lin) * stst
-        if use_linear_guess:
-            x = x_lin.copy()
-        x_lin = x_lin[: T + 1]
-    else:
-        x_lin = None
+    x, x_lin = find_path_linear(model, T + max_horizon, x, use_linear_guess)
+    x_lin = x_lin[: T + 1] if x_lin is not None else None
 
     if init_path is not None:
         x[1 : len(init_path)] = init_path[1:]
@@ -224,19 +235,7 @@ def find_path_stacked(
     x = np.ones((horizon + 1, nvars)) * stst
     x[0] = x0
 
-    if model.get("lin_pol") is not None:
-        x_lin = np.empty_like(x)
-        x_lin[0] = x[0] / stst - 1 if stst.any() else list(x0)
-
-        for i in range(horizon - 1):
-            x_lin[i + 1] = -model["lin_pol"] @ x_lin[i]
-
-        if stst.any():
-            x_lin = (1 + x_lin) * stst
-        if use_linear_guess:
-            x = x_lin.copy()
-    else:
-        x_lin = None
+    x, x_lin = find_path_linear(model, horizon - 1, x, use_linear_guess)
 
     if init_path is not None:
         x[1 : len(init_path)] = init_path[1:]

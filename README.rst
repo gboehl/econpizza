@@ -95,6 +95,32 @@ This will give you:
 .. image:: docs/p_and_n.png
   :width: 400
   :alt: Dynamics of prices and fractions
+ 
+Finally the package also provides a stacking algorithm for all those problems that cannot be solved nicely with the default pizza method. Here is an example, also introducing the use of shocks and the linear solution (which is always calculated on-the-fly):
+
+.. code-block:: python
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from econpizza import * 
+
+    # use the NK model again
+    mod = parse(example_nk)
+
+    # increase the discount factor by .02 (this is NOT percentage deviation!)
+    shk = ('e_beta', .02)
+
+    # use the stacking method. As above, you could also feed in the initial state instead
+    x, x_lin, flag = find_path_stacked(mod, shock=shk)
+
+    # plotting. x_lin is the linearized first-order solution 
+    for i,v in enumerate(mod['variables']):
+
+        plt.figure()
+        plt.plot(x[:,i])
+        plt.plot(x_lin[:,i])
+        plt.title(v)
+
 
 Citation
 --------

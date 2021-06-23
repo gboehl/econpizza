@@ -97,7 +97,7 @@ def solve_linear(
 
     for i in range(len(evars)):
         X = x.copy()
-        X[i] += eps
+        X[i] *= 1 + eps
 
         CC[:, i] = (func(X, x, x, x, zshock, par) - fx) / eps
         BB[:, i] = (func(x, X, x, x, zshock, par) - fx) / eps
@@ -128,7 +128,7 @@ def solve_linear(
 
         _, lam = klein(P, M, len(stst) + nshc)
         model["lin_pol"] = -lam[:-nshc, :-nshc], -lam[:-nshc, -nshc:]
-        mess = "All eigenvalues are good."
+        mess = "All eigenvalues are good"
 
     except ImportError:
         mess = "'grgrlib' not found, could not check eigenvalues"

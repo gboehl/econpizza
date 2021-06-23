@@ -227,6 +227,7 @@ def find_path_stacked(
     tol=None,
     use_numba=False,
     use_linear_guess=False,
+    use_linear_endpoint=False,
     root_options={},
     verbose=True,
 ):
@@ -253,15 +254,17 @@ def find_path_stacked(
     x = np.ones((horizon + 1, nvars)) * stst
     x[0] = x0
 
-    x, x_lin = find_path_linear(model, shock, horizon, x, use_linear_guess)
+    x_init, x_lin = find_path_linear(model, shock, horizon, x, use_linear_guess)
 
     if init_path is not None:
-        x[1 : len(init_path)] = init_path[1:]
+        x_init[1 : len(init_path)] = init_path[1:]
 
     zshock = np.zeros(len(shocks))
     tshock = np.copy(zshock)
     if shock is not None:
         tshock[shocks.index(shock[0])] = shock[1]
+
+    x_init[-1] = x_lin[-1] if use_linear_endpoint else stst
 
     def stacked_func(x):
 
@@ -269,7 +272,7 @@ def find_path_stacked(
         out = np.zeros_like(X)
 
         out[0] = func(x0, X[0], X[1], stst, tshock, pars)
-        out[-1] = func(X[-2], X[-1], stst, stst, zshock, pars)
+        out[-1] = func(X[-2], X[-1], x_init[-1], stst, zshock, pars)
 
         for t in range(1, horizon - 2):
             out[t] = func(X[t - 1], X[t], X[t + 1], stst, zshock, pars)
@@ -279,7 +282,7 @@ def find_path_stacked(
     if use_numba:
         stacked_func = njit(stacked_func)
 
-    res = so.root(stacked_func, x[1:-1])
+    res = so.root(stacked_func, x_init[1:-1])
 
     x[1:-1] = res["x"].reshape((horizon - 1, nvars))
 

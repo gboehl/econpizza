@@ -97,7 +97,11 @@ def solve_linear(
 
     for i in range(len(evars)):
         X = x.copy()
-        X[i] *= 1 + eps
+
+        if np.isclose(x[i], 0):
+            X[i] += eps
+        else:
+            X[i] *= 1 + eps
 
         CC[:, i] = (func(X, x, x, x, zshock, par) - fx) / eps
         BB[:, i] = (func(x, X, x, x, zshock, par) - fx) / eps

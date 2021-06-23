@@ -41,3 +41,20 @@ def test_nk():
             ]
         ),
     )
+
+
+def test_stacked():
+
+    mod = parse(example_nk)
+
+    shk = ("e_beta", 0.02)
+
+    x, _, flag = find_path_stacked(mod, shock=shk)
+
+    assert flag == 0
+    assert np.allclose(
+        x[9],
+        np.array(
+            [3.08119009, 3.0809818, 1.00377031, 1.0, 0.99306852, 1.00703268, 0.82840695]
+        ),
+    )

@@ -27,7 +27,7 @@ def find_path_linear(model, shock, T, x, use_linear_guess):
     if model.get("lin_pol") is not None:
 
         stst = np.array(list(model["stst"].values()))
-        sel = stst.astype(bool)
+        sel = np.isclose(stst, 0)
 
         shocks = model.get("shocks") or ()
         tshock = np.zeros(len(shocks))
@@ -35,8 +35,8 @@ def find_path_linear(model, shock, T, x, use_linear_guess):
             tshock[shocks.index(shock[0])] = shock[1]
 
         x_lin = np.empty_like(x)
-        x_lin[0][sel] = (x[0] / stst - 1)[sel]
-        x_lin[0][~sel] = 0
+        x_lin[0][~sel] = (x[0] / stst - 1)[~sel]
+        x_lin[0][sel] = 0
 
         for t in range(T):
             x_lin[t + 1] = model["lin_pol"][0] @ x_lin[t]
@@ -44,7 +44,7 @@ def find_path_linear(model, shock, T, x, use_linear_guess):
             if not t:
                 x_lin[t + 1] += model["lin_pol"][1] @ tshock
 
-        x_lin[:, sel] = ((1 + x_lin) * stst)[:, sel]
+        x_lin[:, ~sel] = ((1 + x_lin) * stst)[:, ~sel]
 
         if use_linear_guess:
             return x_lin.copy(), x_lin
@@ -76,6 +76,8 @@ def find_path(
         model dict as defined/parsed above
     x0 : array
         initial state
+    shock : tuple
+        shock in period 0 as in `(shock_name_as_str, shock_size)`
     T : int, optional
         number of periods to simulate
     init_path : array, optional
@@ -126,7 +128,7 @@ def find_path(
     x_fin[0] = list(x0) if x0 is not None else stst
 
     x = np.ones((T + max_horizon + 1, nvars)) * stst
-    x[0] = list(x0)
+    x[0] = x_fin[0]
 
     x, x_lin = find_path_linear(model, shock, T + max_horizon, x, use_linear_guess)
     x_lin = x_lin[: T + 1] if x_lin is not None else None
@@ -153,7 +155,7 @@ def find_path(
 
                 for t in range(imax):
 
-                    if not t and shock is not None:
+                    if not t and not i and shock is not None:
                         tshock[shocks.index(shock[0])] = shock[1]
                     else:
                         tshock[:] = 0
@@ -220,14 +222,14 @@ def find_path(
 
 def find_path_stacked(
     model,
-    x0,
+    x0=None,
     shock=None,
     init_path=None,
     horizon=50,
     tol=None,
     use_numba=False,
     use_linear_guess=False,
-    use_linear_endpoint=False,
+    use_linear_endpoint=None,
     root_options={},
     verbose=True,
 ):
@@ -255,6 +257,12 @@ def find_path_stacked(
     x[0] = x0
 
     x_init, x_lin = find_path_linear(model, shock, horizon, x, use_linear_guess)
+
+    if use_linear_endpoint is None:
+        use_linear_endpoint = False if x_lin is None else True
+    elif use_linear_endpoint and x_lin is None:
+        print("Cannot use linear solution for the endpoint")
+        use_linear_endpoint = False
 
     if init_path is not None:
         x_init[1 : len(init_path)] = init_path[1:]
@@ -292,4 +300,4 @@ def find_path_stacked(
         duration = np.round(time.time() - st, 3)
         print("Stacking done after %s seconds. " % duration + mess)
 
-    return x, x_lin, res["success"]
+    return x, x_lin, not res["success"]

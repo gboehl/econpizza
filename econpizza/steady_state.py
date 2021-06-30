@@ -13,15 +13,8 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
     evars = model["variables"]
     func = model["func"]
     par = np.array(list(model["parameters"].values()))
-    inits = model["steady_state"].get("init_guesses")
     shocks = model.get("shocks") or ()
-
-    stst = model["steady_state"].get("fixed_values")
-    for k in stst:
-        if isinstance(stst[k], str):
-            stst[k] = eval(stst[k])
-
-    model["stst"] = stst
+    stst = model["stst"]
 
     # draw a random sequence and hope that its columns are linearly independent
     np.random.seed(0)
@@ -34,16 +27,8 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
 
         return func(x, x, x, x, np.zeros(len(shocks)), par) + shifter @ corr
 
-    init = np.ones(len(evars)) * 1.1
-
-    if isinstance(inits, dict):
-        for v in inits:
-            init[evars.index(v)] = inits[v]
-
-    for v in stst:
-        init[evars.index(v)] = stst[v]
-
-    res = so.root(func_stst, init)
+    # find stst
+    res = so.root(func_stst, model["init"])
     err = np.abs(func_stst(res["x"])).max()
 
     if err > tol:
@@ -130,7 +115,7 @@ def solve_linear(
     try:
         from grgrlib import klein
 
-        _, lam = klein(P, M, len(stst) + nshc)
+        _, lam = klein(P, M, len(stst) + nshc, verbose=verbose - 1)
         model["lin_pol"] = -lam[:-nshc, :-nshc], -lam[:-nshc, -nshc:]
         mess = "All eigenvalues are good"
 
@@ -142,7 +127,7 @@ def solve_linear(
         if raise_error:
             raise error
         else:
-            mess = str(error)
+            mess = str(error).strip()
             if mess[-1] == ".":
                 mess = mess[:-1]
 

@@ -3,13 +3,28 @@
 
 import yaml
 import re
+import os
+import tempfile
 import numpy as np
 from numpy import log, exp, sqrt
 from numba import njit
 from .steady_state import solve_stst, solve_linear
 
 
+def eval_strs(vdict):
+
+    if vdict is None:
+        return None
+
+    for v in vdict:
+        if isinstance(vdict[v], str):
+            vdict[v] = eval(vdict[v])
+
+    return vdict
+
+
 def parse(mfile, raise_errors=True, verbose=True):
+    """parse yaml file. Warning: contains filthy code (eg. globals, exec, ...)"""
 
     f = open(mfile)
     mtxt = f.read()
@@ -26,8 +41,13 @@ def parse(mfile, raise_errors=True, verbose=True):
 
     evars = model["variables"]
     shocks = model.get("shocks") or ()
-    par = model["parameters"]
+    par = eval_strs(model["parameters"])
     eqns = model["equations"]
+
+    initvals = model["steady_state"].get("init_guesses")
+    stst = eval_strs(model["steady_state"].get("fixed_values"))
+
+    model["stst"] = stst
 
     if len(evars) != len(eqns):
         raise Exception(
@@ -42,9 +62,9 @@ def parse(mfile, raise_errors=True, verbose=True):
     for i, eqn in enumerate(eqns):
         if "=" in eqn:
             lhs, rhs = eqn.split("=")
-            eqns[i] = "F[%s] = " % i + lhs + "- (" + rhs + ")"
+            eqns[i] = "root_container[%s] = " % i + lhs + "- (" + rhs + ")"
         else:
-            eqns[i] = "F[%s] = " % i + eqn
+            eqns[i] = "root_container[%s] = " % i + eqn
 
     eqns_aux = model.get("aux_equations")
 
@@ -55,7 +75,7 @@ def parse(mfile, raise_errors=True, verbose=True):
     else:
         shock_str = shocks[0] + " = shocks[0]"
 
-    func_str = """def func_raw(XLag, X, XPrime, XSS, shocks, pars):\n %s\n %s\n %s\n %s\n %s\n %s\n F=np.empty(%s)\n %s\n %s\n return F""" % (
+    func_str = """def func_raw(XLag, X, XPrime, XSS, shocks, pars):\n %s\n %s\n %s\n %s\n %s\n %s\n root_container=np.empty(%s)\n %s\n %s\n return root_container""" % (
         ", ".join(v + "Lag" for v in evars) + " = XLag",
         ", ".join(evars) + " = X",
         ", ".join(v + "Prime" for v in evars) + " = XPrime",
@@ -67,15 +87,32 @@ def parse(mfile, raise_errors=True, verbose=True):
         "\n ".join(eqns),
     )
 
-    try:
-        exec(func_str, globals())
-        func = njit(func_raw)
-    except Exception as error:
-        raise type(error)(
-            str(error)
-            + "\n\n This is the transition function as I tried to compile it:\n\n"
-            + func_str
-        )
+    # get inital values to test the function
+    init = np.ones(len(evars)) * 1.1
+
+    if isinstance(init, dict):
+        for v in initvals:
+            init[evars.index(v)] = initvals[v]
+
+    for v in stst:
+        init[evars.index(v)] = stst[v]
+
+    model["init"] = init
+
+    # use a termporary file to get nice debug traces if things go wrong
+    tmpf = tempfile.NamedTemporaryFile(mode="w", delete=False)
+
+    tmpf.write(func_str)
+    tmpf.close()
+
+    exec(compile(open(tmpf.name).read(), tmpf.name, "exec"), globals())
+
+    # try if function works on initvals. If it does, jit-compile it and remove tempfile
+    func_raw(
+        init, init, init, init, np.zeros(len(shocks)), np.array(list(par.values()))
+    )
+    func = njit(func_raw)
+    os.unlink(tmpf.name)
 
     model["func"] = func
     model["func_str"] = func_str

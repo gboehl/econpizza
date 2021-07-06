@@ -58,6 +58,15 @@ def parse(mfile, raise_errors=True, verbose=True):
     model["no_fwd"] = sum(var + "Prime" in "".join(model["equations"]) for var in evars)
     model["no_bwd"] = sum(var + "Lag" in "".join(model["equations"]) for var in evars)
 
+    # check if each variable is defined in time t (only defining xSS does not give a valid root)
+    for v in evars:
+        v_in_eqns = [
+            v in e.replace(v + "SS", "").replace(v + "Lag", "").replace(v + "Prime", "")
+            for e in eqns
+        ]
+        if not np.any(v_in_eqns):
+            raise Exception("Variable `%s` is not defined for time t." % v)
+
     # start compiling F
     for i, eqn in enumerate(eqns):
         if "=" in eqn:

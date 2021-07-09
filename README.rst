@@ -16,7 +16,7 @@ We iterate on the expected trajectory itself instead of the policy function. We 
    d f(x_{t-1}, x_t, x_{t+1} ) < d x_{t-1},
    d f(x_{t-1}, x_t, x_{t+1} ) < d x_{t+1}.
    
-This is also the weakness of the method: not every DSGE model is such backward-and-forward contraction. In most cases the algorithm converges anyways, but convergence is not guaranteed.
+This is also the weakness of the method: not every DSGE model that is determined in the Blanchard-Kahn sense is automagically such backward-and-forward contraction. In most cases the algorithm converges anyways, but convergence is not guaranteed.
 
 The code is in alpha state and provided for reasons of collaboration, replicability and code sharing in the spirit of open science. You are welcome to get in touch if you are interested working with the package.
 
@@ -25,7 +25,7 @@ Documentation
 -------
 
 There is no formal documentation (yet). Check
-`this documentation <https://pydsge.readthedocs.io/en/latest/installation_guide.html>`_ for easy-going installation instructions (using `econpizza` instead of `pydsge`). The package optionally depends on the `grgrlib` package to check for determinancy, so maybe also install that one since you are already at it.
+`this documentation <https://pydsge.readthedocs.io/en/latest/installation_guide.html>`_ for easy-going *installation* instructions (using `econpizza` instead of `pydsge`). The package optionally depends on the `grgrlib` package to check for determinancy, so maybe also install that one since you are already at it.
 
 An small-scale nonlinear New Keynesian model with ZLB is provided `as an example <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_. Here is how to simulate it and plot some nonlinear impulse responses:
 

@@ -128,7 +128,7 @@ def parse(mfile, raise_errors=True, verbose=True):
     model["root_options"] = {}
 
     if verbose:
-        print("Parsing done.")
+        print("(parse:) Parsing done.")
 
     solve_stst(model, raise_error=raise_errors, verbose=verbose)
     solve_linear(model, raise_error=raise_errors, verbose=verbose)

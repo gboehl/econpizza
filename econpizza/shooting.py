@@ -183,7 +183,7 @@ def find_path(
                 if verbose and clock - old_clock > 0.5:
                     old_clock = clock
                     print(
-                        "Period{:>4d} | loop{:>5d} | iter.{:>5d} | flag{:>2d} | error: {:>1.8e}".format(
+                        "   Period{:>4d} | loop{:>5d} | iter.{:>5d} | flag{:>2d} | error: {:>1.8e}".format(
                             i, loop, cnt, 2 ** np.arange(5) @ fin_flag, err
                         )
                     )
@@ -215,7 +215,7 @@ def find_path(
 
     if verbose:
         duration = np.round(time.time() - st, 3)
-        print("Pizza done after %s seconds%s." % (duration, "".join(mess)))
+        print("(find_path:) Pizza done after %s seconds%s." % (duration, "".join(mess)))
 
     return x_fin, x_lin, fin_flag
 
@@ -249,7 +249,9 @@ def find_path_stacked(
         if tol is None:
             tol = 1e-5
         elif "xtol" in root_options:
-            print("Specification of xtol in `root_options` overwrites `tol`")
+            print(
+                "(find_path:) Specification of xtol in `root_options` overwrites `tol`"
+            )
         model["root_options"]["xtol"] = tol
 
     x0 = np.array(list(x0)) if x0 is not None else stst
@@ -261,7 +263,7 @@ def find_path_stacked(
     if use_linear_endpoint is None:
         use_linear_endpoint = False if x_lin is None else True
     elif use_linear_endpoint and x_lin is None:
-        print("Cannot use linear solution for the endpoint")
+        print("(find_path_stacked:) Cannot use linear solution for the endpoint")
         use_linear_endpoint = False
 
     if init_path is not None:
@@ -298,6 +300,6 @@ def find_path_stacked(
 
     if verbose:
         duration = np.round(time.time() - st, 3)
-        print("Stacking done after %s seconds. " % duration + mess)
+        print("(find_path_stacked:) Stacking done after %s seconds. " % duration + mess)
 
     return x, x_lin, not res["success"]

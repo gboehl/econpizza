@@ -1,7 +1,6 @@
 #!/bin/python
 # -*- coding: utf-8 -*-
 
-import warnings
 import numpy as np
 import scipy.optimize as so
 from scipy.linalg import block_diag
@@ -16,13 +15,15 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
     shocks = model.get("shocks") or ()
     stst = model["stst"]
 
-    # draw a random sequence and hope that its columns are linearly independent
+    # draw a random sequence and ensure that its columns are linearly independent
     np.random.seed(0)
-    shifter = np.random.normal(size=(len(evars), len(stst)))
+    shifter_rand = np.random.normal(size=(len(evars), len(stst)))
+    svd_u, _, svd_v = np.linalg.svd(shifter_rand, full_matrices=False)
+    shifter = svd_u @ svd_v
 
     def func_stst(x):
 
-        # use the random sequence to force root finding to set st.st values
+        # use the random sequence to force root finding to set fixed st.st values
         corr = [x[evars.index(v)] - stst[v] for i, v in enumerate(stst)]
 
         return func(x, x, x, x, np.zeros(len(shocks)), par) + shifter @ corr
@@ -35,13 +36,16 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
         if raise_error:
             print(res)
             raise Exception(
-                "Steady state not found (error is %1.2e). See the root finding result above. Be aware that the root finding report might be missleading because fixed st.st. values are overwriting the guess."
-                % err
+                "Steady state not found (error is %1.2e). %s See the root finding result above."
+                % (err, res["message"])
             )
         else:
-            warnings.warn("Steady state not found", RuntimeWarning)
+            print(
+                "(solve_stst:) Steady state not found (error is %1.2e). %s"
+                % (err, " ".join(res["message"].replace("\n", " ").split()))
+            )
     elif verbose:
-        print("Steady state found.")
+        print("(solve_stst:) Steady state found.")
 
     rdict = dict(zip(evars, res["x"]))
     model["stst"] = rdict
@@ -157,6 +161,6 @@ def solve_linear(
             )
 
     if mess and verbose:
-        print(mess + ".")
+        print("(solve_linear:) " + mess + ".")
 
     return success

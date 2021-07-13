@@ -26,23 +26,24 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
         # use the random sequence to force root finding to set fixed st.st values
         corr = [x[evars.index(v)] - stst[v] for i, v in enumerate(stst)]
 
-        return func(x, x, x, x, np.zeros(len(shocks)), par) + shifter @ corr
+        return func(x, x, x, x, np.zeros(len(shocks)), par, True) + shifter @ corr
 
     # find stst
     res = so.root(func_stst, model["init"])
     err = np.abs(func_stst(res["x"])).max()
+    mess = " ".join(res["message"].replace("\n", " ").split())
 
     if err > tol:
         if raise_error:
             print(res)
             raise Exception(
                 "Steady state not found (error is %1.2e). %s See the root finding result above."
-                % (err, res["message"])
+                % (err, mess)
             )
         else:
             print(
                 "(solve_stst:) Steady state not found (error is %1.2e). %s"
-                % (err, " ".join(res["message"].replace("\n", " ").split()))
+                % (err, mess)
             )
     elif verbose:
         print("(solve_stst:) Steady state found.")
@@ -85,16 +86,13 @@ def solve_linear(
     fx = func(x, x, x, x, np.zeros(nshc), par)
 
     for i in range(len(evars)):
-        X = x.copy()
 
-        if np.isclose(x[i], 0):
-            X[i] += eps
-        else:
-            X[i] *= 1 + eps
+        xerr = x.copy()
+        xerr[i] -= eps
 
-        CC[:, i] = (func(X, x, x, x, zshock, par) - fx) / eps
-        BB[:, i] = (func(x, X, x, x, zshock, par) - fx) / eps
-        AA[:, i] = (func(x, x, X, x, zshock, par) - fx) / eps
+        AA[:, i] = (func(x, x, xerr, x, zshock, par) - fx) * x[i] / eps
+        BB[:, i] = (func(x, xerr, x, x, zshock, par) - fx) * x[i] / eps
+        CC[:, i] = (func(xerr, x, x, x, zshock, par) - fx) * x[i] / eps
 
     for i in range(len(shocks)):
         cshock = zshock.copy()
@@ -161,6 +159,6 @@ def solve_linear(
             )
 
     if mess and verbose:
-        print("(solve_linear:) " + mess + ".")
+        print("(solve_linear:) " + mess + ("" if mess[-1] in ".?!" else "."))
 
     return success

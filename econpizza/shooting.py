@@ -296,7 +296,7 @@ def find_path_stacked(
 
     x[1:-1] = res["x"].reshape((horizon - 1, nvars))
 
-    mess = res["message"]
+    mess = " ".join(res["message"].replace("\n", " ").split())
 
     if verbose:
         duration = np.round(time.time() - st, 3)

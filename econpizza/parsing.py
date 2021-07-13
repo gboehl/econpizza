@@ -76,6 +76,7 @@ def parse(mfile, raise_errors=True, verbose=True):
             eqns[i] = "root_container[%s] = " % i + eqn
 
     eqns_aux = model.get("aux_equations")
+    stst_eqns_aux = model.get("steady_state_aux_equations")
 
     if not shocks:
         shock_str = ""
@@ -84,7 +85,7 @@ def parse(mfile, raise_errors=True, verbose=True):
     else:
         shock_str = shocks[0] + " = shocks[0]"
 
-    func_str = """def func_raw(XLag, X, XPrime, XSS, shocks, pars):\n %s\n %s\n %s\n %s\n %s\n %s\n root_container=np.empty(%s)\n %s\n %s\n return root_container""" % (
+    func_str = """def func_raw(XLag, X, XPrime, XSS, shocks, pars, stst=False):\n %s\n %s\n %s\n %s\n %s\n %s\n root_container=np.empty(%s)\n %s\n %s\n %s\n return root_container""" % (
         ", ".join(v + "Lag" for v in evars) + " = XLag",
         ", ".join(evars) + " = X",
         ", ".join(v + "Prime" for v in evars) + " = XPrime",
@@ -92,6 +93,7 @@ def parse(mfile, raise_errors=True, verbose=True):
         shock_str,
         ", ".join(par.keys()) + " = pars",
         str(len(evars)),
+        "if stst:\n  " + "\n  ".join(stst_eqns_aux) if stst_eqns_aux else "",
         "\n ".join(eqns_aux) if eqns_aux else "",
         "\n ".join(eqns),
     )
@@ -117,9 +119,14 @@ def parse(mfile, raise_errors=True, verbose=True):
     exec(compile(open(tmpf.name).read(), tmpf.name, "exec"), globals())
 
     # try if function works on initvals. If it does, jit-compile it and remove tempfile
-    func_raw(
+    test = func_raw(
         init, init, init, init, np.zeros(len(shocks)), np.array(list(par.values()))
     )
+    if np.isnan(test).any():
+        raise Exception("Initial values are NaN.")
+    if np.isinf(test).any():
+        raise Exception("Initial values are not finite.")
+
     func = njit(func_raw)
     os.unlink(tmpf.name)
 

@@ -34,11 +34,11 @@ An small-scale nonlinear New Keynesian model with ZLB is provided `as an example
 
     import numpy as np
     import matplotlib.pyplot as plt
-    from econpizza import *
+    import econpizza as ep
 
     # load the example. The steady state is automatically solved for
     # example_nk is nothing else but the path to the yaml, hence you could also use `filename = 'path_to/model.yaml'`
-    mod = parse(example_nk)
+    mod = ep.load(example_nk)
 
     # get the steady state as an initial state
     state = mod['stst'].copy()
@@ -46,7 +46,7 @@ An small-scale nonlinear New Keynesian model with ZLB is provided `as an example
     state['beta'] *= 1.02
 
     # simulate the model
-    x, _, flag = find_path(mod, state.values())
+    x, _, flag = ep.find_path(mod, state.values())
 
     # plotting
     for i,v in enumerate(mod['variables']):
@@ -71,17 +71,17 @@ Lets go for a second, numerically more challenging example: the chaotic rational
 
     import numpy as np
     import matplotlib.pyplot as plt
-    from econpizza import *
+    import econpizza as ep
 
     # parse the yaml
-    mod = parse(example_bh)
+    mod = ep.load(example_bh)
 
     # choose an interesting initial state
     state = np.zeros(len(mod['variables']))
     state[:-1] = [.1, .2, 0.]
 
     # solve and simulate. The lower eps is not actually necessary
-    x, _, flag = find_path(mod, state, T=1000, max_horizon=1000, tol=1e-8)
+    x, _, flag = ep.find_path(mod, state, T=1000, max_horizon=1000, tol=1e-8)
 
     # plotting
     for i,v in enumerate(mod['variables']):
@@ -102,16 +102,16 @@ Finally the package also provides a stacking algorithm for all those problems th
 
     import numpy as np
     import matplotlib.pyplot as plt
-    from econpizza import * 
+    import econpizza as ep 
 
     # use the NK model again
-    mod = parse(example_nk)
+    mod = ep.load(example_nk)
 
     # increase the discount factor by .02 (this is NOT percentage deviation!)
     shk = ('e_beta', .02)
 
     # use the stacking method. As above, you could also feed in the initial state instead
-    x, x_lin, flag = find_path_stacked(mod, shock=shk)
+    x, x_lin, flag = ep.find_path_stacked(mod, shock=shk)
 
     # plotting. x_lin is the linearized first-order solution 
     for i,v in enumerate(mod['variables']):

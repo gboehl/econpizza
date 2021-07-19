@@ -76,7 +76,8 @@ Lets go for a second, numerically more challenging example: the chaotic rational
     from econpizza import example_bh
 
     # parse the yaml
-    mod = ep.load(example_bh)
+    mod = ep.load(example_bh, raise_errors=False)
+    # B-K conditions will complain because the model is not determined around the steady state. This is not a problem
 
     # choose an interesting initial state
     state = np.zeros(len(mod['variables']))

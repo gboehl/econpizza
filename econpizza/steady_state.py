@@ -34,7 +34,7 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
     mess = " ".join(res["message"].replace("\n", " ").split())
 
     if err > tol:
-        if raise_error:
+        if raise_error and not res["success"]:
             print(res)
             raise Exception(
                 "Steady state not found (error is %1.2e). %s See the root finding result above."

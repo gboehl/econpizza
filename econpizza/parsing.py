@@ -23,8 +23,8 @@ def eval_strs(vdict):
     return vdict
 
 
-def parse(mfile, raise_errors=True, verbose=True):
-    """parse yaml file. Warning: contains filthy code (eg. globals, exec, ...)"""
+def parse(mfile):
+    """parse from yaml file"""
 
     f = open(mfile)
     mtxt = f.read()
@@ -32,7 +32,21 @@ def parse(mfile, raise_errors=True, verbose=True):
 
     mtxt = mtxt.replace("^", "**")
     mtxt = re.sub(r"@ ?\n", " ", mtxt)
+
+    # get dict
     model = yaml.safe_load(mtxt)
+    # create nice shortcuts
+    model["pars"] = model["parameters"]
+    model["vars"] = model["variables"]
+
+    return model
+
+
+def load(model, raise_errors=True, verbose=True):
+    """load model from dict or yaml file. Warning: contains filthy code (eg. globals, exec, ...)"""
+
+    if isinstance(model, str):
+        model = parse(model)
 
     defs = model.get("definitions")
     if defs is not None:
@@ -40,6 +54,15 @@ def parse(mfile, raise_errors=True, verbose=True):
             exec(d, globals())
 
     evars = model["variables"]
+    dubs = [x for i, x in enumerate(evars) if x in evars[:i]]
+    if dubs:
+        print(
+            "(parse:) Warning, variables list contains dublicate(s): %s"
+            % ", ".join(dubs)
+        )
+
+    evars = model["variables"] = sorted(list(set(evars)), key=str.lower)
+
     shocks = model.get("shocks") or ()
     par = eval_strs(model["parameters"])
     eqns = model["equations"]
@@ -101,7 +124,7 @@ def parse(mfile, raise_errors=True, verbose=True):
     # get inital values to test the function
     init = np.ones(len(evars)) * 1.1
 
-    if isinstance(init, dict):
+    if isinstance(initvals, dict):
         for v in initvals:
             init[evars.index(v)] = initvals[v]
 

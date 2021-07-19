@@ -8,7 +8,7 @@ import scipy.optimize as so
 from numba import njit
 
 
-def solve_current(model, shock, XLag, XPrime, tol):
+def solve_current(model, shock, XLag, XLastGuess, XPrime, tol):
 
     func = model["func"]
     pars = np.array(list(model["parameters"].values()))
@@ -16,7 +16,7 @@ def solve_current(model, shock, XLag, XPrime, tol):
 
     func_current = lambda x: func(XLag, x, XPrime, stst, shock, pars)
 
-    res = so.root(func_current, XPrime, options=model["root_options"])
+    res = so.root(func_current, XLastGuess, options=model["root_options"])
     err = np.max(np.abs(func_current(res["x"])))
 
     return res["x"], not res["success"], err > tol
@@ -122,7 +122,7 @@ def find_path(
 
     # precision of root finding should be some magnitudes higher than of solver
     if "xtol" not in model["root_options"]:
-        model["root_options"]["xtol"] = max(tol * 1e-3, 1e-8)
+        model["root_options"]["xtol"] = min(tol / max_horizon, 1e-8)
 
     x_fin = np.empty((T + 1, nvars))
     x_fin[0] = list(x0) if x0 is not None else stst
@@ -146,12 +146,14 @@ def find_path(
 
             loop = 1
             cnt = 2
-            flag = np.zeros(5, dtype=bool)
+            flag = np.zeros_like(fin_flag)
 
             while True:
 
                 x_old = x[1].copy()
                 imax = min(cnt, max_horizon)
+
+                flag_loc = np.zeros(2, dtype=bool)
 
                 for t in range(imax):
 
@@ -161,11 +163,12 @@ def find_path(
                         tshock[:] = 0
 
                     x[t + 1], flag_root, flag_ftol = solve_current(
-                        model, tshock, x[t], x[t + 2], tol
+                        model, tshock, x[t], x[t + 1], x[t + 2], tol
                     )
 
-                flag[0] |= flag_root
-                flag[1] |= not flag_root and flag_ftol
+                    flag_loc[0] |= flag_root
+                    flag_loc[1] |= flag_ftol
+
                 flag[2] |= np.any(np.isnan(x))
                 flag[3] |= np.any(np.isinf(x))
 
@@ -176,7 +179,6 @@ def find_path(
                     else:
                         flag[4] |= True
 
-                fin_flag |= flag
                 err = np.abs(x_old - x[1]).max()
 
                 clock = time.time()
@@ -189,6 +191,9 @@ def find_path(
                     )
 
                 if (err < tol and cnt > 2) or flag.any():
+                    flag[:2] |= flag_loc
+                    fin_flag |= flag
+
                     break
 
                 cnt += 1

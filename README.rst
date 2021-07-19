@@ -35,6 +35,7 @@ An small-scale nonlinear New Keynesian model with ZLB is provided `as an example
     import numpy as np
     import matplotlib.pyplot as plt
     import econpizza as ep
+    from econpizza import example_nk
 
     # load the example. The steady state is automatically solved for
     # example_nk is nothing else but the path to the yaml, hence you could also use `filename = 'path_to/model.yaml'`
@@ -72,6 +73,7 @@ Lets go for a second, numerically more challenging example: the chaotic rational
     import numpy as np
     import matplotlib.pyplot as plt
     import econpizza as ep
+    from econpizza import example_bh
 
     # parse the yaml
     mod = ep.load(example_bh)
@@ -103,6 +105,8 @@ Finally the package also provides a stacking algorithm for all those problems th
     import numpy as np
     import matplotlib.pyplot as plt
     import econpizza as ep 
+    from econpizza import example_nk
+    
 
     # use the NK model again
     mod = ep.load(example_nk)

@@ -66,6 +66,7 @@ def find_path(
     tol=1e-5,
     use_linear_guess=False,
     root_options={},
+    raise_error=False,
     verbose=True,
 ):
     """Find the expected trajectory given an initial state. A good strategy is to first set `tol` to a low value (e.g. 1e-3) and check for a good max_horizon. Then, set max_horizon to a reasonable value and let max_loops be high.
@@ -141,6 +142,14 @@ def find_path(
     fin_flag = np.zeros(5, dtype=bool)
     old_clock = time.time()
 
+    msgs = (
+        ", root finding did not converge",
+        ", ftol not reached in root finding",
+        ", contains NaNs",
+        ", contains infs",
+        ", max_iter reached",
+    )
+
     try:
         for i in range(T):
 
@@ -167,7 +176,7 @@ def find_path(
                     )
 
                     flag_loc[0] |= flag_root
-                    flag_loc[1] |= flag_ftol
+                    flag_loc[1] |= flag_ftol and not flag_root
 
                 flag[2] |= np.any(np.isnan(x))
                 flag[3] |= np.any(np.isinf(x))
@@ -185,15 +194,17 @@ def find_path(
                 if verbose and clock - old_clock > 0.5:
                     old_clock = clock
                     print(
-                        "   Period{:>4d} | loop{:>5d} | iter.{:>5d} | flag{:>2d} | error: {:>1.8e}".format(
+                        "   Period{:>4d} | loop{:>5d} | iter.{:>5d} | flag{:>3d} | error: {:>1.8e}".format(
                             i, loop, cnt, 2 ** np.arange(5) @ fin_flag, err
                         )
                     )
 
                 if (err < tol and cnt > 2) or flag.any():
                     flag[:2] |= flag_loc
+                    if raise_error and flag.any():
+                        mess = [i * bool(j) for i, j in zip(msgs, flag)]
+                        raise Exception("Aborting%s" % "".join(mess))
                     fin_flag |= flag
-
                     break
 
                 cnt += 1
@@ -204,17 +215,10 @@ def find_path(
     except Exception as error:
         raise type(error)(
             str(error)
-            + " (raised in t=%s at iteration no. %s for forecast %s steps ahead)"
-            % (i, cnt, t)
+            + " (raised in period %s during loop %s for forecast %s steps ahead)"
+            % (i, loop, t)
         ).with_traceback(sys.exc_info()[2])
 
-    msgs = (
-        ", non-convergence in root finding",
-        ", ftol not reached in root finding",
-        ", contains NaNs",
-        ", contains infs",
-        ", max_iter reached",
-    )
     mess = [i * bool(j) for i, j in zip(msgs, fin_flag)]
     fin_flag = 2 ** np.arange(5) @ fin_flag
 

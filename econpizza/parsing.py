@@ -55,27 +55,27 @@ def load(model, raise_errors=True, verbose=True):
 
     evars = model["variables"]
     dubs = [x for i, x in enumerate(evars) if x in evars[:i]]
-    if dubs:
-        print(
-            "(parse:) Warning, variables list contains dublicate(s): %s"
-            % ", ".join(dubs)
-        )
+    dubmess = (
+        ", variables list contains dublicate(s): %s" % ", ".join(dubs) if dubs else ""
+    )
 
     evars = model["variables"] = sorted(list(set(evars)), key=str.lower)
-
-    shocks = model.get("shocks") or ()
-    par = eval_strs(model["parameters"])
     eqns = model["equations"]
-
-    initvals = model["steady_state"].get("init_guesses")
-    stst = eval_strs(model["steady_state"].get("fixed_values"))
-
-    model["stst"] = stst
 
     if len(evars) != len(eqns):
         raise Exception(
-            "Model has %s variables but %s equations." % (len(evars), len(eqns))
+            "Model has %s variables but %s equations%s."
+            % (len(evars), len(eqns), dubmess)
         )
+    elif dubs:
+        print("(parse:) Warning%s" % dubmess)
+
+    shocks = model.get("shocks") or ()
+    par = eval_strs(model["parameters"])
+
+    initvals = model["steady_state"].get("init_guesses")
+    stst = eval_strs(model["steady_state"].get("fixed_values"))
+    model["stst"] = stst
 
     # collect number of foward and backward looking variables
     model["no_fwd"] = sum(var + "Prime" in "".join(model["equations"]) for var in evars)

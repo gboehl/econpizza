@@ -59,7 +59,7 @@ def load(model, raise_errors=True, verbose=True):
         ", variables list contains dublicate(s): %s" % ", ".join(dubs) if dubs else ""
     )
 
-    evars = model["variables"] = sorted(list(set(evars)), key=str.lower)
+    evars = model["variables"][:] = sorted(list(set(evars)), key=str.lower)
     eqns = model["equations"]
 
     if len(evars) != len(eqns):

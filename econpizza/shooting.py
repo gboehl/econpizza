@@ -219,6 +219,7 @@ def find_path(
             % (i, loop, t)
         ).with_traceback(sys.exc_info()[2])
 
+    fin_flag[1] &= not fin_flag[0]
     mess = [i * bool(j) for i, j in zip(msgs, fin_flag)]
     fin_flag = 2 ** np.arange(5) @ fin_flag
 

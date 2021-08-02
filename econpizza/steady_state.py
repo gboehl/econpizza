@@ -14,19 +14,21 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
     par = np.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
     stst = model["stst"]
+    stst_np = np.array(list(stst.values()))
 
     # create a sequence and ensure that its columns are linearly independent
     shifter_rand = np.arange(len(evars) * len(stst)).reshape(len(evars), len(stst))
     svd_u, _, svd_v = np.linalg.svd(shifter_rand, full_matrices=False)
     shifter = svd_u @ svd_v
 
+    corr = np.ones_like(stst_np)
+    corr_ind = [list(stst.keys()).index(v) for v in evars if bool(stst.get(v))]
+    x_ind = [evars.index(v) for v in evars if bool(stst.get(v))]
+
     def func_stst(x):
 
         # use the sequence to force root finding to set fixed st.st values
-        corr = [
-            (x[evars.index(v)] - stst[v]) / (stst[v] if stst[v] else 1)
-            for i, v in enumerate(stst)
-        ]
+        corr[corr_ind] = x[x_ind] / stst_np[corr_ind] - 1
 
         return func(x, x, x, x, np.zeros(len(shocks)), par, True) + shifter @ corr
 

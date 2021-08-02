@@ -60,7 +60,7 @@ def load(model, raise_errors=True, verbose=True):
     )
 
     evars = model["variables"][:] = sorted(list(set(evars)), key=str.lower)
-    eqns = model["equations"]
+    eqns = model["equations"].copy()
 
     if len(evars) != len(eqns):
         raise Exception(
@@ -90,7 +90,7 @@ def load(model, raise_errors=True, verbose=True):
         if not np.any(v_in_eqns):
             raise Exception("Variable `%s` is not defined for time t." % v)
 
-    # start compiling F
+    # start compiling root_container
     for i, eqn in enumerate(eqns):
         if "=" in eqn:
             lhs, rhs = eqn.split("=")

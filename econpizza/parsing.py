@@ -6,9 +6,15 @@ import re
 import os
 import tempfile
 import numpy as np
+import cloudpickle as cpickle
+from copy import deepcopy
 from numpy import log, exp, sqrt
 from numba import njit
 from .steady_state import solve_stst, solve_linear
+
+# initialize model cache
+cached_mdicts = ()
+cached_models = ()
 
 
 def eval_strs(vdict):
@@ -45,8 +51,17 @@ def parse(mfile):
 def load(model, raise_errors=True, verbose=True):
     """load model from dict or yaml file. Warning: contains filthy code (eg. globals, exec, ...)"""
 
+    global cached_mdicts, cached_models
+
     if isinstance(model, str):
         model = parse(model)
+
+    if model in cached_mdicts:
+        model = cpickle.loads(cached_models[cached_mdicts.index(model)])
+        print("(parse:) Loading cached model.")
+        return model
+
+    mdict_raw = deepcopy(model)
 
     defs = model.get("definitions")
     if defs is not None:
@@ -162,5 +177,8 @@ def load(model, raise_errors=True, verbose=True):
 
     solve_stst(model, raise_error=raise_errors, verbose=verbose)
     solve_linear(model, raise_error=raise_errors, verbose=verbose)
+
+    cached_mdicts += (mdict_raw,)
+    cached_models += (cpickle.dumps(model, protocol=4),)
 
     return model

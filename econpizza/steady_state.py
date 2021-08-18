@@ -7,7 +7,7 @@ from scipy.linalg import block_diag
 from .shooting import solve_current
 
 
-def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
+def solve_stst(model, raise_error=True, method=None, tol=1e-8, verbose=True):
 
     evars = model["variables"]
     func = model["func"]
@@ -15,27 +15,57 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
     shocks = model.get("shocks") or ()
     stst = model["stst"]
     stst_np = np.array(list(stst.values()))
+    method = method or model["steady_state"].get("method")
 
-    # create a sequence and ensure that its columns are linearly independent
-    shifter_rand = np.arange(len(evars) * len(stst)).reshape(len(evars), len(stst))
-    svd_u, _, svd_v = np.linalg.svd(shifter_rand, full_matrices=False)
-    shifter = svd_u @ svd_v
+    if method not in ("reduction", "aux_function", None):
+        raise NotImplementedError(
+            "Steady state method must either be 'aux_function' or 'reduction' or `None`."
+        )
 
-    corr = np.ones_like(stst_np)
-    corr_ind = [list(stst.keys()).index(v) for v in evars if bool(stst.get(v))]
-    x_ind = [evars.index(v) for v in evars if bool(stst.get(v))]
+    if method in ("aux_function", None):
 
-    def func_stst(x):
+        # create a sequence and ensure that its columns are linearly independent
+        shifter_rand = np.arange(len(evars) * len(stst)).reshape(len(evars), len(stst))
+        svd_u, _, svd_v = np.linalg.svd(shifter_rand, full_matrices=False)
+        shifter = svd_u @ svd_v
+        x_ind = np.array([evars.index(v) for v in stst.keys()])
 
-        # use the sequence to force root finding to set fixed st.st values
-        corr[corr_ind] = x[x_ind] / stst_np[corr_ind] - 1
+        stst_no_zero = stst_np.copy()
+        stst_no_zero[np.isclose(stst_np, 0)] = 1
 
-        return func(x, x, x, x, np.zeros(len(shocks)), par, True) + shifter @ corr
+        def func_stst(x):
 
-    # find stst
-    res = so.root(func_stst, model["init"])
-    err = np.abs(func_stst(res["x"])).max()
-    mess = " ".join(res["message"].replace("\n", " ").split())
+            # use the sequence to force root finding to set fixed st.st values
+            corr = (x[x_ind] - stst_np) / stst_no_zero
+
+            return func(x, x, x, x, np.zeros(len(shocks)), par, True) + shifter @ corr
+
+        # find stst
+        res = so.root(func_stst, model["init"])
+        err = np.abs(func_stst(res["x"])).max()
+        mess = " ".join(res["message"].replace("\n", " ").split())
+
+    if method == "reduction":
+
+        # create a sequence and ensure that its columns are linearly independent
+        shifter_rand = np.ones((len(evars) - len(stst), len(evars)))
+        svd_u, _, svd_v = np.linalg.svd(shifter_rand, full_matrices=False)
+        shifter = svd_u @ svd_v
+
+        x_ind = np.array([stst.get(v) is not None for v in evars])
+        x = np.empty(len(evars))
+
+        def func_stst(x_guess):
+
+            x[x_ind] = stst_np
+            x[~x_ind] = x_guess
+
+            return shifter @ func(x, x, x, x, np.zeros(len(shocks)), par, True)
+
+        # find stst
+        res = so.root(func_stst, model["init"][~x_ind])
+        err = np.abs(func_stst(res["x"])).max()
+        mess = " ".join(res["message"].replace("\n", " ").split())
 
     if err > tol:
         if raise_error and not res["success"]:

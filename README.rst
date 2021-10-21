@@ -2,30 +2,40 @@
 econpizza
 =========
 
-Contains simple tools to simulate perfect foresight models. The method is similar to the one introduced in Boehl & Hommes (2021), where we use it to solve for chaotic asset price dynamics. It can be understood as a policy function iteration where the initial state is the only fixed grid point and all other grid points are chosen endogenously (as in a "reverse" EGM) to map the expected trajectory. 
+Contains simple tools to simulate perfect foresight models. The method is similar to the one introduced in Boehl & Hommes (2021), where we use it to solve for chaotic asset price dynamics. It can be understood as a policy function iteration where the initial state is the only fixed grid point and all other grid points are chosen endogenously (as in a "reverse" EGM) to map the expected trajectory.
 
-The main advantage (in terms of robustness) over Fair-Taylor comes from exploiting the property that most determined perfect forsight models be a contraction mapping both, forward and backwards. The model is given by 
+The main advantage (in terms of robustness) over Fair-Taylor comes from exploiting the property that most determined perfect forsight models be a contraction mapping both, forward and backwards. The model is given by
 
-.. math::
+.. code-block::
+
     f(x_{t-1}, x_t, x_{t+1}) = 0.
-   
+
 We iterate on the expected trajectory itself instead of the policy function. We hence require
 
-.. math::
+.. code-block::
 
    d f(x_{t-1}, x_t, x_{t+1} ) < d x_{t-1},
    d f(x_{t-1}, x_t, x_{t+1} ) < d x_{t+1}.
-   
+
 This is also the weakness of the method: not every DSGE model (that is Blanchard-Kahn determined) sense is such backward-and-forward contraction. In most cases the algorithm converges anyways, but convergence is not guaranteed.
 
 The code is in alpha state and provided for reasons of collaboration, replicability and code sharing in the spirit of open science. You are welcome to get in touch if you are interested working with the package.
 
+Installation
+-------------
+
+Then it's as simple as:
+
+.. code-block:: bash
+
+   pip install econpizza
+
+The package optionally depends on the `grgrlib` package to check for determinancy, so maybe also install that one since you are already at it.
 
 Documentation
--------
+-------------
 
-There is no formal documentation (yet). Check
-`this documentation <https://pydsge.readthedocs.io/en/latest/installation_guide.html>`_ for easy-going **installation** instructions (using `econpizza` instead of `pydsge`). The package optionally depends on the `grgrlib` package to check for determinancy, so maybe also install that one since you are already at it.
+There is no formal documentation (yet).
 
 An small-scale nonlinear New Keynesian model with ZLB is provided `as an example <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_. Here is how to simulate it and plot some nonlinear impulse responses:
 
@@ -98,16 +108,16 @@ This will give you:
 .. image:: docs/p_and_n.png
   :width: 400
   :alt: Dynamics of prices and fractions
- 
+
 Finally the package also provides a stacking algorithm for all those problems that cannot be solved nicely with the default pizza method. Here is an example, also introducing the use of shocks and the linear solution (which is always calculated on-the-fly):
 
 .. code-block:: python
 
     import numpy as np
     import matplotlib.pyplot as plt
-    import econpizza as ep 
+    import econpizza as ep
     from econpizza import example_nk
-    
+
 
     # use the NK model again
     mod = ep.load(example_nk)
@@ -118,7 +128,7 @@ Finally the package also provides a stacking algorithm for all those problems th
     # use the stacking method. As above, you could also feed in the initial state instead
     x, x_lin, flag = ep.find_path_stacked(mod, shock=shk)
 
-    # plotting. x_lin is the linearized first-order solution 
+    # plotting. x_lin is the linearized first-order solution
     for i,v in enumerate(mod['variables']):
 
         plt.figure()

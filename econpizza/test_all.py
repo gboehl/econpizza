@@ -6,7 +6,7 @@ from .__init__ import *
 
 def test_bh():
 
-    mod = load(example_bh)
+    mod = load(example_bh, raise_errors=False)
 
     state = np.zeros(len(mod["variables"]))
     state[:-1] = [0.1, 0.2, 0.0]

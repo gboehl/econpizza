@@ -126,21 +126,18 @@ def solve_linear(
 
     try:
         import numdifftools as nd
-        ndiff_exists = True
 
-    except ModuleNotFoundError:
-        ndiff_exists = False
-
-    if use_ndifftools and ndiff_exists:
+        if not use_ndifftools:
+            raise Exception
 
         # use numdifftools if possible
-        AA = nd.Gradient(lambda err: func(x, x, err, x, zshock, par))(x)*xmult
-        BB = nd.Gradient(lambda err: func(x, err, x, x, zshock, par))(x)*xmult
-        CC = nd.Gradient(lambda err: func(err, x, x, x, zshock, par))(x)*xmult
+        AA = nd.Gradient(lambda err: func(x, x, err, x, zshock, par))(x) * xmult
+        BB = nd.Gradient(lambda err: func(x, err, x, x, zshock, par))(x) * xmult
+        CC = nd.Gradient(lambda err: func(err, x, x, x, zshock, par))(x) * xmult
         DD = nd.Gradient(lambda err: func(x, x, x, x, err, par))(zshock)
         DD = DD.reshape((len(stst), len(shocks)))
-    
-    else:
+
+    except:
 
         # otherwise do stuff by hand
         for i in range(len(evars)):
@@ -174,7 +171,9 @@ def solve_linear(
 
     try:
         try:
-            lam = -speed_kills(P, M, len(stst) + nshc, max_iter=lti_max_iter, verbose=verbose - 1)[1]
+            lam = -speed_kills(
+                P, M, len(stst) + nshc, max_iter=lti_max_iter, verbose=verbose - 1
+            )[1]
 
         except:
             _, lam = klein(P, M, len(stst) + nshc, verbose=verbose - 1)
@@ -190,7 +189,6 @@ def solve_linear(
             mess = str(error).strip()
             if mess[-1] == ".":
                 mess = mess[:-1]
-
 
     if check_contraction:
         A = np.linalg.inv(BB) @ AA

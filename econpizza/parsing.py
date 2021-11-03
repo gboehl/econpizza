@@ -48,7 +48,7 @@ def parse(mfile):
     return model
 
 
-def load(model, raise_errors=True, verbose=True):
+def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbose=True):
     """load model from dict or yaml file. Warning: contains filthy code (eg. globals, exec, ...)"""
 
     global cached_mdicts, cached_models
@@ -176,7 +176,7 @@ def load(model, raise_errors=True, verbose=True):
         print("(parse:) Parsing done.")
 
     solve_stst(model, raise_error=raise_errors, verbose=verbose)
-    solve_linear(model, raise_error=raise_errors, verbose=verbose)
+    solve_linear(model, raise_error=raise_errors, use_ndifftools=use_ndifftools, lti_max_iter=lti_max_iter, verbose=verbose)
 
     cached_mdicts += (mdict_raw,)
     cached_models += (cpickle.dumps(model, protocol=4),)

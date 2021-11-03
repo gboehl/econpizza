@@ -4,6 +4,7 @@
 import numpy as np
 import scipy.optimize as so
 from scipy.linalg import block_diag
+from grgrlib import klein, speed_kills
 from .shooting import solve_current
 
 
@@ -96,6 +97,7 @@ def solve_linear(
     eps=1e-5,
     raise_error=True,
     check_contraction=False,
+    use_ndifftools=True,
     lti_max_iter=1000,
     verbose=True,
 ):
@@ -111,7 +113,8 @@ def solve_linear(
     if x is None:
         x = np.array(stst)
 
-    x[np.isclose(x, 0)] = 1
+    xmult = x.copy()
+    xmult[np.isclose(x, 0)] = 1
 
     AA = np.empty((len(stst), len(stst)))
     BB = AA.copy()
@@ -121,20 +124,39 @@ def solve_linear(
     zshock = np.zeros(len(shocks))
     fx = func(x, x, x, x, np.zeros(nshc), par)
 
-    for i in range(len(evars)):
+    try:
+        import numdifftools as nd
+        ndiff_exists = True
 
-        xerr = x.copy()
-        xerr[i] -= eps
+    except ModuleNotFoundError:
+        ndiff_exists = False
 
-        AA[:, i] = (func(x, x, xerr, x, zshock, par) - fx) * x[i] / eps
-        BB[:, i] = (func(x, xerr, x, x, zshock, par) - fx) * x[i] / eps
-        CC[:, i] = (func(xerr, x, x, x, zshock, par) - fx) * x[i] / eps
+    if use_ndifftools and ndiff_exists:
 
-    for i in range(len(shocks)):
-        cshock = zshock.copy()
-        cshock[i] += eps
+        # use numdifftools if possible
+        AA = nd.Gradient(lambda err: func(x, x, err, x, zshock, par))(x)*xmult
+        BB = nd.Gradient(lambda err: func(x, err, x, x, zshock, par))(x)*xmult
+        CC = nd.Gradient(lambda err: func(err, x, x, x, zshock, par))(x)*xmult
+        DD = nd.Gradient(lambda err: func(x, x, x, x, err, par))(zshock)
+        DD = DD.reshape((len(stst), len(shocks)))
+    
+    else:
 
-        DD[:, i] = (func(x, x, x, x, cshock, par) - fx) / eps
+        # otherwise do stuff by hand
+        for i in range(len(evars)):
+
+            xerr = x.copy()
+            xerr[i] -= eps
+
+            AA[:, i] = (func(x, x, xerr, x, zshock, par) - fx) * x[i] / eps
+            BB[:, i] = (func(x, xerr, x, x, zshock, par) - fx) * x[i] / eps
+            CC[:, i] = (func(xerr, x, x, x, zshock, par) - fx) * x[i] / eps
+
+        for i in range(len(shocks)):
+            cshock = zshock.copy()
+            cshock[i] += eps
+
+            DD[:, i] = (func(x, x, x, x, cshock, par) - fx) / eps
 
     A = np.pad(AA, ((0, nshc), (0, nshc)))
     B = block_diag(BB, np.eye(nshc))
@@ -151,14 +173,14 @@ def solve_linear(
     success = True
 
     try:
-        from grgrlib import klein
+        try:
+            lam = -speed_kills(P, M, len(stst) + nshc, max_iter=lti_max_iter, verbose=verbose - 1)[1]
 
-        _, lam = klein(P, M, len(stst) + nshc, verbose=verbose - 1)
+        except:
+            _, lam = klein(P, M, len(stst) + nshc, verbose=verbose - 1)
+
         model["lin_pol"] = -lam[:-nshc, :-nshc], -lam[:-nshc, -nshc:]
         mess = "All eigenvalues are good"
-
-    except ImportError:
-        mess = "'grgrlib' not found, could not check eigenvalues"
 
     except Exception as error:
         success = False
@@ -168,6 +190,7 @@ def solve_linear(
             mess = str(error).strip()
             if mess[-1] == ".":
                 mess = mess[:-1]
+
 
     if check_contraction:
         A = np.linalg.inv(BB) @ AA

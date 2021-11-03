@@ -112,6 +112,8 @@ def solve_linear(
     if x is None:
         x = np.array(stst)
 
+    x[np.isclose(x, 0)] = 1
+
     AA = np.empty((len(stst), len(stst)))
     BB = AA.copy()
     CC = AA.copy()

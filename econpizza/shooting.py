@@ -36,7 +36,7 @@ def find_path_linear(model, shock, T, x, use_linear_guess):
 
         x_lin = np.empty_like(x)
         x_lin[0][~sel] = (x[0] / stst - 1)[~sel]
-        x_lin[0][sel] = 0
+        x_lin[0][sel] = x[0][sel]
 
         for t in range(T):
             x_lin[t + 1] = model["lin_pol"][0] @ x_lin[t]

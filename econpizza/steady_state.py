@@ -94,7 +94,6 @@ def solve_linear(
     model,
     x=None,
     eps=1e-5,
-    tol=1e-8,
     raise_error=True,
     check_contraction=False,
     lti_max_iter=1000,

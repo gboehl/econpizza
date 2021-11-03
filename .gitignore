@@ -3,5 +3,5 @@ __pycache__/
 *.html
 build
 dist
-pynare.egg-info
+*.egg-info
 docs/.ipynb_checkpoints/

@@ -24,13 +24,11 @@ The code is in alpha state and provided for reasons of collaboration, replicabil
 Installation
 -------------
 
-Then it's as simple as:
+It's as simple as:
 
 .. code-block:: bash
 
    pip install econpizza
-
-The package optionally depends on the `grgrlib` package to check for determinancy, so maybe also install that one since you are already at it.
 
 Documentation
 -------------

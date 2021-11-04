@@ -114,7 +114,10 @@ def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbos
             eqns[i] = "root_container[%s] = " % i + eqn
 
     eqns_aux = model.get("aux_equations")
-    stst_eqns_aux = model.get("steady_state_aux_equations")
+    stst_eqns = model["steady_state"].get("equations") or []
+
+    for key in stst:
+        stst_eqns.append(key + " = " + str(stst[key]))
 
     if not shocks:
         shock_str = ""
@@ -123,7 +126,7 @@ def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbos
     else:
         shock_str = shocks[0] + " = shocks[0]"
 
-    func_str = """def func_raw(XLag, X, XPrime, XSS, shocks, pars, stst=False):\n %s\n %s\n %s\n %s\n %s\n %s\n root_container=np.empty(%s)\n %s\n %s\n %s\n return root_container""" % (
+    func_str = """def func_raw(XLag, X, XPrime, XSS, shocks, pars, stst=False, return_stst_vals=False):\n %s\n %s\n %s\n %s\n %s\n %s\n root_container=np.empty(%s)\n %s\n %s\n %s\n %s\n return root_container""" % (
         ", ".join(v + "Lag" for v in evars) + " = XLag",
         ", ".join(evars) + " = X",
         ", ".join(v + "Prime" for v in evars) + " = XPrime",
@@ -131,8 +134,12 @@ def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbos
         shock_str,
         ", ".join(par.keys()) + " = pars",
         str(len(evars)),
-        "if stst:\n  " + "\n  ".join(stst_eqns_aux) if stst_eqns_aux else "",
+        "if stst:\n  " + "\n  ".join(stst_eqns) if stst_eqns else "",
         "\n ".join(eqns_aux) if eqns_aux else "",
+        "if return_stst_vals:\n  "
+        + "return np.array(("
+        + ", ".join(v + "SS" for v in evars)
+        + "))",
         "\n ".join(eqns),
     )
 
@@ -176,7 +183,13 @@ def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbos
         print("(parse:) Parsing done.")
 
     solve_stst(model, raise_error=raise_errors, verbose=verbose)
-    solve_linear(model, raise_error=raise_errors, use_ndifftools=use_ndifftools, lti_max_iter=lti_max_iter, verbose=verbose)
+    solve_linear(
+        model,
+        raise_error=raise_errors,
+        use_ndifftools=use_ndifftools,
+        lti_max_iter=lti_max_iter,
+        verbose=verbose,
+    )
 
     cached_mdicts += (mdict_raw,)
     cached_models += (cpickle.dumps(model, protocol=4),)

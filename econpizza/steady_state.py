@@ -8,7 +8,7 @@ from grgrlib import klein, speed_kills
 from .shooting import solve_current
 
 
-def solve_stst(model, raise_error=True, method=None, tol=1e-8, verbose=True):
+def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
 
     evars = model["variables"]
     func = model["func"]
@@ -16,57 +16,18 @@ def solve_stst(model, raise_error=True, method=None, tol=1e-8, verbose=True):
     shocks = model.get("shocks") or ()
     stst = model["stst"]
     stst_np = np.array(list(stst.values()))
-    method = method or model["steady_state"].get("method")
 
-    if method not in ("reduction", "aux_function", None):
-        raise NotImplementedError(
-            "Steady state method must either be 'aux_function' or 'reduction' or `None`."
-        )
+    func_stst = lambda x: func(x, x, x, x, np.zeros(len(shocks)), par, True)
 
-    if method in ("aux_function", None):
-
-        # create a sequence and ensure that its columns are linearly independent
-        shifter_rand = np.arange(len(evars) * len(stst)).reshape(len(evars), len(stst))
-        svd_u, _, svd_v = np.linalg.svd(shifter_rand, full_matrices=False)
-        shifter = svd_u @ svd_v
-        x_ind = np.array([evars.index(v) for v in stst.keys()])
-
-        stst_no_zero = stst_np.copy()
-        stst_no_zero[np.isclose(stst_np, 0)] = 1
-
-        def func_stst(x):
-
-            # use the sequence to force root finding to set fixed st.st values
-            corr = (x[x_ind] - stst_np) / stst_no_zero
-
-            return func(x, x, x, x, np.zeros(len(shocks)), par, True) + shifter @ corr
-
-        # find stst
-        res = so.root(func_stst, model["init"])
-        err = np.abs(func_stst(res["x"])).max()
-        mess = " ".join(res["message"].replace("\n", " ").split())
-
-    if method == "reduction":
-
-        # create a sequence and ensure that its columns are linearly independent
-        shifter_rand = np.ones((len(evars) - len(stst), len(evars)))
-        svd_u, _, svd_v = np.linalg.svd(shifter_rand, full_matrices=False)
-        shifter = svd_u @ svd_v
-
-        x_ind = np.array([stst.get(v) is not None for v in evars])
-        x = np.empty(len(evars))
-
-        def func_stst(x_guess):
-
-            x[x_ind] = stst_np
-            x[~x_ind] = x_guess
-
-            return shifter @ func(x, x, x, x, np.zeros(len(shocks)), par, True)
-
-        # find stst
-        res = so.root(func_stst, model["init"][~x_ind])
-        err = np.abs(func_stst(res["x"])).max()
-        mess = " ".join(res["message"].replace("\n", " ").split())
+    # find stst
+    res = so.root(func_stst, model["init"])
+    # exchange those values that are identified via stst_equations
+    stst_vals = func(
+        res["x"], res["x"], res["x"], res["x"], np.zeros(len(shocks)), par, True, True
+    )
+    # calculate error
+    err = np.abs(func_stst(stst_vals)).max()
+    mess = " ".join(res["message"].replace("\n", " ").split())
 
     if err > tol:
         if raise_error and not res["success"]:
@@ -83,7 +44,7 @@ def solve_stst(model, raise_error=True, method=None, tol=1e-8, verbose=True):
     elif verbose:
         print("(solve_stst:) Steady state found.")
 
-    rdict = dict(zip(evars, res["x"]))
+    rdict = dict(zip(evars, stst_vals))
     model["stst"] = rdict
     model["init"] = np.array(list(rdict.values()))
     model["stst_vals"] = np.array(list(rdict.values()))
@@ -101,7 +62,7 @@ def solve_linear(
     lti_max_iter=1000,
     verbose=True,
 ):
-    """Does half-way SGU and uses Klein's method to check for determinancy and solve the system"""
+    """Does half-way SGU, solves the model using linear time iteration and uses Klein's method to check for determinancy if the solution fails"""
 
     evars = model["variables"]
     func = model["func"]

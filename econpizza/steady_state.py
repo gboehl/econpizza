@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import numdifftools as nd
 import scipy.optimize as so
 from scipy.linalg import block_diag
 from grgrlib import klein, speed_kills
@@ -14,8 +15,6 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
     func = model["func"]
     par = np.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
-    stst = model["stst"]
-    stst_np = np.array(list(stst.values()))
 
     func_stst = lambda x: func(x, x, x, x, np.zeros(len(shocks)), par, True)
 
@@ -27,9 +26,20 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
     )
     # calculate error
     err = np.abs(func_stst(stst_vals)).max()
-    mess = " ".join(res["message"].replace("\n", " ").split())
 
     if err > tol:
+        grad = nd.Gradient(func_stst)(model["init"])
+        rank = np.linalg.matrix_rank(grad)
+        df0 = sum(np.all(np.isclose(grad, 0), 0))
+        df1 = sum(np.all(np.isclose(grad, 0), 1))
+        mess = " ".join(
+            res["message"].replace("\n", " ").split()
+        ) + " Function has rank %s (%s variables) and %s vs %s degrees of freedom." % (
+            rank,
+            grad.shape[0],
+            df0,
+            df1,
+        )
         if raise_error and not res["success"]:
             print(res)
             raise Exception(

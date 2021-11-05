@@ -88,7 +88,7 @@ def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbos
     shocks = model.get("shocks") or ()
     par = eval_strs(model["parameters"])
 
-    initvals = model["steady_state"].get("init_guesses")
+    initvals = eval_strs(model["steady_state"].get("init_guesses"))
     stst = eval_strs(model["steady_state"].get("fixed_values"))
     model["stst"] = stst
 
@@ -116,8 +116,20 @@ def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbos
     eqns_aux = model.get("aux_equations")
     stst_eqns = model["steady_state"].get("equations") or []
 
-    for key in stst:
-        stst_eqns.append(key + " = " + str(stst[key]))
+    # resolve all equations with the 'All' keyword
+    for eqn in stst_eqns:
+        if eqn.count("All") == 1:
+            for vtype in ("", "SS", "Lag", "Prime"):
+                stst_eqns.append(eqn.replace("All", vtype))
+        elif eqn.count("All") > 1:
+            raise NotImplementedError(
+                "Multiple `All` in one equation are not implemented"
+            )
+
+    # add fixed values to the steady state equations
+    if stst is not None:
+        for key in stst:
+            stst_eqns.append(key + "SS = " + str(stst[key]))
 
     if not shocks:
         shock_str = ""
@@ -136,10 +148,9 @@ def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbos
         str(len(evars)),
         "if stst:\n  " + "\n  ".join(stst_eqns) if stst_eqns else "",
         "\n ".join(eqns_aux) if eqns_aux else "",
-        "if return_stst_vals:\n  "
-        + "return np.array(("
-        + ", ".join(v + "SS" for v in evars)
-        + "))",
+        "if return_stst_vals:\n  " + "return np.array(("
+        # + ", ".join(v + "SS" for v in evars)
+        + ", ".join(v for v in evars) + "))",
         "\n ".join(eqns),
     )
 
@@ -150,8 +161,9 @@ def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbos
         for v in initvals:
             init[evars.index(v)] = initvals[v]
 
-    for v in stst:
-        init[evars.index(v)] = stst[v]
+    if stst:
+        for v in stst:
+            init[evars.index(v)] = stst[v]
 
     model["init"] = init
 

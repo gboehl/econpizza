@@ -29,9 +29,14 @@ parameters:
     rho_beta: .9
 
 steady_state:
+    equations:
+        # equations that are only evaluated when searching the steady state
+        - piSS = 1.02^.25
+
     fixed_values:
+        # equivalent to setting an init. guess and adding `betaSS = 0.9984` to equations
         beta: 0.9984
-        pi: 1.02^.25
 
     init_guesses:
         y: 3.
+        pi: 1.02^.25

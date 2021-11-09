@@ -9,14 +9,14 @@ variables: [x, xm1, xm2, n]
 
 # for stuff you don't actually want to track:
 aux_equations:
-    - prof_re = (xLag - R*xm1Lag)**2 - C
-    - prof_br = (xLag - R*xm1Lag) * (gamma*xm2Lag - R*xm1Lag)
+    ~ prof_re = (xLag - R*xm1Lag)**2 - C
+    ~ prof_br = (xLag - R*xm1Lag) * (gamma*xm2Lag - R*xm1Lag)
 
 equations:
-    - n - 1/(1 + exp(beta*(prof_br-prof_re)))
-    - x - (n*xPrime + (1-n)*gamma*xLag)/R
-    - xm1 - xLag
-    - xm2 - xm1Lag
+    ~ n - 1/(1 + exp(beta*(prof_br-prof_re)))
+    ~ x - (n*xPrime + (1-n)*gamma*xLag)/R
+    ~ xm1 - xLag
+    ~ xm2 - xm1Lag
 
 parameters:
     R: 1.1

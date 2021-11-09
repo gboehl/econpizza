@@ -9,13 +9,13 @@ variables: [y, c, pi, r, rn, beta, w]
 shocks: [e_beta]
 
 equations:
-    - w = chi*(c - h*cLag)*y**eta
-    - 1 = r*betaPrime*(c - h*cLag)/(cPrime - h*c)/piPrime
-    - psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*betaPrime*(c-h*cLag)/(cPrime-h*c)*(piPrime/piSS - 1)*piPrime/piSS*yPrime/y
-    - c = (1-psi*(pi/piSS - 1)**2/2)*y
-    - rn = (rSS*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*rnLag**rho
-    - log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta
-    - r = max(1, rn)
+    ~ w = chi*(c - h*cLag)*y**eta
+    ~ 1 = r*betaPrime*(c - h*cLag)/(cPrime - h*c)/piPrime
+    ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*betaPrime*(c-h*cLag)/(cPrime-h*c)*(piPrime/piSS - 1)*piPrime/piSS*yPrime/y
+    ~ c = (1-psi*(pi/piSS - 1)**2/2)*y
+    ~ rn = (rSS*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*rnLag**rho
+    ~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta
+    ~ r = max(1, rn)
 
 parameters:
     theta: 6.

@@ -38,6 +38,10 @@ def parse(mfile):
 
     mtxt = mtxt.replace("^", "**")
     mtxt = re.sub(r"@ ?\n", " ", mtxt)
+    # try to detect if `~` wants to be a `-`
+    mtxt = mtxt.replace("\n ~ ", "\n - ")
+    mtxt = mtxt.replace("\n  ~ ", "\n  - ")
+    mtxt = mtxt.replace("   ~ ", "   - ")
 
     # get dict
     model = yaml.safe_load(mtxt)

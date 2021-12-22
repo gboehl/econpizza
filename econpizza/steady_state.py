@@ -80,6 +80,7 @@ def solve_linear(
     shocks = model.get("shocks") or ()
     stst = list(model["stst"].values())
     nshc = len(shocks)
+    nsts = len(stst)
 
     if x is None:
         x = np.array(stst)
@@ -87,10 +88,10 @@ def solve_linear(
     xmult = x.copy()
     xmult[np.isclose(x, 0)] = 1
 
-    AA = np.empty((len(stst), len(stst)))
+    AA = np.empty((nsts, nsts))
     BB = AA.copy()
     CC = AA.copy()
-    DD = np.empty((len(stst), nshc))
+    DD = np.empty((nsts, nshc))
 
     zshock = np.zeros(len(shocks))
     fx = func(x, x, x, x, np.zeros(nshc), par)
@@ -106,7 +107,7 @@ def solve_linear(
         BB = nd.Gradient(lambda err: func(x, err, x, x, zshock, par))(x) * xmult
         CC = nd.Gradient(lambda err: func(err, x, x, x, zshock, par))(x) * xmult
         DD = nd.Gradient(lambda err: func(x, x, x, x, err, par))(zshock)
-        DD = DD.reshape((len(stst), len(shocks)))
+        DD = DD.reshape((nsts, len(shocks)))
 
     except:
 
@@ -132,7 +133,7 @@ def solve_linear(
 
     model["ABC"] = A, B, C
 
-    I = np.eye(len(stst) + nshc)
+    I = np.eye(nsts + nshc)
     Z = np.zeros_like(I)
     P = np.block([[B, A], [I, Z]])
     M = np.block([[C, Z], [Z, -I]])
@@ -143,13 +144,13 @@ def solve_linear(
     try:
         try:
             lam = -speed_kills(
-                P, M, len(stst) + nshc, max_iter=lti_max_iter, verbose=verbose - 1
+                P, M, nsts + nshc, max_iter=lti_max_iter, verbose=verbose - 1
             )[1]
 
         except:
-            _, lam = klein(P, M, len(stst) + nshc, verbose=verbose - 1)
+            _, lam = klein(P, M, nsts + nshc, verbose=verbose - 1)
 
-        model["lin_pol"] = -lam[:-nshc, :-nshc], -lam[:-nshc, -nshc:]
+        model["lin_pol"] = -lam[:nsts, :nsts], -lam[:nsts, nsts:]
         mess = "All eigenvalues are good"
 
     except Exception as error:

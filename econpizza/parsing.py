@@ -142,19 +142,22 @@ def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbos
     else:
         shock_str = shocks[0] + " = shocks[0]"
 
-    func_str = """def func_raw(XLag, X, XPrime, XSS, shocks, pars, stst=False, return_stst_vals=False):\n %s\n %s\n %s\n %s\n %s\n %s\n root_container=np.empty(%s)\n %s\n %s\n %s\n %s\n return root_container""" % (
-        ", ".join(v + "Lag" for v in evars) + " = XLag",
-        ", ".join(evars) + " = X",
-        ", ".join(v + "Prime" for v in evars) + " = XPrime",
-        ", ".join(v + "SS" for v in evars) + " = XSS",
-        shock_str,
-        ", ".join(par.keys()) + " = pars",
-        str(len(evars)),
+    func_str = f"""def func_raw(XLag, X, XPrime, XSS, shocks, pars, stst=False, return_stst_vals=False):
+        \n {", ".join(v + "Lag" for v in evars) + " = XLag"}
+        \n {", ".join(evars) + " = X"}
+        \n {", ".join(v + "Prime" for v in evars) + " = XPrime"}
+        \n {", ".join(v + "SS" for v in evars) + " = XSS"}
+        \n {shock_str}
+        \n {", ".join(par.keys()) + " = pars"}
+        \n root_container=np.empty({len(evars)})
+        \n %s \n %s\n %s\n %s
+        \n return root_container""" % (
         "if stst:\n  " + "\n  ".join(stst_eqns) if stst_eqns else "",
         "\n ".join(eqns_aux) if eqns_aux else "",
-        "if return_stst_vals:\n  " + "return np.array(("
-        # + ", ".join(v + "SS" for v in evars)
-        + ", ".join(v for v in evars) + "))",
+        "if return_stst_vals:\n  "
+        + "return np.array(("
+        + ", ".join(v for v in evars)
+        + "))",
         "\n ".join(eqns),
     )
 

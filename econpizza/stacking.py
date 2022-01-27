@@ -9,21 +9,27 @@ from numba import njit, prange
 from .shooting import find_path_linear
 
 
-def stacked_func_plain(x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars):
+def stacked_func_plain(
+    x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars
+):
 
-    out = np.empty((horizon-1)*nvars)
+    out = np.empty((horizon - 1) * nvars)
     X = x.reshape((horizon - 1, nvars))
 
     out[:nvars] = func(x0, X[0], X[1], stst, tshock, pars)
     out[-nvars:] = func(X[-2], X[-1], endpoint, stst, zshock, pars)
 
     for t in prange(1, horizon - 2):
-        out[t*nvars:(t+1)*nvars] = func(X[t - 1], X[t], X[t + 1], stst, zshock, pars)
+        out[t * nvars : (t + 1) * nvars] = func(
+            X[t - 1], X[t], X[t + 1], stst, zshock, pars
+        )
 
     return out
 
+
 stacked_func_njit = njit(stacked_func_plain)
 stacked_func_njit_parallel = njit(stacked_func_plain, parallel=True)
+
 
 def find_stack(
     model,
@@ -80,23 +86,29 @@ def find_stack(
         tshock[shocks.index(shock[0])] = shock[1]
 
     endpoint = x_lin[-1] if use_linear_endpoint else stst
-    out = np.empty((horizon-1,nvars))
+    out = np.empty((horizon - 1, nvars))
 
-    if use_numba in ('p','parallel'):
-        stacked_func = lambda x: stacked_func_njit_parallel(x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars)
+    if use_numba in ("p", "parallel"):
+        stacked_func = lambda x: stacked_func_njit_parallel(
+            x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars
+        )
     elif use_numba:
-        stacked_func = lambda x: stacked_func_njit(x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars)
+        stacked_func = lambda x: stacked_func_njit(
+            x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars
+        )
     else:
-        stacked_func = lambda x: stacked_func_plain(x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars)
+        stacked_func = lambda x: stacked_func_plain(
+            x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars
+        )
 
     res = so.root(stacked_func, x_init[1:-1].flatten())
 
-    err = np.abs(res['fun']).max()
+    err = np.abs(res["fun"]).max()
     x[1:-1] = res["x"].reshape((horizon - 1, nvars))
 
     mess = " ".join(res["message"].replace("\n", " ").split())
     if err > tol:
-        mess += ' Max error is %1.2e' % np.abs(stacked_func(res['x'])).max()
+        mess += " Max error is %1.2e." % np.abs(stacked_func(res["x"])).max()
 
     if verbose:
         duration = np.round(time.time() - st, 3)

@@ -113,9 +113,9 @@ def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbos
     for i, eqn in enumerate(eqns):
         if "=" in eqn:
             lhs, rhs = eqn.split("=")
-            eqns[i] = "root_container[%s] = " % i + lhs + "- (" + rhs + ")"
+            eqns[i] = "root_container%s = " % i + lhs + "- (" + rhs + ")"
         else:
-            eqns[i] = "root_container[%s] = " % i + eqn
+            eqns[i] = "root_container%s = " % i + eqn
 
     eqns_aux = model.get("aux_equations")
     stst_eqns = model["steady_state"].get("equations") or []
@@ -149,9 +149,8 @@ def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbos
         \n {", ".join(v + "SS" for v in evars) + " = XSS"}
         \n {shock_str}
         \n {", ".join(par.keys()) + " = pars"}
-        \n root_container=np.empty({len(evars)})
         \n %s \n %s\n %s\n %s
-        \n return root_container""" % (
+        \n {"return np.array([" + ", ".join("root_container"+str(i) for i in range(len(evars))) + "])"}""" % (
         "if stst:\n  " + "\n  ".join(stst_eqns) if stst_eqns else "",
         "\n ".join(eqns_aux) if eqns_aux else "",
         "if return_stst_vals:\n  "

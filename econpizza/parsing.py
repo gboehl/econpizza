@@ -12,6 +12,13 @@ from numpy import log, exp, sqrt
 from numba import njit
 from .steady_state import solve_stst, solve_linear
 
+# experimental: use jax. Only relevant when calling .load() with use_jax=True
+try:
+    from jax import jit
+    import jax.numpy as jnp
+except:
+    pass
+
 # initialize model cache
 cached_mdicts = ()
 cached_models = ()
@@ -52,7 +59,14 @@ def parse(mfile):
     return model
 
 
-def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbose=True):
+def load(
+    model,
+    raise_errors=True,
+    use_ndifftools=True,
+    lti_max_iter=500,
+    verbose=True,
+    use_jax=False,
+):
     """load model from dict or yaml file. Warning: contains filthy code (eg. globals, exec, ...)"""
 
     global cached_mdicts, cached_models
@@ -70,6 +84,8 @@ def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbos
     defs = model.get("definitions")
     if defs is not None:
         for d in defs:
+            if use_jax:
+                d = d.replace(" numpy ", " jax.numpy ")
             exec(d, globals())
 
     evars = model["variables"]
@@ -154,11 +170,14 @@ def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbos
         "if stst:\n  " + "\n  ".join(stst_eqns) if stst_eqns else "",
         "\n ".join(eqns_aux) if eqns_aux else "",
         "if return_stst_vals:\n  "
-        + "return np.array(("
+        + "return np.array(["
         + ", ".join(v for v in evars)
-        + "))",
+        + "])",
         "\n ".join(eqns),
     )
+
+    if use_jax:
+        func_str = func_str.replace(" np.", " jnp.")
 
     # get inital values to test the function
     init = np.ones(len(evars)) * 1.1
@@ -190,12 +209,16 @@ def load(model, raise_errors=True, use_ndifftools=True, lti_max_iter=500, verbos
     if np.isinf(test).any():
         raise Exception("Initial values are not finite.")
 
-    func = njit(func_raw)
-    os.unlink(tmpf.name)
-
-    model["func"] = func
+    model["func_raw"] = func_raw
+    if use_jax:
+        model["func"] = jit(func_raw, static_argnums=(6, 7))
+    else:
+        model["func"] = njit(func_raw)
+    model["use_jax"] = use_jax
     model["func_str"] = func_str
     model["root_options"] = {}
+
+    os.unlink(tmpf.name)
 
     if verbose:
         print("(parse:) Parsing done.")

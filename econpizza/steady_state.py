@@ -19,7 +19,14 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
     func_stst = lambda x: func(x, x, x, x, np.zeros(len(shocks)), par, True)
 
     # find stst
-    res = so.root(func_stst, model["init"])
+    if model["use_jax"]:
+        from jax import jacfwd
+
+        jacobian = jacfwd(func_stst)
+        res = so.root(func_stst, model["init"], jac=jacobian)
+    else:
+        res = so.root(func_stst, model["init"])
+
     # exchange those values that are identified via stst_equations
     stst_vals = func(
         res["x"], res["x"], res["x"], res["x"], np.zeros(len(shocks)), par, True, True

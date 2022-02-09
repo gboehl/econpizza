@@ -8,6 +8,31 @@ import scipy.optimize as so
 from numba import njit, prange
 from .shooting import find_path_linear
 
+# experimental
+try:
+    import jax.numpy as jnp
+
+    def stacked_func_jax(
+        x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars
+    ):
+
+        # preallocation is bullshit with jax, so lets fix this soonish
+        out = jnp.empty((horizon - 1) * nvars)
+        X = x.reshape((horizon - 1, nvars))
+
+        out = out.at[:nvars].set(func(x0, X[0], X[1], stst, tshock, pars))
+        out = out.at[-nvars:].set(func(X[-2], X[-1], endpoint, stst, zshock, pars))
+
+        for t in prange(1, horizon - 2):
+            out = out.at[t * nvars : (t + 1) * nvars].set(
+                func(X[t - 1], X[t], X[t + 1], stst, zshock, pars)
+            )
+
+        return out
+
+except:
+    pass
+
 
 def stacked_func_plain(
     x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars
@@ -39,6 +64,7 @@ def find_stack(
     horizon=50,
     tol=None,
     use_numba=False,
+    use_jax=False,
     use_linear_guess=True,
     use_linear_endpoint=None,
     root_options={},
@@ -101,7 +127,19 @@ def find_stack(
             x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars
         )
 
-    res = so.root(stacked_func, x_init[1:-1].flatten())
+    # experimental!
+    if use_jax:
+        from jax import jacfwd
+
+        stacked_func = lambda x: stacked_func_jax(
+            x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars
+        )
+
+        jacobian = jacfwd(stacked_func)
+
+        res = so.root(stacked_func, x_init[1:-1].flatten(), jac=jacobian)
+    else:
+        res = so.root(stacked_func, x_init[1:-1].flatten())
 
     err = np.abs(res["fun"]).max()
     x[1:-1] = res["x"].reshape((horizon - 1, nvars))

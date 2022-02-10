@@ -83,8 +83,6 @@ We iterate on the expected trajectory itself instead of the policy function. We 
 
 This is also the weakness of the method: not every DSGE model (that is Blanchard-Kahn determined) sense is such backward-and-forward contraction. In most cases the algorithm converges anyways, but convergence is not guaranteed.
 
-The code is in alpha state and provided for reasons of collaboration, replicability and code sharing in the spirit of open science. You are welcome to get in touch if you are interested working with the package.
-
 .. code-block:: python
 
     import numpy as np

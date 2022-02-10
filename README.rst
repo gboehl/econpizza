@@ -5,8 +5,6 @@ econpizza
 .. image:: https://badge.fury.io/py/econpizza.svg
     :target: https://badge.fury.io/py/econpizza
 
-----
-
 Contains tools to simulate nonlinear perfect foresight models. The baseline mechanism is a Fair-Taylor-like stacking method similar to the nonlinear solver in dynare.
 
 New: experimental automatic differentiation support via `jax <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_!

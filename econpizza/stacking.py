@@ -8,32 +8,6 @@ import scipy.optimize as so
 from numba import njit, prange
 from .shooting import find_path_linear
 
-# experimental
-try:
-    import jax.numpy as jnp
-
-    def stacked_func_jax(
-        x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars
-    ):
-
-        # preallocation is bullshit with jax, so lets fix this soonish
-        out = jnp.empty((horizon - 1) * nvars)
-        X = x.reshape((horizon - 1, nvars))
-
-        out = out.at[:nvars].set(func(x0, X[0], X[1], stst, tshock, pars))
-        out = out.at[-nvars:].set(func(X[-2], X[-1], endpoint, stst, zshock, pars))
-
-        # this should be vectorized instead
-        for t in range(1, horizon - 2):
-            out = out.at[t * nvars : (t + 1) * nvars].set(
-                func(X[t - 1], X[t], X[t + 1], stst, zshock, pars)
-            )
-
-        return out
-
-except:
-    pass
-
 
 def stacked_func_plain(
     x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars
@@ -129,46 +103,47 @@ def find_stack(
 
     # experimental!
     if model["use_jax"]:
-        from jax import jacfwd
 
-        stacked_func = lambda x: stacked_func_jax(
-            x, x0, endpoint, func, horizon, nvars, stst, tshock, zshock, pars
+        import jax
+        from jaxopt import ScipyRootFinding
+
+        @jax.jit
+        def stacked_func(x):
+
+            X = jax.numpy.vstack((x0, x.reshape((horizon - 1, nvars)), endpoint))
+            out = func(X[:-2].T, X[1:-1].T, X[2:].T, stst, zshock, pars).flatten()
+
+            return out
+
+        sproot = ScipyRootFinding(
+            optimality_fun=stacked_func, method="hybr", use_jacrev=False
         )
 
-        jacobian = jacfwd(stacked_func)
-        res = so.root(stacked_func, x_init[1:-1].flatten(), jac=jacobian)
-        res_x, res_fun, res_succ, res_mess = (
-            res["x"],
-            res["fun"],
-            res["success"],
-            res["message"],
-        )
-
-        # TODO: to use jaxopt. So far this is VERY slow
-        # from jaxopt import ScipyRootFinding
-        # rf = ScipyRootFinding(optimality_fun=stacked_func, method='hybr', use_jacrev=False)
-
-        # res = rf.run(x_init[1:-1].flatten())
-        # res_x, res_fun, res_succ, res_mess = res[0], res[1][0], res[1][1], '<no message>'
+        jax_res = sproot.run(x_init[1:-1].flatten())
+        # construct something like the scipy root results dict
+        res = {
+            "x": jax_res[0],
+            "fun": jax_res[1][0],
+            "success": jax_res[1][1],
+            "message": None,
+        }
 
     else:
         res = so.root(stacked_func, x_init[1:-1].flatten())
-        res_x, res_fun, res_succ, res_mess = (
-            res["x"],
-            res["fun"],
-            res["success"],
-            res["message"],
-        )
 
-    err = np.abs(res_fun).max()
-    x[1:-1] = res_x.reshape((horizon - 1, nvars))
+    err = np.abs(res["fun"]).max()
+    x[1:-1] = res["x"].reshape((horizon - 1, nvars))
 
-    mess = " ".join(res_mess.replace("\n", " ").split())
+    mess = (
+        " ".join(res["message"].replace("\n", " ").split()) + " "
+        if res["message"] is not None
+        else ""
+    )
     if err > tol:
-        mess += " Max error is %1.2e." % np.abs(stacked_func(res["x"])).max()
+        mess += "Max error is %1.2e." % np.abs(stacked_func(res["x"])).max()
 
     if verbose:
         duration = np.round(time.time() - st, 3)
         print("(find_path_stacked:) Stacking done after %s seconds. " % duration + mess)
 
-    return x, x_lin, not res_succ
+    return x, x_lin, not res["success"]

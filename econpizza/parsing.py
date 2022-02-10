@@ -14,8 +14,10 @@ from .steady_state import solve_stst, solve_linear
 
 # experimental: use jax. Only relevant when calling .load() with use_jax=True
 try:
-    from jax import jit
+    import jax
     import jax.numpy as jnp
+
+    jax.config.update("jax_enable_x64", True)
 except:
     pass
 
@@ -73,6 +75,8 @@ def load(
 
     if isinstance(model, str):
         model = parse(model)
+
+    model["use_jax"] = use_jax
 
     if model in cached_mdicts:
         model = cpickle.loads(cached_models[cached_mdicts.index(model)])
@@ -211,10 +215,9 @@ def load(
 
     model["func_raw"] = func_raw
     if use_jax:
-        model["func"] = jit(func_raw, static_argnums=(6, 7))
+        model["func"] = jax.jit(func_raw, static_argnums=(6, 7))
     else:
         model["func"] = njit(func_raw)
-    model["use_jax"] = use_jax
     model["func_str"] = func_str
     model["root_options"] = {}
 

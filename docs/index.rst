@@ -9,5 +9,7 @@
    :maxdepth: 2
 
    readme
+   tutorial
+   boehl_hommes
    modules
    indices

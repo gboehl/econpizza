@@ -29,6 +29,5 @@ setup(
         "numpy",
         "scipy",
         "grgrlib",
-        "yaml",
     ],
 )

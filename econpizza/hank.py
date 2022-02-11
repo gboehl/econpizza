@@ -31,21 +31,16 @@ def egm_ces_1asset(bs, par, max_iter=1000, tol=1e-8):
         fg = interp(x[0], bs, bs)
         fb = interp(x[1], bs, bs)
 
-        cg = (
-            beta
-            * rPrime
-            * (
-                prob_g * (inc_g - fg + rPrime * bs) ** -sigma
-                + (1 - prob_g) * (inc_b - fb + rPrime * bs) ** -sigma
-            )
+        cg = (beta*rPrime*(
+            prob_g * (inc_g - fg + rPrime * bs) ** -sigma
+            + (1 - prob_g) * (inc_b - fb + rPrime * bs) ** -sigma
+        )
         ) ** (1 / -sigma)
-        cb = (
-            beta
-            * rPrime
-            * (
-                prob_b * (inc_g - fg + rPrime * bs) ** -sigma
-                + (1 - prob_b) * (inc_b - fb + rPrime * bs) ** -sigma
-            )
+
+        cb = (beta*rPrime*(
+            prob_b * (inc_g - fg + rPrime * bs) ** -sigma
+            + (1 - prob_b) * (inc_b - fb + rPrime * bs) ** -sigma
+        )
         ) ** (1 / -sigma)
 
         x[0] = bs + cg - inc_g

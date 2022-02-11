@@ -138,8 +138,8 @@ Lets go for a second, numerically more challenging example: the chaotic rational
 
 This will give you:
 
-.. image:: docs/p_and_n.png
-  :width: 400
+.. image:: https://github.com/gboehl/econpizza/blob/master/docs/p_and_n.png?raw=true
+  :width: 800
   :alt: Dynamics of prices and fractions
 
 

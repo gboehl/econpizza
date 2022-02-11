@@ -6,7 +6,6 @@ import re
 import os
 import tempfile
 import numpy as np
-import cloudpickle as cpickle
 from copy import deepcopy
 from numpy import log, exp, sqrt
 from numba import njit
@@ -78,8 +77,9 @@ def load(
 
     model["use_jax"] = use_jax
 
+    # if not use_jax and model in cached_mdicts:
     if model in cached_mdicts:
-        model = cpickle.loads(cached_models[cached_mdicts.index(model)])
+        model = cached_models[cached_mdicts.index(model)]
         print("(parse:) Loading cached model.")
         return model
 
@@ -236,6 +236,6 @@ def load(
     )
 
     cached_mdicts += (mdict_raw,)
-    cached_models += (cpickle.dumps(model, protocol=4),)
+    cached_models += (model,)
 
     return model

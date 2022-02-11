@@ -53,17 +53,10 @@ def find_stack(
     pars = np.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
 
-    if root_options:
-        model["root_options"] = root_options
+    model["root_options"] = root_options
 
-    if "xtol" not in model["root_options"]:
-        if tol is None:
-            tol = 1e-5
-        elif "xtol" in root_options:
-            print(
-                "(find_path:) Specification of xtol in `root_options` overwrites `tol`"
-            )
-        model["root_options"]["xtol"] = tol
+    if tol is None:
+        tol = 1e-8
 
     x0 = np.array(list(x0)) if x0 is not None else stst
     x = np.ones((horizon + 1, nvars)) * stst
@@ -116,7 +109,10 @@ def find_stack(
             return out
 
         sproot = ScipyRootFinding(
-            optimality_fun=stacked_func, method="hybr", use_jacrev=False
+            optimality_fun=stacked_func,
+            method="hybr",
+            use_jacrev=False,
+            options=root_options,
         )
 
         jax_res = sproot.run(x_init[1:-1].flatten())
@@ -125,18 +121,18 @@ def find_stack(
             "x": jax_res[0],
             "fun": jax_res[1][0],
             "success": jax_res[1][1],
-            "message": None,
+            "message": "",
         }
 
     else:
-        res = so.root(stacked_func, x_init[1:-1].flatten())
+        res = so.root(stacked_func, x_init[1:-1].flatten(), options=root_options)
 
     err = np.abs(res["fun"]).max()
     x[1:-1] = res["x"].reshape((horizon - 1, nvars))
 
     mess = (
         " ".join(res["message"].replace("\n", " ").split()) + " "
-        if res["message"] is not None
+        if res["message"]
         else ""
     )
     if err > tol:

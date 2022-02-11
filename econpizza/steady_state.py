@@ -20,10 +20,25 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
 
     # find stst
     if model["use_jax"]:
-        from jax import jacfwd
 
-        jacobian = jacfwd(func_stst)
-        res = so.root(func_stst, model["init"], jac=jacobian)
+        import jax
+        from jaxopt import ScipyRootFinding
+
+        func_stst = jax.jit(
+            lambda x: func(x, x, x, x, jax.numpy.zeros(len(shocks)), par, True)
+        )
+
+        sproot = ScipyRootFinding(
+            optimality_fun=func_stst, method="hybr", use_jacrev=False
+        )
+
+        jax_res = sproot.run(model["init"])
+        # construct something like the scipy root results dict
+        res = {
+            "x": jax_res[0],
+            "success": jax_res[1][1],
+            "message": "",
+        }
     else:
         res = so.root(func_stst, model["init"])
 

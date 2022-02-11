@@ -11,7 +11,7 @@ setup(
     long_description_content_type="text/x-rst",
     url="https://github.com/gboehl/econsieve",
     name="econpizza",
-    version="0.1.0",
+    version="0.1.1",
     author="Gregor Boehl",
     author_email="admin@gregorboehl.com",
     description="Solve nonlinear perfect foresight models",
@@ -29,5 +29,6 @@ setup(
         "numpy",
         "scipy",
         "grgrlib",
+        "yaml",
     ],
 )

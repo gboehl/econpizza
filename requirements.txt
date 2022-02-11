@@ -2,4 +2,3 @@ pre-commit
 numpy
 numba
 scipy
-yaml

@@ -1,48 +1,9 @@
 
-econpizza
-=========
-
-.. image:: https://badge.fury.io/py/econpizza.svg
-    :target: https://badge.fury.io/py/econpizza
+econpizza - numba_legacy
+========================
 
 Contains tools to simulate nonlinear perfect foresight models. The baseline mechanism is a Fair-Taylor-like stacking method similar to the nonlinear solver in dynare.
 
-New: experimental automatic differentiation support via `jax <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_!
+This is the last version that builds on `numba` instead of `jax` and is kept for legacy reasons
 
-Installation
--------------
-
-It's as simple as:
-
-.. code-block:: bash
-
-   pip install econpizza
-
-Documentation
--------------
-
-There is some `documentation <https://econpizza.readthedocs.io/en/latest/index.html>`_ out there.
-
-
-Citation
---------
-
-**econpizza** is developed by Gregor Boehl to simulate nonlinear perfect foresight models. Please cite it with
-
-.. code-block::
-
-    @techreport{boehl2021rational,
-    title         = {Rational vs. Irrational Beliefs in a Complex World},
-    author        = {Boehl, Gregor and Hommes, Cars},
-    year          = 2021,
-    institution   = {IMFS Working Paper Series}
-    }
-
-
-I appreciate citations for **econpizza** because it helps me to find out how people have been using the package and it motivates further work.
-
-
-References
-----------
-
-Boehl, Gregor and Hommes, Cars (2021). `Rational vs. Irrational Beliefs in a Complex World <https://gregorboehl.com/live/rational_chaos_bh.pdf>`_. *IMFS Working papers*
+There is some documentation in the `/docs` folder.

@@ -5,7 +5,6 @@ import sys
 import time
 import numpy as np
 import scipy.optimize as so
-from numba import njit, prange
 
 
 def solve_current(model, shock, XLag, XLastGuess, XPrime, tol):
@@ -14,7 +13,7 @@ def solve_current(model, shock, XLag, XLastGuess, XPrime, tol):
     pars = np.array(list(model["parameters"].values()))
     stst = np.array(list(model["stst"].values()))
 
-    func_current = lambda x: func(XLag, x, XPrime, stst, shock, pars)
+    def func_current(x): return func(XLag, x, XPrime, stst, shock, pars)
 
     res = so.root(func_current, XLastGuess, options=model["root_options"])
     err = np.max(np.abs(func_current(res["x"])))
@@ -35,8 +34,8 @@ def find_path_linear(model, shock, T, x, use_linear_guess):
             tshock[shocks.index(shock[0])] = shock[1]
 
         x_lin = np.empty_like(x)
-        x_lin[0][~sel] = (x[0] / stst - 1)[~sel]
-        x_lin[0][sel] = x[0][sel]
+        x_lin[0] = x[0]
+        x_lin[0][~sel] = (x[0][~sel] / stst[~sel] - 1)
 
         for t in range(T):
             x_lin[t + 1] = model["lin_pol"][0] @ x_lin[t]
@@ -131,11 +130,12 @@ def find_pizza(
     x = np.ones((T + max_horizon + 1, nvars)) * stst
     x[0] = x_fin[0]
 
-    x, x_lin = find_path_linear(model, shock, T + max_horizon, x, use_linear_guess)
+    x, x_lin = find_path_linear(
+        model, shock, T + max_horizon, x, use_linear_guess)
     x_lin = x_lin[: T + 1] if x_lin is not None else None
 
     if init_path is not None:
-        x[1 : len(init_path)] = init_path[1:]
+        x[1: len(init_path)] = init_path[1:]
 
     tshock = np.zeros(len(shocks))
 
@@ -225,6 +225,7 @@ def find_pizza(
 
     if verbose:
         duration = np.round(time.time() - st, 3)
-        print("(find_path:) Pizza done after %s seconds%s." % (duration, "".join(mess)))
+        print("(find_path:) Pizza done after %s seconds%s." %
+              (duration, "".join(mess)))
 
     return x_fin, x_lin, fin_flag

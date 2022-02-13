@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import numdifftools as nd
 import scipy.optimize as so
 from scipy.linalg import block_diag
 from grgrlib import klein, speed_kills
 from .shooting import solve_current
+import jax
+from jaxopt import ScipyRootFinding
 
 
 def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
@@ -16,47 +17,30 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
     par = np.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
 
-    func_stst = lambda x: func(x, x, x, x, np.zeros(len(shocks)), par, True)
-
     # find stst
-    if model["use_jax"]:
+    func_stst = jax.jit(
+        lambda x: func(x, x, x, x, jax.numpy.zeros(len(shocks)), par, True)
+    )
 
-        import jax
-        from jaxopt import ScipyRootFinding
+    sproot = ScipyRootFinding(
+        optimality_fun=func_stst, method="hybr", use_jacrev=False
+    )
 
-        func_stst = jax.jit(
-            lambda x: func(x, x, x, x, jax.numpy.zeros(len(shocks)), par, True)
-        )
-
-        sproot = ScipyRootFinding(
-            optimality_fun=func_stst, method="hybr", use_jacrev=False
-        )
-
-        jax_res = sproot.run(model["init"])
-        # construct something like the scipy root results dict
-        res = {
-            "x": jax_res[0],
-            "success": jax_res[1][1],
-            "message": "",
-        }
-    else:
-        res = so.root(func_stst, model["init"])
+    res = sproot.run(model["init"])
 
     # exchange those values that are identified via stst_equations
     stst_vals = func(
-        res["x"], res["x"], res["x"], res["x"], np.zeros(len(shocks)), par, True, True
+        res[0], res[0], res[0], res[0], np.zeros(len(shocks)), par, True, True
     )
     # calculate error
     err = np.abs(func_stst(stst_vals)).max()
 
     if err > tol:
-        grad = nd.Gradient(func_stst)(model["init"])
+        grad = jax.jacfwd(func_stst)(model["init"])
         rank = np.linalg.matrix_rank(grad)
         df0 = sum(np.all(np.isclose(grad, 0), 0))
         df1 = sum(np.all(np.isclose(grad, 0), 1))
-        mess = " ".join(
-            res["message"].replace("\n", " ").split()
-        ) + " Function has rank %s (%s variables) and %s vs %s degrees of freedom." % (
+        mess = "Function has rank %s (%s variables) and %s vs %s degrees of freedom." % (
             rank,
             grad.shape[0],
             df0,
@@ -90,7 +74,6 @@ def solve_linear(
     eps=1e-5,
     raise_error=True,
     check_contraction=False,
-    use_ndifftools=True,
     lti_max_iter=1000,
     verbose=True,
 ):
@@ -118,36 +101,12 @@ def solve_linear(
     zshock = np.zeros(len(shocks))
     fx = func(x, x, x, x, np.zeros(nshc), par)
 
-    try:
-        import numdifftools as nd
-
-        if not use_ndifftools:
-            raise Exception
-
-        # use numdifftools if possible
-        AA = nd.Gradient(lambda err: func(x, x, err, x, zshock, par))(x) * xmult
-        BB = nd.Gradient(lambda err: func(x, err, x, x, zshock, par))(x) * xmult
-        CC = nd.Gradient(lambda err: func(err, x, x, x, zshock, par))(x) * xmult
-        DD = nd.Gradient(lambda err: func(x, x, x, x, err, par))(zshock)
-        DD = DD.reshape((nsts, len(shocks)))
-
-    except:
-
-        # otherwise do stuff by hand
-        for i in range(len(evars)):
-
-            xerr = x.copy()
-            xerr[i] -= eps
-
-            AA[:, i] = (func(x, x, xerr, x, zshock, par) - fx) * x[i] / eps
-            BB[:, i] = (func(x, xerr, x, x, zshock, par) - fx) * x[i] / eps
-            CC[:, i] = (func(xerr, x, x, x, zshock, par) - fx) * x[i] / eps
-
-        for i in range(len(shocks)):
-            cshock = zshock.copy()
-            cshock[i] += eps
-
-            DD[:, i] = (func(x, x, x, x, cshock, par) - fx) / eps
+    # use numdifftools if possible
+    AA = jax.jacfwd(lambda err: func(x, x, err, x, zshock, par))(x) * xmult
+    BB = jax.jacfwd(lambda err: func(x, err, x, x, zshock, par))(x) * xmult
+    CC = jax.jacfwd(lambda err: func(err, x, x, x, zshock, par))(x) * xmult
+    DD = jax.jacfwd(lambda err: func(x, x, x, x, err, par))(zshock)
+    DD = DD.reshape((nsts, len(shocks)))
 
     A = np.pad(AA, ((0, nshc), (0, nshc)))
     B = block_diag(BB, np.eye(nshc))

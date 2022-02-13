@@ -15,7 +15,7 @@ equations:
     ~ c = (1-psi*(pi/piSS - 1)**2/2)*y
     ~ rn = (rSS*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*rnLag**rho
     ~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta
-    ~ r = max(1, rn)
+    ~ r = maximum(1, rn)
 
 parameters:
     theta: 6.

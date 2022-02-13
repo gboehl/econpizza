@@ -7,7 +7,7 @@ econpizza
 
 Contains tools to simulate nonlinear perfect foresight models. The baseline mechanism is a Fair-Taylor-like stacking method similar to the nonlinear solver in dynare.
 
-New: experimental automatic differentiation support via `jax <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_!
+The package makes heavy use of `automatic differentiation <https://en.wikipedia.org/wiki/Automatic_differentiation>`_ via `jax <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_!
 
 Installation
 -------------

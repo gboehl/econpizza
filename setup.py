@@ -29,5 +29,8 @@ setup(
         "numpy",
         "scipy",
         "grgrlib",
+        "jax",
+        "jaxlib",
+        "jaxopt",
     ],
 )

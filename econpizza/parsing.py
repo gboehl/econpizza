@@ -7,18 +7,12 @@ import os
 import tempfile
 import numpy as np
 from copy import deepcopy
-from numpy import log, exp, sqrt
-from numba import njit
+from jax.numpy import log, exp, sqrt, maximum, minimum
 from .steady_state import solve_stst, solve_linear
+import jax
+import jax.numpy as jnp
 
-# experimental: use jax. Only relevant when calling .load() with use_jax=True
-try:
-    import jax
-    import jax.numpy as jnp
-
-    jax.config.update("jax_enable_x64", True)
-except:
-    pass
+jax.config.update("jax_enable_x64", True)
 
 # initialize model cache
 cached_mdicts = ()
@@ -63,10 +57,8 @@ def parse(mfile):
 def load(
     model,
     raise_errors=True,
-    use_ndifftools=True,
     lti_max_iter=500,
     verbose=True,
-    use_jax=False,
 ):
     """load model from dict or yaml file. Warning: contains filthy code (eg. globals, exec, ...)"""
 
@@ -75,9 +67,6 @@ def load(
     if isinstance(model, str):
         model = parse(model)
 
-    model["use_jax"] = use_jax
-
-    # if not use_jax and model in cached_mdicts:
     if model in cached_mdicts:
         model = cached_models[cached_mdicts.index(model)]
         print("(parse:) Loading cached model.")
@@ -88,14 +77,14 @@ def load(
     defs = model.get("definitions")
     if defs is not None:
         for d in defs:
-            if use_jax:
-                d = d.replace(" numpy ", " jax.numpy ")
+            d = d.replace(" numpy ", " jax.numpy ")
             exec(d, globals())
 
     evars = model["variables"]
     dubs = [x for i, x in enumerate(evars) if x in evars[:i]]
     dubmess = (
-        ", variables list contains dublicate(s): %s" % ", ".join(dubs) if dubs else ""
+        ", variables list contains dublicate(s): %s" % ", ".join(
+            dubs) if dubs else ""
     )
 
     evars = model["variables"][:] = sorted(list(set(evars)), key=str.lower)
@@ -117,13 +106,16 @@ def load(
     model["stst"] = stst
 
     # collect number of foward and backward looking variables
-    model["no_fwd"] = sum(var + "Prime" in "".join(model["equations"]) for var in evars)
-    model["no_bwd"] = sum(var + "Lag" in "".join(model["equations"]) for var in evars)
+    model["no_fwd"] = sum(
+        var + "Prime" in "".join(model["equations"]) for var in evars)
+    model["no_bwd"] = sum(var + "Lag" in "".join(model["equations"])
+                          for var in evars)
 
     # check if each variable is defined in time t (only defining xSS does not give a valid root)
     for v in evars:
         v_in_eqns = [
-            v in e.replace(v + "SS", "").replace(v + "Lag", "").replace(v + "Prime", "")
+            v in e.replace(v + "SS", "").replace(v + "Lag",
+                                                 "").replace(v + "Prime", "")
             for e in eqns
         ]
         if not np.any(v_in_eqns):
@@ -180,8 +172,7 @@ def load(
         "\n ".join(eqns),
     )
 
-    if use_jax:
-        func_str = func_str.replace(" np.", " jnp.")
+    func_str = func_str.replace(" np.", " jnp.")
 
     # get inital values to test the function
     init = np.ones(len(evars)) * 1.1
@@ -206,7 +197,8 @@ def load(
 
     # try if function works on initvals. If it does, jit-compile it and remove tempfile
     test = func_raw(
-        init, init, init, init, np.zeros(len(shocks)), np.array(list(par.values()))
+        init, init, init, init, np.zeros(
+            len(shocks)), np.array(list(par.values()))
     )
     if np.isnan(test).any():
         raise Exception("Initial values are NaN.")
@@ -214,10 +206,7 @@ def load(
         raise Exception("Initial values are not finite.")
 
     model["func_raw"] = func_raw
-    if use_jax:
-        model["func"] = jax.jit(func_raw, static_argnums=(6, 7))
-    else:
-        model["func"] = njit(func_raw)
+    model["func"] = jax.jit(func_raw, static_argnums=(6, 7))
     model["func_str"] = func_str
     model["root_options"] = {}
 
@@ -230,7 +219,6 @@ def load(
     solve_linear(
         model,
         raise_error=raise_errors,
-        use_ndifftools=use_ndifftools,
         lti_max_iter=lti_max_iter,
         verbose=verbose,
     )

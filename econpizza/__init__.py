@@ -19,3 +19,4 @@ pth = os.path.dirname(__file__)
 
 example_nk = os.path.join(pth, "examples", "nk.yaml")
 example_bh = os.path.join(pth, "examples", "bh.yaml")
+example_dsge = os.path.join(pth, "examples", "med_scale_nk.yaml")

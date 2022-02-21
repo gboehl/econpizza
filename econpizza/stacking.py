@@ -3,6 +3,7 @@
 
 from jax.experimental.host_callback import id_print
 from jaxopt import ScipyRootFinding
+import os
 import jax
 import sys
 import time
@@ -10,9 +11,8 @@ import numpy as np
 import scipy.optimize as so
 from .shooting import find_path_linear
 
-import os
+# set number of cores for XLA
 os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
-# this must go where we first imprt jax!
 
 
 def find_stack(

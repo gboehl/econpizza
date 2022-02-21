@@ -11,10 +11,12 @@ def test_bh():
     state = np.zeros(len(mod["variables"]))
     state[:-1] = [0.1, 0.2, 0.0]
 
-    x, _, flag = find_path(mod, state, T=1000, max_horizon=1000, tol=1e-8, verbose=2)
+    x, _, flag = find_path(
+        mod, state, T=1000, max_horizon=1000, xtol=1e-8, verbose=2)
 
     assert flag == 0
-    assert np.allclose(x[9], np.array([0.22287535, 0.25053816, 0.24429734, 0.23821162]))
+    assert np.allclose(x[9], np.array(
+        [0.22287535, 0.25053816, 0.24429734, 0.23821162]))
 
 
 def test_nk():
@@ -55,6 +57,7 @@ def test_stacked():
     assert np.allclose(
         x[9],
         np.array(
-            [1.00703268, 3.08098172, 1.00377032, 1.0, 0.99306854, 0.82840692, 3.08119]
+            [1.00703268, 3.08098172, 1.00377032,
+                1.0, 0.99306854, 0.82840692, 3.08119]
         ),
     )

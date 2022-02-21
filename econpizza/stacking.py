@@ -1,13 +1,18 @@
 #!/bin/python
 # -*- coding: utf-8 -*-
 
+from jax.experimental.host_callback import id_print
+from jaxopt import ScipyRootFinding
+import jax
 import sys
 import time
 import numpy as np
 import scipy.optimize as so
 from .shooting import find_path_linear
-import jax
-from jaxopt import ScipyRootFinding
+
+import os
+os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
+# this must go where we first imprt jax!
 
 
 def find_stack(
@@ -16,10 +21,12 @@ def find_stack(
     shock=None,
     init_path=None,
     horizon=50,
-    tol=None,
+    xtol=None,
     use_linear_guess=True,
     use_linear_endpoint=None,
     root_options={},
+    parallel=False,
+    live_dangerously=False,
     verbose=True,
 ):
 
@@ -33,8 +40,18 @@ def find_stack(
 
     model["root_options"] = root_options
 
-    if tol is None:
-        tol = 1e-8
+    if xtol is not None:
+        root_options['xtol'] = xtol
+
+    if not 'xtol' in root_options:
+        root_options['xtol'] = 1e-8
+
+    ncores = os.cpu_count()
+    # if parallel and (horizon - 1) % ncores:
+    if shock is None:
+        horizon += ncores - (horizon - 1) % ncores
+    else:
+        horizon += ncores - (horizon - 2) % ncores
 
     x0 = np.array(list(x0)) if x0 is not None else stst
     x = np.ones((horizon + 1, nvars)) * stst
@@ -59,46 +76,51 @@ def find_stack(
 
     endpoint = x_lin[-1] if use_linear_endpoint else stst
 
-    if shock is None:
-        @jax.jit
-        def stacked_func(x):
-
-            X = jax.numpy.vstack(
-                (x0, x.reshape((horizon - 1, nvars)), endpoint))
-            out = func(X[:-2].T, X[1:-1].T, X[2:].T,
-                       stst, zshock, pars).flatten()
-
-            return out
+    if parallel:
+        pfunc = jax.pmap(lambda x0, x1, x2: func(
+            x0, x1, x2, stst, zshock, pars), in_axes=2)
+        nshpe = (nvars, int((horizon-1-bool(shock))/ncores), ncores)
     else:
-        @jax.jit
-        def stacked_func(x):
+        def pfunc(x0, x1, x2): return func(x0, x1, x2, stst, zshock, pars)
+        nshpe = (nvars, horizon-1-bool(shock))
 
-            X = jax.numpy.vstack((x.reshape((horizon - 1, nvars)), endpoint))
-            out_1st = func(x0, X[0], X[1], stst, tshock, pars)
-            out_rst = func(X[:-2].T, X[1:-1].T, X[2:].T,
-                           stst, zshock, pars).flatten()
+    def stacked_func(x):
 
-            return jax.numpy.hstack((out_1st, out_rst))
+        if shock is None:
+            X = jax.numpy.vstack(
+                (x0, x.reshape((horizon - 1, nvars)), endpoint)).T
 
-    sproot = ScipyRootFinding(
-        optimality_fun=stacked_func,
-        method="hybr",
-        use_jacrev=False,
-        options=root_options,
-    )
+            out = pfunc(X[:, :-2].reshape(nshpe), X[:, 1:-
+                        1].reshape(nshpe), X[:, 2:].reshape(nshpe)).flatten()
+            out = pfunc(X[:, :-2].reshape(nshpe),
+                        X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(nshpe))
+        else:
+            X = jax.numpy.vstack((x.reshape((horizon - 1, nvars)), endpoint)).T
 
-    res = sproot.run(x_init[1:-1].flatten())
+            out_1st = func(x0, X[:, 0], X[:, 1], stst, tshock, pars)
+            out_rst = pfunc(X[:, :-2].reshape(nshpe),
+                            X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(nshpe))
+            out = jax.numpy.hstack((out_1st, out_rst.flatten()))
 
-    err = np.abs(res[1][0]).max()
-    x[1:-1] = res[0].reshape((horizon - 1, nvars))
+        # works, but slows down and does not support strings
+        if verbose and live_dangerously:
+            id_print(jax.numpy.abs(out).max())
 
-    mess = ''
-    if err > tol:
-        mess += "Max error is %1.2e." % np.abs(stacked_func(res[0])).max()
+        return out.flatten()
+
+    res = so.root(stacked_func, x0=x_init[1:-1].flatten(),
+                  jac=jax.jacfwd(stacked_func), options=root_options)
+
+    err = np.abs(res['fun']).max()
+    x[1:-1] = res['x'].reshape((horizon - 1, nvars))
+
+    mess = res['message']
+    if err > root_options['xtol']:
+        mess += " Max error is %1.2e." % np.abs(stacked_func(res['x'])).max()
 
     if verbose:
         duration = np.round(time.time() - st, 3)
         print("(find_path_stacked:) Stacking done after %s seconds. " %
               duration + mess)
 
-    return x, x_lin, not res[1][1]
+    return x, x_lin, not res['success']

@@ -7,7 +7,7 @@ import numpy as np
 import scipy.optimize as so
 
 
-def solve_current(model, shock, XLag, XLastGuess, XPrime, tol):
+def solve_current(model, shock, XLag, XLastGuess, XPrime, xtol):
 
     func = model["func"]
     pars = np.array(list(model["parameters"].values()))
@@ -18,7 +18,7 @@ def solve_current(model, shock, XLag, XLastGuess, XPrime, tol):
     res = so.root(func_current, XLastGuess, options=model["root_options"])
     err = np.max(np.abs(func_current(res["x"])))
 
-    return res["x"], not res["success"], err > tol
+    return res["x"], not res["success"], err > xtol
 
 
 def find_path_linear(model, shock, T, x, use_linear_guess):
@@ -62,13 +62,13 @@ def find_pizza(
     max_horizon=200,
     max_loops=100,
     max_iter=None,
-    tol=1e-5,
+    xtol=1e-5,
     use_linear_guess=False,
     root_options={},
     raise_error=False,
     verbose=True,
 ):
-    """Find the expected trajectory given an initial state. A good strategy is to first set `tol` to a low value (e.g. 1e-3) and check for a good max_horizon. Then, set max_horizon to a reasonable value and let max_loops be high.
+    """Find the expected trajectory given an initial state. A good strategy is to first set `xtol` to a low value (e.g. 1e-3) and check for a good max_horizon. Then, set max_horizon to a reasonable value and let max_loops be high.
 
     Parameters
     ----------
@@ -88,7 +88,7 @@ def find_pizza(
         number of repetitions to iterate over the whole trajectory. Should eventually be high.
     max_iterations : int, optional
         number of iterations. Default is `max_horizon`. It should not be lower than that (and will raise an error). Normally it should not be higher, better use `max_loops` instead.
-    tol : float, optional
+    xtol : float, optional
         convergence criterion
     root_options : dict, optional
         dictionary with solver-specific options to be passed on to `scipy.optimize.root`
@@ -122,7 +122,7 @@ def find_pizza(
 
     # precision of root finding should be some magnitudes higher than of solver
     if "xtol" not in model["root_options"]:
-        model["root_options"]["xtol"] = min(tol / max_horizon, 1e-8)
+        model["root_options"]["xtol"] = min(xtol / max_horizon, 1e-8)
 
     x_fin = np.empty((T + 1, nvars))
     x_fin[0] = list(x0) if x0 is not None else stst
@@ -172,7 +172,7 @@ def find_pizza(
                         tshock[:] = 0
 
                     x[t + 1], flag_root, flag_ftol = solve_current(
-                        model, tshock, x[t], x[t + 1], x[t + 2], tol
+                        model, tshock, x[t], x[t + 1], x[t + 2], xtol
                     )
 
                     flag_loc[0] |= flag_root
@@ -199,7 +199,7 @@ def find_pizza(
                         )
                     )
 
-                if (err < tol and cnt > 2) or flag.any():
+                if (err < xtol and cnt > 2) or flag.any():
                     flag[:2] |= flag_loc
                     if raise_error and flag.any():
                         mess = [i * bool(j) for i, j in zip(msgs, flag)]

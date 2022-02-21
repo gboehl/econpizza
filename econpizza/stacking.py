@@ -98,7 +98,7 @@ def find_stack(
 
     if verbose:
         duration = np.round(time.time() - st, 3)
-        print("(find_path_stacked:) Stacking done after %s seconds. " %
-              duration + mess)
+        print("(find_path_stacked:) Stacking done after %s seconds (size: %.2e). " % (
+            duration, horizon*nvars) + mess)
 
     return x, x_lin, not res[1][1]

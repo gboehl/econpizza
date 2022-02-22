@@ -1,16 +1,15 @@
 #!/bin/python
 # -*- coding: utf-8 -*-
 
+import jax
 import numpy as np
-import scipy.optimize as so
 from scipy.linalg import block_diag
 from grgrlib import klein, speed_kills
+from .tools import newton
 from .shooting import solve_current
-import jax
-from jaxopt import ScipyRootFinding
 
 
-def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
+def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
 
     evars = model["variables"]
     func = model["func"]
@@ -22,16 +21,12 @@ def solve_stst(model, raise_error=True, tol=1e-8, verbose=True):
         lambda x: func(x, x, x, x, jax.numpy.zeros(len(shocks)), par, True)
     )
 
-    sproot = ScipyRootFinding(
-        optimality_fun=func_stst, method="hybr", use_jacrev=False
-    )
-
-    res = sproot.run(model["init"])
+    res = newton(func_stst, jax.jacfwd(func_stst),
+                 model['init'], maxit, tol, sparse=False, verbose=False)
 
     # exchange those values that are identified via stst_equations
-    stst_vals = func(
-        res[0], res[0], res[0], res[0], np.zeros(len(shocks)), par, True, True
-    )
+    stst_vals = func(res['x'], res['x'], res['x'], res['x'],
+                     np.zeros(len(shocks)), par, True, True)
     # calculate error
     err = np.abs(func_stst(stst_vals)).max()
 

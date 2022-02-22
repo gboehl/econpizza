@@ -1,15 +1,12 @@
 #!/bin/python
 # -*- coding: utf-8 -*-
 
-from jax.experimental.host_callback import id_print
-from jaxopt import ScipyRootFinding
 import os
 import jax
-import sys
 import time
 import numpy as np
-import scipy.optimize as so
 from .shooting import find_path_linear
+from .tools import newton
 
 # set number of cores for XLA
 os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
@@ -22,11 +19,10 @@ def find_stack(
     init_path=None,
     horizon=50,
     tol=None,
+    maxit=None,
     use_linear_guess=True,
     use_linear_endpoint=None,
-    root_options={},
     parallel=False,
-    live_dangerously=False,
     verbose=True,
 ):
 
@@ -38,19 +34,15 @@ def find_stack(
     pars = np.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
 
-    model["root_options"] = root_options
-
-    if tol is not None:
-        root_options['xtol'] = tol
-
-    if not 'xtol' in root_options:
-        root_options['xtol'] = 1e-8
+    if tol is None:
+        tol = 1e-8
+    if maxit is None:
+        maxit = 30
 
     ncores = os.cpu_count()
-    # if parallel and (horizon - 1) % ncores:
-    if shock is None:
+    if shock is None and (horizon - 1) % ncores:
         horizon += ncores - (horizon - 1) % ncores
-    else:
+    elif shock is not None and (horizon - 2) % ncores:
         horizon += ncores - (horizon - 2) % ncores
 
     x0 = np.array(list(x0)) if x0 is not None else stst
@@ -102,25 +94,28 @@ def find_stack(
                             X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(nshpe))
             out = jax.numpy.hstack((out_1st, out_rst.flatten()))
 
-        # works, but slows down and does not support strings
-        if verbose and live_dangerously:
-            id_print(jax.numpy.abs(out).max())
-
         return out.flatten()
 
-    res = so.root(stacked_func, x0=x_init[1:-1].flatten(),
-                  jac=jax.jacfwd(stacked_func), options=root_options)
+    jac = jax.jacfwd(stacked_func)
+    jit = jax.jit(stacked_func)
+
+    if verbose:
+        print("(find_path_stacked:) Solving stack (size: %s)..." %
+              (horizon*nvars))
+
+    res = newton(jit, jac, x_init[1:-1].flatten(),
+                 maxit, tol, sparse=True, verbose=verbose)
 
     err = np.abs(res['fun']).max()
     x[1:-1] = res['x'].reshape((horizon - 1, nvars))
 
     mess = res['message']
-    if err > root_options['xtol']:
+    if err > tol:
         mess += " Max error is %1.2e." % np.abs(stacked_func(res['x'])).max()
 
     if verbose:
         duration = np.round(time.time() - st, 3)
-        print("(find_path_stacked:) Stacking done after %s seconds (size: %.2e). " % (
-            duration, horizon*nvars) + mess)
+        print("(find_path_stacked:) Stacking done after %s seconds. " %
+              duration + mess)
 
     return x, x_lin, not res['success']

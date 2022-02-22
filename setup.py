@@ -31,6 +31,5 @@ setup(
         "grgrlib",
         "jax",
         "jaxlib",
-        "jaxopt",
     ],
 )

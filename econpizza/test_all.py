@@ -12,7 +12,7 @@ def test_bh():
     state[:-1] = [0.1, 0.2, 0.0]
 
     x, _, flag = find_path(
-        mod, state, T=1000, max_horizon=1000, xtol=1e-8, verbose=2)
+        mod, state, T=1000, max_horizon=1000, tol=1e-8, verbose=2)
 
     assert flag == 0
     assert np.allclose(x[9], np.array(

@@ -63,7 +63,7 @@ Lets go for a second, numerically more challenging example: the chaotic rational
     state[:-1] = [.1, .2, 0.]
 
     # solve and simulate. The lower eps is not actually necessary
-    x, _, flag = ep.find_path(mod, state, T=1000, max_horizon=1000, xtol=1e-8)
+    x, _, flag = ep.find_path(mod, state, T=1000, max_horizon=1000, tol=1e-8)
 
     # plotting
     for i,v in enumerate(mod['variables']):

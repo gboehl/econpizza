@@ -21,7 +21,7 @@ def find_stack(
     shock=None,
     init_path=None,
     horizon=50,
-    xtol=None,
+    tol=None,
     use_linear_guess=True,
     use_linear_endpoint=None,
     root_options={},
@@ -40,8 +40,8 @@ def find_stack(
 
     model["root_options"] = root_options
 
-    if xtol is not None:
-        root_options['xtol'] = xtol
+    if tol is not None:
+        root_options['xtol'] = tol
 
     if not 'xtol' in root_options:
         root_options['xtol'] = 1e-8

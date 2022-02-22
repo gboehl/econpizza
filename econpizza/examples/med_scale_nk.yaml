@@ -1,0 +1,77 @@
+# med_scale_nk.yaml ---
+#
+# Description: a medium scale NK model with capital, capital adjustement costs, and habits
+# The model is inspired by "The zero lower bound, the dual mandate, and unconventional dynamics" (Gavin, Keen, Richter, Throckmorton, 2015 JEDC)
+# Author: Gregor Boehl [mail@gregorboehl.com]
+# Last-Updated: 02/13/22
+
+name: 'med_scale_nk'
+variables: [y, y_prod, c, pi, r, rn, beta, w, q, mc, k, i, n, z, rk, hhdf, g, b, qb, t, dd, ds, bprof]
+shocks: [e_beta]
+
+definitions:
+    - from numpy import log, maximum
+
+aux_equations:
+    - chi = wSS/(1-h)/cSS*nSS**-eta
+
+equations:
+      # households
+    ~ w = chi*n**eta*(c - h*cLag)
+    ~ 1 = r/piPrime*hhdf
+    ~ hhdf = betaPrime*(c - h*cLag)/(cPrime - h*c)
+    ~ dd + i + c + t = rLag/pi*ddLag + (1 - psi/2*(pi/piSS - 1)**2)*y + bprof
+
+      # capital
+    ~ q = 1 + Phi*(i/kLag - delta)
+    ~ q = hhdf*(rkPrime - Phi/2*(iPrime/k - delta)**2 + Phi*(iPrime/k-delta)*iPrime/k + (1-delta)*qPrime)
+    ~ k = (1-delta)*kLag + i
+
+      # "banks"
+    ~ r = (1 + kappa*qbPrime)/qb
+    ~ ds = qb*b
+    ~ bprof = (1+kappa*qb)/pi*bLag - rLag/pi*ddLag
+
+      # government
+    ~ g + (1+kappa*qb)/pi*bLag = qb*b + t
+    ~ g = 0.2*ySS
+    ~ b = ySS/qbSS
+
+    ~ c + i + g + Phi/2*(i/kLag - delta)**2*kLag = (1-psi*(pi/piSS - 1)**2/2)*y_prod
+    ~ c + i + g = y
+    ~ y_prod = z*k**alpha*n**(1-alpha)
+
+      # firms
+    ~ alpha*w*n = (1-alpha)*rk*kLag
+    ~ mc = w**(1-alpha)*rk**alpha/(z*(1-alpha)**(1-alpha)*alpha**alpha)
+    ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*mc + psi*hhdf*(piPrime/piSS - 1)*piPrime/piSS*y_prodPrime/y_prod
+
+      # central bank
+    ~ rn = (rSS*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho)*rnLag**rho
+    ~ r = maximum(1, rn)
+
+      # exogenous
+    ~ beta = betaSS*(betaLag/betaSS)**rho_beta
+    ~ z = zSS*(zLag/zSS)**rho_z
+
+parameters:
+    theta: 6.
+    kappa: 0.975
+    psi: 59.11
+    delta: 0.025
+    alpha: 0.33
+    Phi: 5.6
+    phi_pi: 1.5
+    phi_y: 0.1
+    h: .44
+    rho: .8
+    eta: .33
+    rho_beta: .8
+    rho_z: .9
+
+steady_state:
+    fixed_values:
+        beta: 0.995
+        z: 1
+        pi: 1.02^.25
+        n: 0.33

@@ -2,14 +2,17 @@
 # -*- coding: utf-8 -*-
 
 import jax
+import time
 import numpy as np
 from scipy.linalg import block_diag
 from grgrlib import klein, speed_kills
-from .tools import newton
+from grgrlib.jaxed import newton_jax
 from .shooting import solve_current
 
 
 def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
+
+    st = time.time()
 
     evars = model["variables"]
     func = model["func"]
@@ -21,8 +24,8 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
         lambda x: func(x, x, x, x, jax.numpy.zeros(len(shocks)), par, True)
     )
 
-    res = newton(func_stst, jax.jacfwd(func_stst),
-                 model['init'], maxit, tol, sparse=False, verbose=False)
+    res = newton_jax(func_stst, model['init'],
+                     maxit, tol, sparse=False, verbose=False)
 
     # exchange those values that are identified via stst_equations
     stst_vals = func(res['x'], res['x'], res['x'], res['x'],
@@ -53,7 +56,8 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
                 % (err, mess)
             )
     elif verbose:
-        print("(solve_stst:) Steady state found.")
+        duration = np.round(time.time() - st, 3)
+        print(f"(solve_stst:) Steady state found in {duration} seconds.")
 
     rdict = dict(zip(evars, stst_vals))
     model["stst"] = rdict

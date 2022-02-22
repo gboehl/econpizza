@@ -6,7 +6,7 @@ import jax
 import time
 import numpy as np
 from .shooting import find_path_linear
-from .tools import newton
+from grgrlib.jaxed import newton_jax
 
 # set number of cores for XLA
 os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
@@ -96,15 +96,17 @@ def find_stack(
 
         return out.flatten()
 
-    jac = jax.jacfwd(stacked_func)
-    jit = jax.jit(stacked_func)
+    if parallel:
+        stacked_func = stacked_func
+    else:
+        stacked_func = jax.jit(stacked_func)
 
     if verbose:
         print("(find_path_stacked:) Solving stack (size: %s)..." %
               (horizon*nvars))
 
-    res = newton(jit, jac, x_init[1:-1].flatten(),
-                 maxit, tol, sparse=True, verbose=verbose)
+    res = newton_jax(
+        stacked_func, x_init[1:-1].flatten(), maxit, tol, True, verbose)
 
     err = np.abs(res['fun']).max()
     x[1:-1] = res['x'].reshape((horizon - 1, nvars))

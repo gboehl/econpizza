@@ -24,7 +24,7 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
         lambda x: func(x, x, x, x, jax.numpy.zeros(len(shocks)), par, True)
     )
 
-    res = newton_jax(func_stst, model['init'],
+    res = newton_jax(func_stst, model['init'], None,
                      maxit, tol, sparse=False, verbose=False)
 
     # exchange those values that are identified via stst_equations

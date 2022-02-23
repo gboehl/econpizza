@@ -5,11 +5,9 @@ import os
 import jax
 import time
 import numpy as np
-from .shooting import find_path_linear
+from scipy import sparse
 from grgrlib.jaxed import newton_jax
-
-# set number of cores for XLA
-os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
+from .shooting import find_path_linear
 
 
 def find_stack(
@@ -82,8 +80,6 @@ def find_stack(
             X = jax.numpy.vstack(
                 (x0, x.reshape((horizon - 1, nvars)), endpoint)).T
 
-            out = pfunc(X[:, :-2].reshape(nshpe), X[:, 1:-
-                        1].reshape(nshpe), X[:, 2:].reshape(nshpe)).flatten()
             out = pfunc(X[:, :-2].reshape(nshpe),
                         X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(nshpe))
         else:
@@ -105,8 +101,29 @@ def find_stack(
         print("(find_path_stacked:) Solving stack (size: %s)..." %
               (horizon*nvars))
 
-    res = newton_jax(
-        stacked_func, x_init[1:-1].flatten(), maxit, tol, True, verbose)
+    def func4jac(x): return func(
+        x[:nvars], x[nvars:-nvars], x[-nvars:], stst, zshock, pars)
+    jac_vmap = jax.vmap(jax.jacfwd(func4jac))
+    hrange = np.arange(nvars)*(horizon-1)
+
+    def jac(x):
+
+        X = jax.numpy.vstack((x0, x.reshape((horizon - 1, nvars)), endpoint))
+        Y = jax.numpy.hstack((X[:-2], X[1:-1], X[2:]))
+        jac_parts = jac_vmap(Y)
+
+        J = sparse.lil_array(((horizon-1)*nvars, (horizon-1)*nvars))
+        J[np.arange(nvars)*(horizon-1), :nvars*2] = jac_parts[0, :, nvars:]
+        J[np.arange(nvars)*(horizon-1)+horizon-2, (horizon-3) *
+          nvars:horizon*nvars] = jac_parts[horizon-2, :, :-nvars]
+
+        for t in range(1, horizon-2):
+            J[hrange+t, (t-1)*nvars:(t-1+3)*nvars] = jac_parts[t]
+
+        return sparse.csc_matrix(J)
+
+    res = newton_jax(stacked_func, x_init[1:-1].flatten(),
+                     jac if shocks is None else None, maxit, tol, True, verbose)
 
     err = np.abs(res['fun']).max()
     x[1:-1] = res['x'].reshape((horizon - 1, nvars))
@@ -114,6 +131,9 @@ def find_stack(
     mess = res['message']
     if err > tol:
         mess += " Max error is %1.2e." % np.abs(stacked_func(res['x'])).max()
+
+    if shocks is not None:
+        mess += " Sparse jacobians are not (yet) implemented for use of optional `shocks` argument. Calculations are slower."
 
     if verbose:
         duration = np.round(time.time() - st, 3)

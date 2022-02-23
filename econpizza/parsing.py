@@ -13,6 +13,9 @@ import jax
 import jax.numpy as jnp
 
 jax.config.update("jax_enable_x64", True)
+# set number of cores for XLA
+os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
+
 
 # initialize model cache
 cached_mdicts = ()

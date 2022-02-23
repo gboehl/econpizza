@@ -38,10 +38,8 @@ def find_stack(
         maxit = 30
 
     ncores = os.cpu_count()
-    if shock is None and (horizon - 1) % ncores:
+    if parallel and (horizon - 1) % ncores:
         horizon += ncores - (horizon - 1) % ncores
-    elif shock is not None and (horizon - 2) % ncores:
-        horizon += ncores - (horizon - 2) % ncores
 
     x0 = np.array(list(x0)) if x0 is not None else stst
     x = np.ones((horizon + 1, nvars)) * stst
@@ -68,27 +66,21 @@ def find_stack(
 
     if parallel:
         pfunc = jax.pmap(lambda x0, x1, x2: func(
-            x0, x1, x2, stst, zshock, pars), in_axes=2)
-        nshpe = (nvars, int((horizon-1-bool(shock))/ncores), ncores)
+            x0, x1, x2, stst, zshock, pars), in_axes=2, out_axes=2)
+        nshpe = (nvars, int((horizon-1)/ncores), ncores)
     else:
         def pfunc(x0, x1, x2): return func(x0, x1, x2, stst, zshock, pars)
-        nshpe = (nvars, horizon-1-bool(shock))
+        nshpe = (nvars, horizon-1)
 
     def stacked_func(x):
 
-        if shock is None:
-            X = jax.numpy.vstack(
-                (x0, x.reshape((horizon - 1, nvars)), endpoint)).T
+        X = jax.numpy.vstack((x0, x.reshape((horizon - 1, nvars)), endpoint)).T
+        out = pfunc(X[:, :-2].reshape(nshpe),
+                    X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(nshpe))
 
-            out = pfunc(X[:, :-2].reshape(nshpe),
-                        X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(nshpe))
-        else:
-            X = jax.numpy.vstack((x.reshape((horizon - 1, nvars)), endpoint)).T
-
-            out_1st = func(x0, X[:, 0], X[:, 1], stst, tshock, pars)
-            out_rst = pfunc(X[:, :-2].reshape(nshpe),
-                            X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(nshpe))
-            out = jax.numpy.hstack((out_1st, out_rst.flatten()))
+        if shock is not None:
+            out = out.at[:, 0].set(
+                func(X[:, 0], X[:, 1], X[:, 2], stst, tshock, pars))
 
         return out.flatten()
 
@@ -101,9 +93,10 @@ def find_stack(
         print("(find_path_stacked:) Solving stack (size: %s)..." %
               (horizon*nvars))
 
-    def func4jac(x): return func(
-        x[:nvars], x[nvars:-nvars], x[-nvars:], stst, zshock, pars)
-    jac_vmap = jax.vmap(jax.jacfwd(func4jac))
+    jac_vmap = jax.vmap(jax.jacfwd(lambda x: func(
+        x[:nvars], x[nvars:-nvars], x[-nvars:], stst, zshock, pars)))
+    jac_shock = jax.jacfwd(lambda x: func(
+        x[:nvars], x[nvars:-nvars], x[-nvars:], stst, tshock, pars))
     hrange = np.arange(nvars)*(horizon-1)
 
     def jac(x):
@@ -113,7 +106,11 @@ def find_stack(
         jac_parts = jac_vmap(Y)
 
         J = sparse.lil_array(((horizon-1)*nvars, (horizon-1)*nvars))
-        J[np.arange(nvars)*(horizon-1), :nvars*2] = jac_parts[0, :, nvars:]
+        if shock is None:
+            J[np.arange(nvars)*(horizon-1), :nvars*2] = jac_parts[0, :, nvars:]
+        else:
+            J[np.arange(nvars)*(horizon-1), :nvars *
+              2] = jac_shock(X[:3].flatten())[:, nvars:]
         J[np.arange(nvars)*(horizon-1)+horizon-2, (horizon-3) *
           nvars:horizon*nvars] = jac_parts[horizon-2, :, :-nvars]
 
@@ -122,8 +119,8 @@ def find_stack(
 
         return sparse.csc_matrix(J)
 
-    res = newton_jax(stacked_func, x_init[1:-1].flatten(),
-                     jac if shock is None else None, maxit, tol, True, verbose)
+    res = newton_jax(
+        stacked_func, x_init[1:-1].flatten(), jac, maxit, tol, True, verbose)
 
     err = np.abs(res['fun']).max()
     x[1:-1] = res['x'].reshape((horizon - 1, nvars))
@@ -132,10 +129,7 @@ def find_stack(
     if err > tol:
         mess += " Max error is %1.2e." % np.abs(stacked_func(res['x'])).max()
 
-    if shock is not None:
-        mess += " Sparse jacobians are not (yet) implemented for use of optional `shock` argument. Calculations are (much) slower."
-
-    if verbose or shock is not None:
+    if verbose:
         duration = np.round(time.time() - st, 3)
         print("(find_path_stacked:) Stacking done after %s seconds. " %
               duration + mess)

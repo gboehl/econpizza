@@ -68,9 +68,11 @@ def find_stack(
         pfunc = jax.pmap(lambda x0, x1, x2: func(
             x0, x1, x2, stst, zshock, pars), in_axes=2, out_axes=2)
         nshpe = (nvars, int((horizon-1)/ncores), ncores)
+        ind = slice(None, None, None), 0, 0
     else:
         def pfunc(x0, x1, x2): return func(x0, x1, x2, stst, zshock, pars)
         nshpe = (nvars, horizon-1)
+        ind = slice(None, None, None), 0
 
     def stacked_func(x):
 
@@ -79,7 +81,7 @@ def find_stack(
                     X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(nshpe))
 
         if shock is not None:
-            out = out.at[:, 0].set(
+            out = out.at[ind].set(
                 func(X[:, 0], X[:, 1], X[:, 2], stst, tshock, pars))
 
         return out.flatten()

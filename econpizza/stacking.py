@@ -123,7 +123,7 @@ def find_stack(
         return sparse.csc_matrix(J)
 
     res = newton_jax(stacked_func, x_init[1:-1].flatten(),
-                     jac if shocks is None else None, maxit, tol, True, verbose)
+                     jac if shock is None else None, maxit, tol, True, verbose)
 
     err = np.abs(res['fun']).max()
     x[1:-1] = res['x'].reshape((horizon - 1, nvars))
@@ -132,10 +132,10 @@ def find_stack(
     if err > tol:
         mess += " Max error is %1.2e." % np.abs(stacked_func(res['x'])).max()
 
-    if shocks is not None:
-        mess += " Sparse jacobians are not (yet) implemented for use of optional `shocks` argument. Calculations are slower."
+    if shock is not None:
+        mess += " Sparse jacobians are not (yet) implemented for use of optional `shock` argument. Calculations are (much) slower."
 
-    if verbose:
+    if verbose or shock is not None:
         duration = np.round(time.time() - st, 3)
         print("(find_path_stacked:) Stacking done after %s seconds. " %
               duration + mess)

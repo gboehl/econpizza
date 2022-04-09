@@ -65,6 +65,8 @@ def load(
 ):
     """load model from dict or yaml file. Warning: contains filthy code (eg. globals, exec, ...)"""
 
+    from .__init__ import PizzaModel
+
     global cached_mdicts, cached_models
 
     if isinstance(model, str):
@@ -114,6 +116,7 @@ def load(
     model["no_bwd"] = sum(var + "Lag" in "".join(model["equations"])
                           for var in evars)
 
+    # TODO: make own function
     # check if each variable is defined in time t (only defining xSS does not give a valid root)
     for v in evars:
         v_in_eqns = [
@@ -135,6 +138,7 @@ def load(
     eqns_aux = model.get("aux_equations")
     stst_eqns = model["steady_state"].get("equations") or []
 
+    # TODO: make own function
     # resolve all equations with the 'All' keyword
     for eqn in stst_eqns:
         if eqn.count("All") == 1:
@@ -157,6 +161,7 @@ def load(
     else:
         shock_str = shocks[0] + " = shocks[0]"
 
+    # TODO: make own function
     func_str = f"""def func_raw(XLag, X, XPrime, XSS, shocks, pars, stst=False, return_stst_vals=False):
         \n {", ".join(v + "Lag" for v in evars) + " = XLag"}
         \n {", ".join(evars) + " = X"}
@@ -190,6 +195,7 @@ def load(
 
     model["init"] = init
 
+    # TODO: make own function
     # use a termporary file to get nice debug traces if things go wrong
     tmpf = tempfile.NamedTemporaryFile(mode="w", delete=False)
 
@@ -229,4 +235,4 @@ def load(
     cached_mdicts += (mdict_raw,)
     cached_models += (model,)
 
-    return model
+    return PizzaModel(model)

@@ -11,6 +11,7 @@ from jax.numpy import log, exp, sqrt, maximum, minimum
 from .steady_state import solve_stst, solve_linear
 import jax
 import jax.numpy as jnp
+from grgrlib import load_as_module
 
 jax.config.update("jax_enable_x64", True)
 # set number of cores for XLA
@@ -32,6 +33,21 @@ def eval_strs(vdict):
             vdict[v] = eval(vdict[v])
 
     return vdict
+
+
+def load_functions_file(model):
+    """Load the functions file as a module.
+    """
+
+    try:
+        # prepare path
+        if not os.path.isabs(model["functions_file"]):
+            yaml_dir = os.path.dirname(model["path"])
+            functions_file = os.path.join(yaml_dir, model["functions_file"])
+        # load as a module
+        return load_as_module(functions_file)
+    except KeyError:
+        pass
 
 
 def compile_func_str(evars, eqns, par, eqns_aux, stst_eqns, shocks):
@@ -191,13 +207,16 @@ def load(
     global cached_mdicts, cached_models
 
     if isinstance(model, str):
+        full_path = model
         model = parse(model)
+        model['path'] = full_path
 
     model = PizzaModel(model)
 
     # check if model is already cached
     if model in cached_mdicts:
         model = cached_models[cached_mdicts.index(model)]
+        model.funcs = load_functions_file(model)
         print("(parse:) Loading cached model.")
         return model
 
@@ -267,5 +286,8 @@ def load(
     # add new model to cache
     cached_mdicts += (mdict_raw,)
     cached_models += (model,)
+
+    # load file with additional functions as module (if it exists)
+    model.funcs = load_functions_file(model)
 
     return model

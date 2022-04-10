@@ -33,3 +33,26 @@ def load(model):
         pass
 
     return model
+
+
+def create_grids(distributions):
+    """Get the strings of functions that define the grids.
+    """
+
+    grid_strings = ()
+
+    for dist_name, dist in distributions.items():
+        for grid_name, g in dist.items():
+
+            if g['type'] == 'exogenous':
+                # skip this only if none of the parameters is given
+                # in this case the grid must be defined in some stage in the yaml
+                if not all([i not in g for i in ['rho', 'sigma', 'n']]):
+                    grid_strings += f"{g['grid_variables']} = grids.markov_rouwenhorst(rho={g['rho']}, sigma={g['sigma']}, N={g['n']})",
+
+            elif g['type'] == 'endogenous':
+                # as above
+                if not all([i not in g for i in ['min', 'max', 'n']]):
+                    grid_strings += f"{g['grid_variables']} = grids.log_grid(amin={g['min']}, amax={g['max']}, n={g['n']})",
+
+    return grid_strings

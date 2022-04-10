@@ -11,6 +11,8 @@ from .shooting import solve_current
 
 
 def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
+    """Solves for the steady state.
+    """
 
     st = time.time()
 
@@ -64,7 +66,7 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
     model["init"] = np.array(list(rdict.values()))
     model["stst_vals"] = np.array(list(rdict.values()))
 
-    return rdict
+    return model['stst']
 
 
 def solve_linear(
@@ -170,4 +172,4 @@ def solve_linear(
     if mess and verbose:
         print("(solve_linear:) " + mess + ("" if mess[-1] in ".?!" else "."))
 
-    return success
+    return model["ABC"]

@@ -72,6 +72,8 @@ def load(
     if isinstance(model, str):
         model = parse(model)
 
+    model = PizzaModel(model)
+
     if model in cached_mdicts:
         model = cached_models[cached_mdicts.index(model)]
         print("(parse:) Loading cached model.")
@@ -205,17 +207,18 @@ def load(
     exec(compile(open(tmpf.name).read(), tmpf.name, "exec"), globals())
 
     # try if function works on initvals. If it does, jit-compile it and remove tempfile
-    test = func_raw(
-        init, init, init, init, np.zeros(
-            len(shocks)), np.array(list(par.values()))
-    )
-    if np.isnan(test).any():
-        raise Exception("Initial values are NaN.")
-    if np.isinf(test).any():
-        raise Exception("Initial values are not finite.")
+    # TODO: reactivate
+    # test = func_raw(
+    # init, init, init, init, np.zeros(
+    # len(shocks)), np.array(list(par.values()))
+    # )
+    # if np.isnan(test).any():
+    # raise Exception("Initial values are NaN.")
+    # if np.isinf(test).any():
+    # raise Exception("Initial values are not finite.")
 
     model["func_raw"] = func_raw
-    model["func"] = jax.jit(func_raw, static_argnums=(6, 7))
+    # model["func"] = jax.jit(func_raw, static_argnums=(6, 7))
     model["func_str"] = func_str
     model["root_options"] = {}
 
@@ -224,15 +227,7 @@ def load(
     if verbose:
         print("(parse:) Parsing done.")
 
-    solve_stst(model, raise_error=raise_errors, verbose=verbose)
-    solve_linear(
-        model,
-        raise_error=raise_errors,
-        lti_max_iter=lti_max_iter,
-        verbose=verbose,
-    )
-
     cached_mdicts += (mdict_raw,)
     cached_models += (model,)
 
-    return PizzaModel(model)
+    return model

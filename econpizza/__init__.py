@@ -19,6 +19,7 @@ class PizzaModel(dict):
 PizzaModel.find_stack = find_stack
 PizzaModel.find_path = find_pizza
 PizzaModel.solve_stst = solve_stst
+PizzaModel.solve_linear = solve_linear
 
 find_path_stacked = find_stack
 find_path = find_pizza

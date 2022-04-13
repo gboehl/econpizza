@@ -74,19 +74,17 @@ def compile_func_str(evars, eqns, par, eqns_aux, stst_eqns, shocks):
 
     if not shocks:
         shock_str = ""
-    elif len(shocks) > 1:
-        shock_str = ", ".join(shocks) + " = shocks"
     else:
-        shock_str = shocks[0] + " = shocks[0]"
+        shock_str = "(" + ", ".join(shocks) + ")" + " = shocks"
 
     # compile the final function string
     func_str = f"""def func_raw(XLag, X, XPrime, XSS, shocks, pars, stst=False, return_stst_vals=False):
-        \n {", ".join(v + "Lag" for v in evars) + " = XLag"}
-        \n {", ".join(evars) + " = X"}
-        \n {", ".join(v + "Prime" for v in evars) + " = XPrime"}
-        \n {", ".join(v + "SS" for v in evars) + " = XSS"}
+        \n ({", ".join(v + "Lag" for v in evars)}) = XLag
+        \n ({", ".join(evars)}) = X
+        \n ({", ".join(v + "Prime" for v in evars)}) = XPrime
+        \n ({", ".join(v + "SS" for v in evars)}) = XSS
         \n {shock_str}
-        \n {", ".join(par.keys()) + " = pars"}
+        \n ({", ".join(par.keys())}) = pars
         \n %s \n %s\n %s \n %s
         \n {"return np.array([" + ", ".join("root_container"+str(i) for i in range(len(evars))) + "])"}""" % (
         "if stst:\n  " + "\n  ".join(stst_eqns) if stst_eqns else "",

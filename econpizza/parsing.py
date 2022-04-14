@@ -52,18 +52,13 @@ def load_functions_file(model):
 
 def compile_func_basics_str(evars, par, shocks):
 
-    if not shocks:
-        shock_str = ""
-    else:
-        shock_str = "(" + ", ".join(shocks) + ",)" + " = shocks"
-
     func_str = f"""
         \n ({", ".join(v + "Lag" for v in evars)},) = XLag
         \n ({", ".join(evars)},) = X
         \n ({", ".join(v + "Prime" for v in evars)},) = XPrime
         \n ({", ".join(v + "SS" for v in evars)},) = XSS
         \n ({", ".join(par.keys())},) = pars
-        \n {shock_str}"""
+        \n ({", ".join(shocks)}) = shocks"""
 
     return func_str
 

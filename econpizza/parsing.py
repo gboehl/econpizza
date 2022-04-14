@@ -50,8 +50,41 @@ def load_functions_file(model):
         pass
 
 
-def compile_func_str(evars, eqns, par, eqns_aux, stst_eqns, shocks):
-    """Compile all information to a string that defines the function.
+def compile_func_basics_str(evars, par, shocks):
+
+    if not shocks:
+        shock_str = ""
+    else:
+        shock_str = "(" + ", ".join(shocks) + ")" + " = shocks"
+
+    func_str = f"""
+        \n ({", ".join(v + "Lag" for v in evars)}) = XLag
+        \n ({", ".join(evars)}) = X
+        \n ({", ".join(v + "Prime" for v in evars)}) = XPrime
+        \n ({", ".join(v + "SS" for v in evars)}) = XSS
+        \n ({", ".join(par.keys())}) = pars
+        \n {shock_str}"""
+
+    return func_str
+
+
+def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls):
+    """Compile all information to a string that defines the backward function for 'decisions'.
+    """
+
+    func_str = f"""def func_backw_raw(XLag, X, XPrime, XSS, VFPrime, shocks, pars):
+            {compile_func_basics_str(evars, par, shocks)}
+            \n ({", ".join(v for v in inputs)}) = VFPrime
+            \n %s
+            \n return ({", ".join(v[:-5] for v in inputs)}), ({", ".join(v for v in outputs)})
+            """ % '\n '.join(calls)
+
+    # never use real numpy
+    return func_str.replace(" np.", " jnp.")
+
+
+def compile_eqn_func_str(evars, eqns, par, eqns_aux, stst_eqns, shocks):
+    """Compile all information from 'equations' section' to a string that defines the function.
     """
 
     # start compiling root_container
@@ -72,19 +105,9 @@ def compile_func_str(evars, eqns, par, eqns_aux, stst_eqns, shocks):
                 "Multiple `All` in one equation are not implemented"
             )
 
-    if not shocks:
-        shock_str = ""
-    else:
-        shock_str = "(" + ", ".join(shocks) + ")" + " = shocks"
-
     # compile the final function string
     func_str = f"""def func_raw(XLag, X, XPrime, XSS, shocks, pars, stst=False, return_stst_vals=False):
-        \n ({", ".join(v + "Lag" for v in evars)}) = XLag
-        \n ({", ".join(evars)}) = X
-        \n ({", ".join(v + "Prime" for v in evars)}) = XPrime
-        \n ({", ".join(v + "SS" for v in evars)}) = XSS
-        \n {shock_str}
-        \n ({", ".join(par.keys())}) = pars
+        {compile_func_basics_str(evars, par, shocks)}
         \n %s \n %s\n %s \n %s
         \n {"return np.array([" + ", ".join("root_container"+str(i) for i in range(len(evars))) + "])"}""" % (
         "if stst:\n  " + "\n  ".join(stst_eqns) if stst_eqns else "",
@@ -96,6 +119,35 @@ def compile_func_str(evars, eqns, par, eqns_aux, stst_eqns, shocks):
 
     # never use real numpy
     return func_str.replace(" np.", " jnp.")
+
+
+def compile_dist_func_str(distributions):
+
+    if len(distributions) > 1:
+        raise NotImplementedError(
+            'More than one distribution is not yet implemented.')
+
+    stst_dist_func_str = ()
+
+    for dist_name in distributions:
+
+        dist = distributions[dist_name]
+        exog = [v for v in dist if dist[v]['type'] == 'exogenous']
+        endo = [v for v in dist if dist[v]['type'] == 'endogenous']
+
+        if len(exog) > 1:
+            raise NotImplementedError(
+                'More than 1-D endogenous distributions are not yet implemented.')
+
+        stst_dist_func_str += f"""endog_inds, endog_probs = dists.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})
+            \ntmat_endo = dists.tmat_from_endo(endog_inds, endog_probs)
+            \ntmat_exog = dists.tmat_from_exog({dist[exog[0]]['grid_variables'][2]}.T, endog_probs)
+            \ntmat = tmat_exog @ tmat_endo
+            \n{dist_name} = grids.stationary_distribution(tmat).reshape(endog_probs.shape)""",
+
+    # TODO: also compile dynamic distributions func str
+
+    return stst_dist_func_str
 
 
 def compile_initial_values(evars, initvals, stst):
@@ -257,8 +309,12 @@ def load(
             stst_eqns.append(key + "SS = " + str(stst[key]))
 
     # get a string that contains the function definition
-    model["func_str"] = func_str = compile_func_str(evars, eqns, par, eqns_aux=model.get(
+    model["func_str"] = func_str = compile_eqn_func_str(evars, eqns, par, eqns_aux=model.get(
         'aux_equations'), stst_eqns=stst_eqns, shocks=shocks)
+
+    model["func_backw_str"] = compile_backw_func_str(
+        evars, par, shocks, model['decisions']['inputs'], model['decisions']['outputs'], model['decisions']['calls'])
+    model["dist_func_str"] = compile_dist_func_str(model['distributions'])
 
     # use a termporary file to get nice debug traces if things go wrong
     tmpf = tempfile.NamedTemporaryFile(mode="w", delete=False)

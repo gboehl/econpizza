@@ -82,7 +82,7 @@ def create_grids(distributions):
                 # skip this only if none of the parameters is given
                 # in this case the grid must be defined in some stage in the yaml
                 if not all([i not in g for i in ['rho', 'sigma', 'n']]):
-                    grid_strings += f"{g['grid_variables']} = grids.markov_rouwenhorst(rho={g['rho']}, sigma={g['sigma']}, N={g['n']})",
+                    grid_strings += f"{', '.join(v for v in g['grid_variables'])} = grids.markov_rouwenhorst(rho={g['rho']}, sigma={g['sigma']}, N={g['n']})",
 
             elif g['type'] == 'endogenous':
                 # as above

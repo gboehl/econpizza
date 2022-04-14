@@ -1,17 +1,22 @@
 #!/bin/python
 # -*- coding: utf-8 -*-
+"""Functions for model parsing yaml -> working model instance. Involves a lot of dynamic function definition...
+"""
 
 import yaml
 import re
 import os
 import tempfile
+import jax
+import jaxlib
 import numpy as np
 from copy import deepcopy
 from jax.numpy import log, exp, sqrt, maximum, minimum
 from .steady_state import solve_stst, solve_linear
-import jax
 import jax.numpy as jnp
 from grgrlib import load_as_module
+from inspect import getmembers, isfunction
+from .utilities import grids, dists
 
 jax.config.update("jax_enable_x64", True)
 # set number of cores for XLA
@@ -23,19 +28,24 @@ cached_mdicts = ()
 cached_models = ()
 
 
-def eval_strs(vdict):
+def eval_strs(vdict, pars=None):
 
     if vdict is None:
         return None
 
+    if pars:
+        exec(
+            f"{', '.join(pars.keys())} = {', '.join(str(p) for p in pars.values())}", globals())
+
     for v in vdict:
+        exec(f'{v} = {vdict[v]}', globals())
         if isinstance(vdict[v], str):
-            vdict[v] = eval(vdict[v])
+            vdict[v] = eval(f'{v}')
 
     return vdict
 
 
-def load_functions_file(model):
+def load_functions_file(model, context):
     """Load the functions file as a module.
     """
 
@@ -45,9 +55,16 @@ def load_functions_file(model):
             yaml_dir = os.path.dirname(model["path"])
             functions_file = os.path.join(yaml_dir, model["functions_file"])
         # load as a module
-        return load_as_module(functions_file)
+        context['module'] = load_as_module(functions_file)
     except KeyError:
         pass
+
+    def func_or_compiled(func): return isinstance(
+        func, jaxlib.xla_extension.CompiledFunction) or isfunction(func)
+    for m in getmembers(module, func_or_compiled):
+        exec(f'{m[0]} = module.{m[0]}', context)
+
+    return module
 
 
 def compile_func_basics_str(evars, par, shocks):
@@ -116,13 +133,13 @@ def compile_eqn_func_str(evars, eqns, par, eqns_aux, stst_eqns, shocks):
     return func_str.replace(" np.", " jnp.")
 
 
-def compile_dist_func_str(distributions):
+def compile_dist_func_str(distributions, decisions_outputs):
 
     if len(distributions) > 1:
         raise NotImplementedError(
             'More than one distribution is not yet implemented.')
 
-    stst_dist_func_str = ()
+    stst_dist_func_str_tpl = ()
 
     for dist_name in distributions:
 
@@ -134,18 +151,24 @@ def compile_dist_func_str(distributions):
             raise NotImplementedError(
                 'More than 1-D endogenous distributions are not yet implemented.')
 
-        stst_dist_func_str += f"""endog_inds, endog_probs = dists.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})
-            \ntmat_endo = dists.tmat_from_endo(endog_inds, endog_probs)
-            \ntmat_exog = dists.tmat_from_exog({dist[exog[0]]['grid_variables'][2]}.T, endog_probs)
-            \ntmat = tmat_exog @ tmat_endo
-            \n{dist_name} = grids.stationary_distribution(tmat).reshape(endog_probs.shape)""",
+        stst_dist_func_str_tpl += f"""
+            \n endog_inds, endog_probs = dists.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})
+            \n tmat_endo = dists.tmat_from_endo(endog_inds, endog_probs)
+            \n tmat_exog = dists.tmat_from_exog({dist[exog[0]]['grid_variables'][2]}.T, endog_probs)
+            \n tmat = tmat_exog @ tmat_endo
+            \n {dist_name} = grids.stationary_distribution(tmat).reshape(endog_probs.shape)""",
+
+    stst_dist_func_str = f"""def stst_dist_func(decisions_outputs):
+        \n ({", ".join(decisions_outputs)},) = decisions_outputs
+        \n {"".join(stst_dist_func_str_tpl)}
+        \n return {", ".join(distributions.keys())}"""
 
     # TODO: also compile dynamic distributions func str
 
     return stst_dist_func_str
 
 
-def compile_initial_values(evars, initvals, stst):
+def compile_init_values(evars, initvals, stst):
     """Combine all available information in initial guesses.
     """
 
@@ -154,7 +177,10 @@ def compile_initial_values(evars, initvals, stst):
 
     if initvals is not None:
         for v in initvals:
-            init[evars.index(v)] = initvals[v]
+            try:
+                init[evars.index(v)] = initvals[v]
+            except ValueError:
+                pass
 
     if stst:
         for v in stst:
@@ -261,11 +287,16 @@ def load(
     # check if model is already cached
     if model in cached_mdicts:
         model = cached_models[cached_mdicts.index(model)]
-        model.funcs = load_functions_file(model)
+        model['context'] = globals()
+        model.funcs = load_functions_file(model, model['context'])
         print("(parse:) Loading cached model.")
         return model
 
     mdict_raw = deepcopy(model)
+    model['context'] = globals()
+
+    # load file with additional functions as module (if it exists)
+    model.funcs = load_functions_file(model, model['context'])
 
     defs = model.get("definitions")
     # never ever use real numpy
@@ -273,7 +304,7 @@ def load(
         for d in defs:
             d = d.replace(" numpy ", " jax.numpy ")
             # execute these definitions globally (TODO: is this a good idea?)
-            exec(d, globals())
+            exec(d, model['context'])
 
     eqns = model["equations"].copy()
 
@@ -282,9 +313,18 @@ def load(
     # check if each variable is defined in time t (only defining xSS does not give a valid root)
     check_if_defined(evars, eqns)
 
+    if model.get('distributions'):
+        # create strings of the function that define the grids
+        grid_strings = grids.create_grids(model['distributions'])
+
+        # execute all of them
+        for grid_str in grid_strings:
+            exec(grid_str, model['context'])
+
     shocks = model.get("shocks") or ()
     par = eval_strs(model["parameters"])
-    model["stst"] = stst = eval_strs(model["steady_state"].get("fixed_values"))
+    model["stst"] = stst = eval_strs(
+        model["steady_state"].get("fixed_values"), pars=par)
     model["root_options"] = {}
 
     # collect number of foward and backward looking variables
@@ -294,7 +334,7 @@ def load(
                           for var in evars)
 
     # collect initial guesses
-    model["init"] = init = compile_initial_values(
+    model["init"] = init = compile_init_values(
         evars, eval_strs(model["steady_state"].get("init_guesses")), stst)
 
     stst_eqns = model["steady_state"].get("equations") or []
@@ -311,7 +351,8 @@ def load(
         model["func_backw_str"] = compile_backw_func_str(
             evars, par, shocks, model['decisions']['inputs'], model['decisions']['outputs'], model['decisions']['calls'])
     if model.get('distributions'):
-        model["dist_func_str"] = compile_dist_func_str(model['distributions'])
+        model["dist_func_str"] = compile_dist_func_str(
+            model['distributions'], model['decisions']['outputs'])
 
     # use a termporary file to get nice debug traces if things go wrong
     tmpf = tempfile.NamedTemporaryFile(mode="w", delete=False)
@@ -319,7 +360,7 @@ def load(
     tmpf.close()
 
     # define the function
-    exec(compile(open(tmpf.name).read(), tmpf.name, "exec"), globals())
+    exec(compile(open(tmpf.name).read(), tmpf.name, "exec"), model['context'])
     model["func_raw"] = func_raw
 
     # TODO: reactivate
@@ -339,8 +380,5 @@ def load(
     # add new model to cache
     cached_mdicts += (mdict_raw,)
     cached_models += (model,)
-
-    # load file with additional functions as module (if it exists)
-    model.funcs = load_functions_file(model)
 
     return model

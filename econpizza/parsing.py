@@ -55,14 +55,14 @@ def compile_func_basics_str(evars, par, shocks):
     if not shocks:
         shock_str = ""
     else:
-        shock_str = "(" + ", ".join(shocks) + ")" + " = shocks"
+        shock_str = "(" + ", ".join(shocks) + ",)" + " = shocks"
 
     func_str = f"""
-        \n ({", ".join(v + "Lag" for v in evars)}) = XLag
-        \n ({", ".join(evars)}) = X
-        \n ({", ".join(v + "Prime" for v in evars)}) = XPrime
-        \n ({", ".join(v + "SS" for v in evars)}) = XSS
-        \n ({", ".join(par.keys())}) = pars
+        \n ({", ".join(v + "Lag" for v in evars)},) = XLag
+        \n ({", ".join(evars)},) = X
+        \n ({", ".join(v + "Prime" for v in evars)},) = XPrime
+        \n ({", ".join(v + "SS" for v in evars)},) = XSS
+        \n ({", ".join(par.keys())},) = pars
         \n {shock_str}"""
 
     return func_str
@@ -312,9 +312,11 @@ def load(
     model["func_str"] = func_str = compile_eqn_func_str(evars, eqns, par, eqns_aux=model.get(
         'aux_equations'), stst_eqns=stst_eqns, shocks=shocks)
 
-    model["func_backw_str"] = compile_backw_func_str(
-        evars, par, shocks, model['decisions']['inputs'], model['decisions']['outputs'], model['decisions']['calls'])
-    model["dist_func_str"] = compile_dist_func_str(model['distributions'])
+    if model.get('decisions'):
+        model["func_backw_str"] = compile_backw_func_str(
+            evars, par, shocks, model['decisions']['inputs'], model['decisions']['outputs'], model['decisions']['calls'])
+    if model.get('distributions'):
+        model["dist_func_str"] = compile_dist_func_str(model['distributions'])
 
     # use a termporary file to get nice debug traces if things go wrong
     tmpf = tempfile.NamedTemporaryFile(mode="w", delete=False)
@@ -330,6 +332,8 @@ def load(
         # try if function works on initvals. If it does, jit-compile it and remove tempfile
         check_func(func_raw, init, shocks, par)
         model["func"] = jax.jit(func_raw, static_argnums=(6, 7))
+        # model["func"] = jax.jit(func_raw, static_argnums=(7,))
+        # TODO: stst_eqns must be executed _outside_ of eqn_func. Then the jacobian would be reusable
 
     # unlink the temporary file
     os.unlink(tmpf.name)

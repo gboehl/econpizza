@@ -30,8 +30,9 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
                      maxit, tol, sparse=False, verbose=False)
 
     # exchange those values that are identified via stst_equations
-    stst_vals = func(res['x'], res['x'], res['x'], res['x'],
-                     np.zeros(len(shocks)), par, True, True)
+    # call func_raw instead of func to avoid compilation for single function use
+    stst_vals = model['func_raw'](res['x'], res['x'], res['x'], res['x'],
+                                  np.zeros(len(shocks)), par, True, True)
     # calculate error
     err = np.abs(func_stst(stst_vals)).max()
 

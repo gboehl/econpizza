@@ -15,6 +15,7 @@ from copy import deepcopy
 from jax.numpy import log, exp, sqrt, maximum, minimum
 from grgrlib import load_as_module
 from inspect import getmembers, isfunction
+from jax.experimental.host_callback import id_print as jax_print
 from .steady_state import solve_stst, solve_linear
 from .utilities import grids, dists
 

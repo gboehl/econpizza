@@ -23,7 +23,8 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
 
     # find stst
     func_stst = jax.jit(
-        lambda x: func(x, x, x, x, jax.numpy.zeros(len(shocks)), par, True)
+        lambda x: func(x, x, x, x, jax.numpy.zeros(
+            len(shocks)), par, stst=True)
     )
 
     res = newton_jax(func_stst, model['init'], None,
@@ -32,7 +33,7 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
     # exchange those values that are identified via stst_equations
     # call func_raw instead of func to avoid compilation for single function use
     stst_vals = model['func_raw'](res['x'], res['x'], res['x'], res['x'],
-                                  np.zeros(len(shocks)), par, True, True)
+                                  np.zeros(len(shocks)), par, stst=True, return_stst_vals=True)
     # calculate error
     err = np.abs(func_stst(stst_vals)).max()
 

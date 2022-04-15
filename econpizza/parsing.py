@@ -10,12 +10,12 @@ import tempfile
 import jax
 import jaxlib
 import numpy as np
+import jax.numpy as jnp
 from copy import deepcopy
 from jax.numpy import log, exp, sqrt, maximum, minimum
-from .steady_state import solve_stst, solve_linear
-import jax.numpy as jnp
 from grgrlib import load_as_module
 from inspect import getmembers, isfunction
+from .steady_state import solve_stst, solve_linear
 from .utilities import grids, dists
 
 jax.config.update("jax_enable_x64", True)
@@ -28,17 +28,17 @@ cached_mdicts = ()
 cached_models = ()
 
 
-def eval_strs(vdict, pars=None):
+def eval_strs(vdict, pars=None, context=globals()):
 
     if vdict is None:
         return None
 
     if pars:
         exec(
-            f"{', '.join(pars.keys())} = {', '.join(str(p) for p in pars.values())}", globals())
+            f"{', '.join(pars.keys())} = {', '.join(str(p) for p in pars.values())}", context)
 
     for v in vdict:
-        exec(f'{v} = {vdict[v]}', globals())
+        exec(f'{v} = {vdict[v]}', context)
         if isinstance(vdict[v], str):
             vdict[v] = eval(f'{v}')
 
@@ -56,26 +56,27 @@ def load_functions_file(model, context):
             functions_file = os.path.join(yaml_dir, model["functions_file"])
         # load as a module
         context['module'] = load_as_module(functions_file)
+
+        def func_or_compiled(func): return isinstance(
+            func, jaxlib.xla_extension.CompiledFunction) or isfunction(func)
+        for m in getmembers(module, func_or_compiled):
+            exec(f'{m[0]} = module.{m[0]}', context)
+
     except KeyError:
         pass
 
-    def func_or_compiled(func): return isinstance(
-        func, jaxlib.xla_extension.CompiledFunction) or isfunction(func)
-    for m in getmembers(module, func_or_compiled):
-        exec(f'{m[0]} = module.{m[0]}', context)
-
-    return module
+    return
 
 
 def compile_func_basics_str(evars, par, shocks):
 
     func_str = f"""
-        \n ({", ".join(v + "Lag" for v in evars)},) = XLag
-        \n ({", ".join(evars)},) = X
-        \n ({", ".join(v + "Prime" for v in evars)},) = XPrime
-        \n ({", ".join(v + "SS" for v in evars)},) = XSS
-        \n ({", ".join(par.keys())},) = pars
-        \n ({", ".join(shocks)}) = shocks"""
+        \n ({"".join(v + "Lag, " for v in evars)}) = XLag
+        \n ({"".join(v + ", " for v in evars)}) = X
+        \n ({"".join(v + "Prime, " for v in evars)}) = XPrime
+        \n ({"".join(v + "SS, " for v in evars)}) = XSS
+        \n ({"".join(p + ", " for p in par)}) = pars
+        \n ({"".join(s + ", " for s in shocks)}) = shocks"""
 
     return func_str
 
@@ -95,7 +96,7 @@ def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls):
     return func_str.replace(" np.", " jnp.")
 
 
-def compile_eqn_func_str(evars, eqns, par, eqns_aux, stst_eqns, shocks):
+def compile_eqn_func_str(evars, eqns, par, eqns_aux, stst_eqns, shocks, distributions, decisions_outputs):
     """Compile all information from 'equations' section' to a string that defines the function.
     """
 
@@ -118,8 +119,10 @@ def compile_eqn_func_str(evars, eqns, par, eqns_aux, stst_eqns, shocks):
             )
 
     # compile the final function string
-    func_str = f"""def func_raw(XLag, X, XPrime, XSS, shocks, pars, stst=False, return_stst_vals=False):
+    func_str = f"""def func_raw(XLag, X, XPrime, XSS, shocks, pars, dists=[], decisions_outputs=[], stst=False, return_stst_vals=False):
         {compile_func_basics_str(evars, par, shocks)}
+        \n ({"".join(d+', ' for d in distributions)}) = dists
+        \n ({"".join(d+', ' for d in decisions_outputs)}) = decisions_outputs
         \n %s \n %s\n %s \n %s
         \n {"return np.array([" + ", ".join("root_container"+str(i) for i in range(len(evars))) + "])"}""" % (
         "if stst:\n  " + "\n  ".join(stst_eqns) if stst_eqns else "",
@@ -156,7 +159,7 @@ def compile_dist_func_str(distributions, decisions_outputs):
             \n tmat_endo = dists.tmat_from_endo(endog_inds, endog_probs)
             \n tmat_exog = dists.tmat_from_exog({dist[exog[0]]['grid_variables'][2]}.T, endog_probs)
             \n tmat = tmat_exog @ tmat_endo
-            \n {dist_name} = grids.stationary_distribution(tmat).reshape(endog_probs.shape)""",
+            \n {dist_name} = dists.stationary_distribution_iterative(tmat).reshape(endog_probs.shape)""",
 
     stst_dist_func_str = f"""def stst_dist_func(decisions_outputs):
         \n ({", ".join(decisions_outputs)},) = decisions_outputs
@@ -200,7 +203,7 @@ def check_if_defined(evars, eqns):
             for e in eqns
         ]
         if not np.any(v_in_eqns):
-            raise Exception("Variable `%s` is not defined for time t." % v)
+            raise Exception(f"Variable `{v}` is not defined for time t.")
     return
 
 
@@ -231,7 +234,7 @@ def check_func(func_raw, init, shocks, par):
 
     test = func_raw(
         init, init, init, init, np.zeros(
-            len(shocks)), np.array(list(par.values()))
+            len(shocks)), np.array(list(par.values())), [], []
     )
     if np.isnan(test).any():
         raise Exception("Initial values are NaN.")
@@ -288,7 +291,7 @@ def load(
     if model in cached_mdicts:
         model = cached_models[cached_mdicts.index(model)]
         model['context'] = globals()
-        model.funcs = load_functions_file(model, model['context'])
+        load_functions_file(model, model['context'])
         print("(parse:) Loading cached model.")
         return model
 
@@ -296,7 +299,7 @@ def load(
     model['context'] = globals()
 
     # load file with additional functions as module (if it exists)
-    model.funcs = load_functions_file(model, model['context'])
+    load_functions_file(model, model['context'])
 
     defs = model.get("definitions")
     # never ever use real numpy
@@ -311,7 +314,6 @@ def load(
     # check if there are dublicate variables
     evars = check_dublicates_and_determinancy(model["variables"], eqns)
     # check if each variable is defined in time t (only defining xSS does not give a valid root)
-    check_if_defined(evars, eqns)
 
     if model.get('distributions'):
         # create strings of the function that define the grids
@@ -320,6 +322,8 @@ def load(
         # execute all of them
         for grid_str in grid_strings:
             exec(grid_str, model['context'])
+    else:
+        check_if_defined(evars, eqns)
 
     shocks = model.get("shocks") or ()
     par = eval_strs(model["parameters"])
@@ -343,16 +347,23 @@ def load(
         for key in stst:
             stst_eqns.append(key + "SS = " + str(stst[key]))
 
+    # get function strings for decisions and distributions, if they exist
+    if model.get('decisions'):
+        decisions_outputs = model['decisions']['outputs']
+        model["func_backw_str"] = compile_backw_func_str(
+            evars, par, shocks, model['decisions']['inputs'], decisions_outputs, model['decisions']['calls'])
+    else:
+        decisions_outputs = []
+    if model.get('distributions'):
+        dist_names = list(model['distributions'].keys())
+        model["dist_func_str"] = compile_dist_func_str(
+            model['distributions'], decisions_outputs)
+    else:
+        dist_names = []
+
     # get a string that contains the function definition
     model["func_str"] = func_str = compile_eqn_func_str(evars, eqns, par, eqns_aux=model.get(
-        'aux_equations'), stst_eqns=stst_eqns, shocks=shocks)
-
-    if model.get('decisions'):
-        model["func_backw_str"] = compile_backw_func_str(
-            evars, par, shocks, model['decisions']['inputs'], model['decisions']['outputs'], model['decisions']['calls'])
-    if model.get('distributions'):
-        model["dist_func_str"] = compile_dist_func_str(
-            model['distributions'], model['decisions']['outputs'])
+        'aux_equations'), stst_eqns=stst_eqns, shocks=shocks, distributions=dist_names, decisions_outputs=decisions_outputs)
 
     # use a termporary file to get nice debug traces if things go wrong
     tmpf = tempfile.NamedTemporaryFile(mode="w", delete=False)
@@ -367,7 +378,7 @@ def load(
     if not testing:
         # try if function works on initvals. If it does, jit-compile it and remove tempfile
         check_func(func_raw, init, shocks, par)
-        model["func"] = jax.jit(func_raw, static_argnums=(6, 7))
+        model["func"] = jax.jit(func_raw, static_argnums=(8, 9))
         # model["func"] = jax.jit(func_raw, static_argnums=(7,))
         # TODO: stst_eqns must be executed _outside_ of eqn_func. Then the jacobian would be reusable
 

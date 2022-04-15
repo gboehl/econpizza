@@ -5,6 +5,7 @@ import jax
 import numpy as np
 import jax.numpy as jnp
 from scipy.stats import norm
+from .dists import stationary_distribution
 
 
 def log_grid(amax, n, amin=0):
@@ -54,19 +55,6 @@ def markov_rouwenhorst(rho, sigma, N=7):
     y = jnp.exp(s) / jnp.sum(pi * jnp.exp(s))
 
     return y, pi, Pi
-
-
-@jax.jit
-def stationary_distribution(T):
-    """Find invariant distribution of a Markov chain by unit eigenvector."""
-
-    v, w = jnp.linalg.eig(T)
-
-    # using sorted args instead of np.isclose is neccessary for jax-jitting
-    args = jnp.argsort(v)
-    unit_ev = w[:, args[-1]]
-
-    return unit_ev.real / unit_ev.real.sum()
 
 
 def create_grids(distributions):

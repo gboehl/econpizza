@@ -5,6 +5,7 @@ import jax
 import jax.numpy as np
 
 
+@jax.jit
 def interpolate_coord_robust_vector(x, xq):
     """Does interpolate_coord_robust where xq must be a vector, more general function is wrapper"""
 
@@ -94,3 +95,24 @@ def forward_policy_1d(D, x_i, x_pi):
     Dnew = Dnew.at[j, i+1].add(d * (1 - pi))
 
     return Dnew
+
+
+@jax.jit
+def stationary_distribution(T):
+    """Find invariant distribution of a Markov chain by unit eigenvector."""
+
+    v, w = np.linalg.eig(T)
+
+    # using sorted args instead of np.isclose is neccessary for jax-jitting
+    args = np.argsort(v)
+    unit_ev = w[:, args[-1]]
+
+    return unit_ev.real / unit_ev.real.sum()
+
+
+@jax.jit
+def stationary_distribution_iterative(T, n=1000):
+    """Find invariant distribution of a Markov chain by brute force ('cause jax won't find the jacobian of eigenvectors)."""
+
+    a = np.ones(T.shape[0])/T.shape[0]
+    return np.linalg.matrix_power(T, n) @ a

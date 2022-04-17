@@ -27,8 +27,10 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
             len(shocks)), par, stst=True)
     )
 
-    res = newton_jax(func_stst, model['init'], None,
-                     maxit, tol, sparse=False, verbose=False)
+    # use a solver that can deal with ill-conditioned jacobians
+    def solver(jval, fval): return jax.numpy.linalg.pinv(jval) @ fval
+    res = newton_jax(func_stst, model['init'], None, maxit,
+                     tol, sparse=False, solver=solver, verbose=verbose)
 
     # exchange those values that are identified via stst_equations
     # call func_raw instead of func to avoid compilation for single function use

@@ -15,7 +15,7 @@ def find_stack(
     x0=None,
     shock=None,
     init_path=None,
-    horizon=50,
+    horizon=250,
     tol=None,
     maxit=None,
     use_linear_guess=True,
@@ -122,7 +122,7 @@ def find_stack(
         return sparse.csc_matrix(J)
 
     res = newton_jax(
-        stacked_func, x_init[1:-1].flatten(), jac, maxit, tol, True, verbose)
+        stacked_func, x_init[1:-1].flatten(), jac, maxit, tol, True, verbose=verbose)
 
     err = np.abs(res['fun']).max()
     x[1:-1] = res['x'].reshape((horizon - 1, nvars))

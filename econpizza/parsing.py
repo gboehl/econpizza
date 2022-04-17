@@ -9,7 +9,6 @@ import os
 import tempfile
 import jax
 import jaxlib
-import numpy as np
 import jax.numpy as jnp
 from copy import deepcopy
 from jax.numpy import log, exp, sqrt, maximum, minimum
@@ -94,7 +93,7 @@ def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls):
             """ % '\n '.join(calls)
 
     # never use real numpy
-    return func_str.replace(" np.", " jnp.")
+    return func_str.replace("np.", "jnp.").replace("jjnp.", "jnp.")
 
 
 def compile_eqn_func_str(evars, eqns, par, eqns_aux, stst_eqns, shocks, distributions, decisions_outputs):
@@ -125,16 +124,16 @@ def compile_eqn_func_str(evars, eqns, par, eqns_aux, stst_eqns, shocks, distribu
         \n ({"".join(d+', ' for d in distributions)}) = dists
         \n ({"".join(d+', ' for d in decisions_outputs)}) = decisions_outputs
         \n %s \n %s\n %s \n %s
-        \n {"return np.array([" + ", ".join("root_container"+str(i) for i in range(len(evars))) + "])"}""" % (
+        \n {"return jnp.array([" + ", ".join("root_container"+str(i) for i in range(len(evars))) + "])"}""" % (
         "if stst:\n  " + "\n  ".join(stst_eqns) if stst_eqns else "",
         "\n ".join(eqns_aux) if eqns_aux else "",
         "if return_stst_vals:\n  " +
-        "return np.array([" + ", ".join(v for v in evars) + "])",
+        "return jnp.array([" + ", ".join(v + 'SS' for v in evars) + "])",
         "\n ".join(eqns),
     )
 
     # never use real numpy
-    return func_str.replace(" np.", " jnp.")
+    return func_str.replace("np.", "jnp.").replace("jjnp.", "jnp.")
 
 
 def compile_dist_func_str(distributions, decisions_outputs):
@@ -177,18 +176,18 @@ def compile_init_values(evars, initvals, stst):
     """
 
     # get inital values to test the function
-    init = np.ones(len(evars)) * 1.1
+    init = jnp.ones(len(evars)) * 1.1
 
     if initvals is not None:
         for v in initvals:
             try:
-                init[evars.index(v)] = initvals[v]
+                init = init.at[evars.index(v)].set(initvals[v])
             except ValueError:
                 pass
 
     if stst:
         for v in stst:
-            init[evars.index(v)] = stst[v]
+            init = init.at[evars.index(v)].set(stst[v])
 
     return init
 
@@ -203,7 +202,7 @@ def check_if_defined(evars, eqns):
                                                  "").replace(v + "Prime", "")
             for e in eqns
         ]
-        if not np.any(v_in_eqns):
+        if not any(v_in_eqns):
             raise Exception(f"Variable `{v}` is not defined for time t.")
     return
 
@@ -234,12 +233,12 @@ def check_dublicates_and_determinancy(evars, eqns):
 def check_func(func_raw, init, shocks, par):
 
     test = func_raw(
-        init, init, init, init, np.zeros(
-            len(shocks)), np.array(list(par.values())), [], []
+        init, init, init, init, jnp.zeros(
+            len(shocks)), jnp.array(list(par.values())), [], []
     )
-    if np.isnan(test).any():
+    if jnp.isnan(test).any():
         raise Exception("Initial values are NaN.")
-    if np.isinf(test).any():
+    if jnp.isinf(test).any():
         raise Exception("Initial values are not finite.")
 
     return
@@ -307,7 +306,6 @@ def load(
     if defs is not None:
         for d in defs:
             d = d.replace(" numpy ", " jax.numpy ")
-            # execute these definitions globally (TODO: is this a good idea?)
             exec(d, model['context'])
 
     eqns = model["equations"].copy()
@@ -346,7 +344,8 @@ def load(
     # add fixed values to the steady state equations
     if stst is not None:
         for key in stst:
-            stst_eqns.append(key + "SS = " + str(stst[key]))
+            # setting ALL occurences of the variable should be fine since we are using pinv later
+            stst_eqns.append(key + "All = " + str(stst[key]))
 
     # get function strings for decisions and distributions, if they exist
     if model.get('decisions'):

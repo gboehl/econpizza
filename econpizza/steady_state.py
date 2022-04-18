@@ -66,8 +66,8 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
 
     if flatshape:
         xSS, vfSS, distSS = func_stst_raw(stst_vals, return_vf_and_dist=True)
-        model["stst"]['dist'] = distSS
-        model["stst"]['Va'] = jnp.exp(vfSS)
+        model["stst"]['distributions'] = distSS
+        model["stst"]['decisions'] = jnp.exp(vfSS)
 
     # calculate error
     err = jnp.abs(func_stst(stst_vals)).max()

@@ -99,7 +99,9 @@ def forward_policy_1d(D, x_i, x_pi):
 
 @jax.jit
 def stationary_distribution(T):
-    """Find invariant distribution of a Markov chain by unit eigenvector."""
+    """Find invariant distribution of a Markov chain by unit eigenvector.
+    NOTE: jax has no autodiff support for eig.
+    """
 
     v, w = np.linalg.eig(T)
 

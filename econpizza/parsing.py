@@ -28,6 +28,29 @@ cached_mdicts = ()
 cached_models = ()
 
 
+def parse(mfile):
+    """parse from yaml file"""
+
+    f = open(mfile)
+    mtxt = f.read()
+    f.close()
+
+    mtxt = mtxt.replace("^", "**")
+    mtxt = re.sub(r"@ ?\n", " ", mtxt)
+    # try to detect if `~` wants to be a `-`
+    mtxt = mtxt.replace("\n ~ ", "\n - ")
+    mtxt = mtxt.replace("\n  ~ ", "\n  - ")
+    mtxt = mtxt.replace("   ~ ", "   - ")
+
+    # get dict
+    model = yaml.safe_load(mtxt)
+    # create nice shortcuts
+    model["pars"] = model["parameters"]
+    model["vars"] = model["variables"]
+
+    return model
+
+
 def eval_strs(vdict, pars=None, context=globals()):
 
     if vdict is None:
@@ -96,7 +119,26 @@ def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls):
     return func_str.replace("np.", "jnp.").replace("jjnp.", "jnp.")
 
 
-def compile_eqn_func_str(evars, eqns, par, eqns_aux, stst_eqns, shocks, distributions, decisions_outputs):
+def compile_stst_func_str(evars, eqns, par, stst_eqns):
+    """Compile all information from 'equations' section' to a string that defines the function.
+    """
+
+    stst_eqns_stack = "\n ".join(stst_eqns)
+
+    # compile the final function string
+    func_pre_stst_str = f"""def func_pre_stst(X, pars):
+        \n XSS = XLag = XPrime = X
+        \n shocks = []
+        {compile_func_basics_str(evars, par, [])}
+        \n {stst_eqns_stack}
+        \n X = ({"".join(v + ", " for v in evars)})
+        \n return X"""
+
+    # never use real numpy
+    return func_pre_stst_str.replace("np.", "jnp.").replace("jjnp.", "jnp.")
+
+
+def compile_eqn_func_str(evars, eqns, par, eqns_aux, shocks, distributions, decisions_outputs):
     """Compile all information from 'equations' section' to a string that defines the function.
     """
 
@@ -108,41 +150,30 @@ def compile_eqn_func_str(evars, eqns, par, eqns_aux, stst_eqns, shocks, distribu
         else:
             eqns[i] = "root_container%s = " % i + eqn
 
-    # resolve all equations with the 'All' keyword
-    for eqn in stst_eqns:
-        if eqn.count("All") == 1:
-            for vtype in ("", "SS", "Lag", "Prime"):
-                stst_eqns.append(eqn.replace("All", vtype))
-        elif eqn.count("All") > 1:
-            raise NotImplementedError(
-                "Multiple `All` in one equation are not implemented"
-            )
+    eqns_aux_stack = "\n ".join(eqns_aux) if eqns_aux else ""
+    eqns_stack = "\n ".join(eqns)
 
     # compile the final function string
-    func_str = f"""def func_raw(XLag, X, XPrime, XSS, shocks, pars, dists=[], decisions_outputs=[], stst=False, return_stst_vals=False):
+    func_str = f"""def func_raw(XLag, X, XPrime, XSS, shocks, pars, dists=[], decisions_outputs=[]):
         {compile_func_basics_str(evars, par, shocks)}
         \n ({"".join(d+', ' for d in distributions)}) = dists
         \n ({"".join(d+', ' for d in decisions_outputs)}) = decisions_outputs
-        \n %s \n %s\n %s \n %s
+        \n {eqns_aux_stack}
+        \n {eqns_stack}
         \n {"return jnp.array([" + ", ".join("root_container"+str(i) for i in range(len(evars))) + "])"}""" % (
-        "if stst:\n  " + "\n  ".join(stst_eqns) if stst_eqns else "",
-        "\n ".join(eqns_aux) if eqns_aux else "",
-        "if return_stst_vals:\n  " +
-        "return jnp.array([" + ", ".join(v + 'SS' for v in evars) + "])",
-        "\n ".join(eqns),
     )
 
     # never use real numpy
     return func_str.replace("np.", "jnp.").replace("jjnp.", "jnp.")
 
 
-def compile_dist_func_str(distributions, decisions_outputs):
+def compile_func_dist_str(distributions, decisions_outputs):
 
     if len(distributions) > 1:
         raise NotImplementedError(
             'More than one distribution is not yet implemented.')
 
-    stst_dist_func_str_tpl = ()
+    func_stst_dist_str_tpl = ()
 
     for dist_name in distributions:
 
@@ -154,36 +185,43 @@ def compile_dist_func_str(distributions, decisions_outputs):
             raise NotImplementedError(
                 'More than 1-D endogenous distributions are not yet implemented.')
 
-        stst_dist_func_str_tpl += f"""
+        func_stst_dist_str_tpl += f"""
             \n endog_inds, endog_probs = dists.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})
             \n tmat_endo = dists.tmat_from_endo(endog_inds, endog_probs)
             \n tmat_exog = dists.tmat_from_exog({dist[exog[0]]['grid_variables'][2]}.T, endog_probs)
             \n tmat = tmat_exog @ tmat_endo
             \n {dist_name} = dists.stationary_distribution_iterative(tmat).reshape(endog_probs.shape)""",
 
-    stst_dist_func_str = f"""def stst_dist_func(decisions_outputs):
+    func_stst_dist_str = f"""def func_stst_dist(decisions_outputs):
         \n ({", ".join(decisions_outputs)},) = decisions_outputs
-        \n {"".join(stst_dist_func_str_tpl)}
+        \n {"".join(func_stst_dist_str_tpl)}
         \n return {", ".join(distributions.keys())}"""
 
     # TODO: also compile dynamic distributions func str
 
-    return stst_dist_func_str
+    return func_stst_dist_str
 
 
-def compile_init_values(evars, initvals, stst):
+def compile_init_values(evars, decisions_inputs, flatshape, initvals, stst):
     """Combine all available information in initial guesses.
     """
 
     # get inital values to test the function
-    init = jnp.ones(len(evars)) * 1.1
+    init = jnp.ones(len(evars) + flatshape) * 1.1
 
+    # structure: aggregate values first, then values of decisions functions
     if initvals is not None:
         for v in initvals:
-            try:
+            # assign aggregate values
+            if v in evars:
                 init = init.at[evars.index(v)].set(initvals[v])
-            except ValueError:
-                pass
+            # assign values of decision function
+            elif v in decisions_inputs:
+                ind = decisions_inputs.index(v)
+                # use log to maintain that vals are > 0
+                val = jnp.log(initvals[v]).flatten()
+                init = init.at[len(
+                    evars) + ind*flatshape:len(evars) + (ind+1)*flatshape].set(val)
 
     if stst:
         for v in stst:
@@ -244,27 +282,17 @@ def check_func(func_raw, init, shocks, par):
     return
 
 
-def parse(mfile):
-    """parse from yaml file"""
+def define_function(func_str, context):
 
-    f = open(mfile)
-    mtxt = f.read()
-    f.close()
+    # use a termporary file to get nice debug traces if things go wrong
+    tmpf = tempfile.NamedTemporaryFile(mode="w", delete=False)
+    tmpf.write(func_str)
+    tmpf.close()
 
-    mtxt = mtxt.replace("^", "**")
-    mtxt = re.sub(r"@ ?\n", " ", mtxt)
-    # try to detect if `~` wants to be a `-`
-    mtxt = mtxt.replace("\n ~ ", "\n - ")
-    mtxt = mtxt.replace("\n  ~ ", "\n  - ")
-    mtxt = mtxt.replace("   ~ ", "   - ")
+    # define the function
+    exec(compile(open(tmpf.name).read(), tmpf.name, "exec"), context)
 
-    # get dict
-    model = yaml.safe_load(mtxt)
-    # create nice shortcuts
-    model["pars"] = model["parameters"]
-    model["vars"] = model["variables"]
-
-    return model
+    return tmpf.name
 
 
 def load(
@@ -336,57 +364,74 @@ def load(
     model["no_bwd"] = sum(var + "Lag" in "".join(model["equations"])
                           for var in evars)
 
-    # collect initial guesses
-    model["init"] = init = compile_init_values(
-        evars, eval_strs(model["steady_state"].get("init_guesses")), stst)
-
     stst_eqns = model["steady_state"].get("equations") or []
     # add fixed values to the steady state equations
     if stst is not None:
         for key in stst:
             # setting ALL occurences of the variable should be fine since we are using pinv later
-            stst_eqns.append(key + "All = " + str(stst[key]))
+            stst_eqns.append(f"{key} = {stst[key]}")
+
+    tmpf_names = ()
 
     # get function strings for decisions and distributions, if they exist
     if model.get('decisions'):
         decisions_outputs = model['decisions']['outputs']
+        decisions_inputs = model['decisions']['inputs']
         model["func_backw_str"] = compile_backw_func_str(
             evars, par, shocks, model['decisions']['inputs'], decisions_outputs, model['decisions']['calls'])
+        tmpf_names += define_function(model['func_backw_str'],
+                                      model['context']),
     else:
         decisions_outputs = []
+        decisions_inputs = []
+
     if model.get('distributions'):
         dist_names = list(model['distributions'].keys())
-        model["dist_func_str"] = compile_dist_func_str(
+        model["func_dist_str"] = compile_func_dist_str(
             model['distributions'], decisions_outputs)
+        tmpf_names += define_function(model['func_dist_str'],
+                                      model['context']),
+
+        dimshape = ()
+        for dist in dist_names:
+            for v in model['distributions'][dist].values():
+                dimshape += v['n'],
+        flatshape = jnp.cumprod(jnp.array(dimshape))[-1]
     else:
         dist_names = []
+        flatshape = dimshape = 0
 
-    # get a string that contains the function definition
-    model["func_str"] = func_str = compile_eqn_func_str(evars, eqns, par, eqns_aux=model.get(
-        'aux_equations'), stst_eqns=stst_eqns, shocks=shocks, distributions=dist_names, decisions_outputs=decisions_outputs)
+    model['shapes'] = flatshape, dimshape
 
-    # use a termporary file to get nice debug traces if things go wrong
-    tmpf = tempfile.NamedTemporaryFile(mode="w", delete=False)
-    tmpf.write(func_str)
-    tmpf.close()
+    # collect initial guesses
+    model["init"] = compile_init_values(evars, decisions_inputs, flatshape, eval_strs(
+        model["steady_state"].get("init_guesses")), stst)
 
-    # define the function
-    exec(compile(open(tmpf.name).read(), tmpf.name, "exec"), model['context'])
-    model["func_raw"] = func_raw
+    # get strings that contains the function definitions
+    model["func_pre_stst_str"] = compile_stst_func_str(
+        evars, eqns, par, stst_eqns)
+    model["func_str"] = compile_eqn_func_str(evars, eqns, par, eqns_aux=model.get(
+        'aux_equations'), shocks=shocks, distributions=dist_names, decisions_outputs=decisions_outputs)
 
-    # TODO: reactivate
-    if not testing:
-        # try if function works on initvals. If it does, jit-compile it and remove tempfile
-        check_func(func_raw, init, shocks, par)
-        model["func"] = jax.jit(func_raw, static_argnums=(8, 9))
-        # model["func"] = jax.jit(func_raw, static_argnums=(7,))
-        # TODO: stst_eqns must be executed _outside_ of eqn_func. Then the jacobian would be reusable
+    tmpf_names += define_function(model["func_str"], model['context']),
+    tmpf_names += define_function(model['func_pre_stst_str'],
+                                  model['context']),
 
-    # unlink the temporary file
-    os.unlink(tmpf.name)
+    # test if model works. Writing to tempfiles helps to get nice debug traces if not
+    if not model.get('decisions'):
+        # try if function works on initvals
+        check_func(model['context']['func_raw'], model["init"], shocks, par)
+        # TODO: also test other functions
+
+    model['func'] = jax.jit(model['context']['func_raw'])
+    # TODO: good idea to jit here and not later?
+
+    # unlink the temporary files
+    for tmpf in tmpf_names:
+        os.unlink(tmpf)
 
     if verbose:
-        print("(parse:) Parsing done.")
+        print("(load:) Parsing done.")
 
     # add new model to cache
     cached_mdicts += (mdict_raw,)

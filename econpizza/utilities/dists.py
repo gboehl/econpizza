@@ -45,7 +45,6 @@ def interpolate_coord_robust(x, xq, check_increasing=False):
     if xq.ndim == 1:
         return interpolate_coord_robust_vector(x, xq)
     else:
-        print('haa')
         i, pi = interpolate_coord_robust_vector(x, xq.ravel())
         return i.reshape(xq.shape), pi.reshape(xq.shape)
 

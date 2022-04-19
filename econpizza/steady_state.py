@@ -7,7 +7,7 @@ import numpy as np
 import jax.numpy as jnp
 from scipy.linalg import block_diag
 from grgrlib import klein, speed_kills
-from grgrlib.jaxed import newton_jax
+from grgrlib.jaxed import newton_jax, value_and_jac
 from .shooting import solve_current
 
 
@@ -25,36 +25,48 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
 
     func_backw_raw = model['context'].get('func_backw_raw')
     func_stst_dist = model['context'].get('func_stst_dist')
-    flatshape, dimshape = model['shapes']
+    if func_stst_dist:
+        init_vf = model['steady_state']['init_guesses'][model['decisions']['inputs'][0]]
 
-    def func_stst_raw(flat_input, return_vf_and_dist=False):
+    # TODO: these two functions could be sourced out
 
-        x = flat_input[:len(evars)]
+    def func_backw_ext(x):
+
+        def cond_func(cont):
+            return jnp.abs(cont[0]-cont[1]).max() > tol
+
+        def body_func(cont):
+            VF, _ = cont
+            return func_backw_raw(x, x, x, x, VF, [], par)[0], VF
+
+        VF = jax.lax.while_loop(cond_func, body_func, (init_vf, init_vf+1))[0]
+        VF, decisions_output = func_backw_raw(x, x, x, x, VF, [], par)
+
+        return VF, decisions_output
+
+    def func_stst_raw(x, return_vf_and_dist=False):
+
         x = func_pre_stst(x, par)
 
-        if not flatshape:
+        if not func_stst_dist:
             return func(x, x, x, x, jax.numpy.zeros(len(shocks)), par)
 
-        VF_flatten = flat_input[len(evars):]
-        VF_old = jnp.exp(VF_flatten).reshape(dimshape)
-        VF_new, decisions_output = func_backw_raw(x, x, x, x, VF_old, [], par)
-
+        VF, decisions_output = func_backw_ext(x)
         dist = func_stst_dist(decisions_output)
 
         if return_vf_and_dist:
-            return x, VF_new, [dist]
+            return x, VF, [dist]
 
-        fres = func(x, x, x, x, [], par, [dist], decisions_output)
+        return func(x, x, x, x, [], par, [dist], decisions_output)
 
-        return jnp.hstack((VF_flatten - jnp.log(VF_new.flatten()), fres))
-
-    # find stst
-    func_stst = jax.jit(func_stst_raw, static_argnames='return_vf_and_dist')
+    # define jitted stst function that returns jacobian and func. value
+    def func_stst(x): return value_and_jac(
+        jax.jit(func_stst_raw, static_argnames='return_vf_and_dist'), x)
 
     # use a solver that can deal with ill-conditioned jacobians
     def solver(jval, fval): return jax.numpy.linalg.pinv(jval) @ fval
-    res = newton_jax(func_stst, model['init'], None, maxit,
-                     tol, sparse=False, solver=solver, verbose=verbose)
+    res = newton_jax(func_stst, model['init'], None, maxit, tol,
+                     sparse=False, func_returns_jac=True, solver=solver, verbose=verbose)
 
     # exchange those values that are identified via stst_equations for testing purposes
     stst_vals = res['x'].at[:len(evars)].set(
@@ -64,13 +76,13 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
     model["stst"] = rdict
     model["init"] = stst_vals
 
-    if flatshape:
+    if func_stst_dist:
         xSS, vfSS, distSS = func_stst_raw(stst_vals, return_vf_and_dist=True)
         model["stst"]['distributions'] = distSS
-        model["stst"]['decisions'] = jnp.exp(vfSS)
+        model["stst"]['decisions'] = vfSS
 
     # calculate error
-    err = jnp.abs(func_stst(stst_vals)).max()
+    err = jnp.abs(func_stst(jnp.array(stst_vals))[0]).max()
 
     if err > tol:
         grad = jax.jacfwd(func_stst)(model["init"])

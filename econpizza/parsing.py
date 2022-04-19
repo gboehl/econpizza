@@ -200,12 +200,12 @@ def compile_func_dist_str(distributions, decisions_outputs):
     return func_stst_dist_str
 
 
-def compile_init_values(evars, decisions_inputs, flatshape, initvals, stst):
+def compile_init_values(evars, decisions_inputs, initvals, stst):
     """Combine all available information in initial guesses.
     """
 
     # get inital values to test the function
-    init = jnp.ones(len(evars) + flatshape) * 1.1
+    init = jnp.ones(len(evars)) * 1.1
 
     # structure: aggregate values first, then values of decisions functions
     if initvals is not None:
@@ -213,13 +213,6 @@ def compile_init_values(evars, decisions_inputs, flatshape, initvals, stst):
             # assign aggregate values
             if v in evars:
                 init = init.at[evars.index(v)].set(initvals[v])
-            # assign values of decision function
-            elif v in decisions_inputs:
-                ind = decisions_inputs.index(v)
-                # use log to maintain that vals are > 0
-                val = jnp.log(initvals[v]).flatten()
-                init = init.at[len(
-                    evars) + ind*flatshape:len(evars) + (ind+1)*flatshape].set(val)
 
     if stst:
         for v in stst:
@@ -390,19 +383,11 @@ def load(
         tmpf_names += define_function(model['func_dist_str'],
                                       model['context']),
 
-        dimshape = ()
-        for dist in dist_names:
-            for v in model['distributions'][dist].values():
-                dimshape += v['n'],
-        flatshape = jnp.cumprod(jnp.array(dimshape))[-1]
     else:
         dist_names = []
-        flatshape = dimshape = 0
-
-    model['shapes'] = flatshape, dimshape
 
     # collect initial guesses
-    model["init"] = compile_init_values(evars, decisions_inputs, flatshape, eval_strs(
+    model["init"] = compile_init_values(evars, decisions_inputs, eval_strs(
         model["steady_state"].get("init_guesses")), stst)
 
     # get strings that contains the function definitions

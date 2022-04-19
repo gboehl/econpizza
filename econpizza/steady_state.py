@@ -65,14 +65,15 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
 
     # use a solver that can deal with ill-conditioned jacobians
     def solver(jval, fval): return jax.numpy.linalg.pinv(jval) @ fval
+
+    # actual root finding
     res = newton_jax(func_stst, model['init'], None, maxit, tol,
                      sparse=False, func_returns_jac=True, solver=solver, verbose=verbose)
 
-    # exchange those values that are identified via stst_equations for testing purposes
-    stst_vals = res['x'].at[:len(evars)].set(
-        func_pre_stst(res['x'][:len(evars)], par))
+    # exchange those values that are identified via stst_equations
+    stst_vals = func_pre_stst(res['x'][:len(evars)], par)
 
-    rdict = dict(zip(evars, res['x'][:len(evars)]))
+    rdict = dict(zip(evars, stst_vals))
     model["stst"] = rdict
     model["init"] = stst_vals
 

@@ -77,15 +77,15 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
         rank = jnp.linalg.matrix_rank(grad)
         df0 = sum(jnp.all(jnp.isclose(grad, 0), 0))
         df1 = sum(jnp.all(jnp.isclose(grad, 0), 1))
-        mess = "Function has rank {rank} ({grad.shape[0]} variables) and {df0} vs {df1} degrees of freedom."
+        mess = f"Function has rank {rank} ({grad.shape[0]} variables) and {df0} vs {df1} degrees of freedom."
         if raise_error and not res["success"]:
             print(res)
             raise Exception(
-                "Steady state not found (error is {err:1.2e}). {mess} The root finding result is given above."
+                f"Steady state not found (error is {err:1.2e}). {mess} The root finding result is given above."
             )
         else:
             print(
-                "(solve_stst:) Steady state error is {err:1.2e}. {mess}"
+                f"(solve_stst:) Steady state error is {err:1.2e}. {mess}"
             )
     elif verbose:
         duration = time.time() - st

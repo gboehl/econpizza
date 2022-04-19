@@ -187,10 +187,8 @@ def compile_func_dist_str(distributions, decisions_outputs):
 
         func_stst_dist_str_tpl += f"""
             \n endog_inds, endog_probs = dists.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})
-            \n tmat_endo = dists.tmat_from_endo(endog_inds, endog_probs)
-            \n tmat_exog = dists.tmat_from_exog({dist[exog[0]]['grid_variables'][2]}.T, endog_probs)
-            \n tmat = tmat_exog @ tmat_endo
-            \n {dist_name} = dists.stationary_distribution_iterative(tmat).reshape(endog_probs.shape)""",
+            \n {dist_name} = dists.stationary_distribution_forward_policy_1d(endog_inds, endog_probs, {dist[exog[0]]['grid_variables'][2]})
+            """,
 
     func_stst_dist_str = f"""def func_stst_dist(decisions_outputs):
         \n ({", ".join(decisions_outputs)},) = decisions_outputs
@@ -424,7 +422,7 @@ def load(
         # TODO: also test other functions
 
     model['func'] = jax.jit(model['context']['func_raw'])
-    # TODO: good idea to jit here and not later?
+    # TODO: good idea to jit here and not later (or not at all)?
 
     # unlink the temporary files
     for tmpf in tmpf_names:

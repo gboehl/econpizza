@@ -45,6 +45,7 @@ def interpolate_coord_robust(x, xq, check_increasing=False):
     if xq.ndim == 1:
         return interpolate_coord_robust_vector(x, xq)
     else:
+        print('haa')
         i, pi = interpolate_coord_robust_vector(x, xq.ravel())
         return i.reshape(xq.shape), pi.reshape(xq.shape)
 
@@ -86,15 +87,39 @@ def forward_policy_1d(D, x_i, x_pi):
     nZ, nX = D.shape
     Dnew = np.zeros_like(D)
 
-    j = np.arange(nZ).repeat(nX)
-    i = x_i.ravel()
-    pi = x_pi.ravel()
-    d = D.ravel()
+    j = np.arange(nZ)[:, np.newaxis]
 
-    Dnew = Dnew.at[j, i].add(d * pi)
-    Dnew = Dnew.at[j, i+1].add(d * (1 - pi))
+    Dnew = Dnew.at[j, x_i].add(D * x_pi)
 
-    return Dnew
+    return Dnew.at[j, x_i+1].add(D * (1 - x_pi))
+
+
+@jax.jit
+def stationary_distribution_forward_policy_1d_fixed_n(endog_inds, endog_probs, exog_probs, n=1000):
+
+    dist = np.ones_like(endog_inds)
+    dist /= dist.sum()
+
+    def body(x, dist): return exog_probs.T @ forward_policy_1d(dist,
+                                                               endog_inds, endog_probs)
+
+    return jax.lax.fori_loop(0, 1000, body, dist)
+
+
+@jax.jit
+def stationary_distribution_forward_policy_1d(endog_inds, endog_probs, exog_probs, tol=1e-10):
+
+    dist = np.ones_like(endog_inds)
+    dist /= dist.sum()
+
+    def cond_func(cont):
+        return np.abs(cont[0]-cont[1]).max() > tol
+
+    def body_func(cont):
+        dist, _ = cont
+        return exog_probs.T @ forward_policy_1d(dist, endog_inds, endog_probs), dist
+
+    return jax.lax.while_loop(cond_func, body_func, (dist, dist+1))[0]
 
 
 @jax.jit
@@ -112,9 +137,9 @@ def stationary_distribution(T):
     return unit_ev.real / unit_ev.real.sum()
 
 
-@jax.jit
-def stationary_distribution_iterative(T, n=1000):
-    """Find invariant distribution of a Markov chain by brute force ('cause jax won't find the jacobian of eigenvectors)."""
+# @jax.jit
+# def stationary_distribution_iterative(T, n=1000):
+    # """Find invariant distribution of a Markov chain by brute force ('cause jax won't find the jacobian of eigenvectors)."""
 
-    a = np.ones(T.shape[0])/T.shape[0]
-    return np.linalg.matrix_power(T, n) @ a
+    # a = np.ones(T.shape[0])/T.shape[0]
+    # return np.linalg.matrix_power(T, n) @ a

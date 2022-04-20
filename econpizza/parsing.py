@@ -193,7 +193,7 @@ def compile_func_dist_str(distributions, decisions_outputs):
     func_stst_dist_str = f"""def func_stst_dist(decisions_outputs):
         \n ({", ".join(decisions_outputs)},) = decisions_outputs
         \n {"".join(func_stst_dist_str_tpl)}
-        \n return {", ".join(distributions.keys())}"""
+        \n return ({"".join(d + ', ' for d in distributions.keys())})"""
 
     # TODO: also compile dynamic distributions func str
 

@@ -36,13 +36,13 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
             return jnp.abs(cont[0]-cont[1]).max() > tol
 
         def body_func(cont):
-            VF, _ = cont
-            return func_backw_raw(x, x, x, x, VF, [], par)[0], VF
+            vf, _ = cont
+            return func_backw_raw(x, x, x, x, vf, [], par)[0], vf
 
-        VF = jax.lax.while_loop(cond_func, body_func, (init_vf, init_vf+1))[0]
-        VF, decisions_output = func_backw_raw(x, x, x, x, VF, [], par)
+        vf = jax.lax.while_loop(cond_func, body_func, (init_vf, init_vf+1))[0]
+        vf, decisions_output = func_backw_raw(x, x, x, x, vf, [], par)
 
-        return VF, decisions_output
+        return vf, decisions_output
 
     def func_stst_raw(x, return_vf_and_dist=False):
 
@@ -51,13 +51,13 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
         if not func_stst_dist:
             return func(x, x, x, x, jax.numpy.zeros(len(shocks)), par)
 
-        VF, decisions_output = func_backw_ext(x)
+        vf, decisions_output = func_backw_ext(x)
         dist = func_stst_dist(decisions_output)
 
         if return_vf_and_dist:
-            return x, VF, [dist]
+            return x, vf, dist
 
-        return func(x, x, x, x, [], par, [dist], decisions_output)
+        return func(x, x, x, x, [], par, dist, decisions_output)
 
     # define jitted stst function that returns jacobian and func. value
     def func_stst(x): return value_and_jac(
@@ -79,8 +79,9 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
 
     if func_stst_dist:
         xSS, vfSS, distSS = func_stst_raw(stst_vals, return_vf_and_dist=True)
-        model["stst"]['distributions'] = distSS
-        model["stst"]['decisions'] = vfSS
+        # TODO: this should loop over the objects in distSS/vfSS and store under the name of the distribution/decisions (i.e. 'D' or 'Va')
+        model["distributions"]['stst'] = distSS
+        model['decisions']['stst'] = vfSS
 
     # calculate error
     err = jnp.abs(func_stst(jnp.array(stst_vals))[0]).max()

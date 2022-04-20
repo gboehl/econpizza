@@ -4,7 +4,7 @@
 import os
 import jax
 import time
-import numpy as np
+import jax.numpy as jnp
 from scipy import sparse
 from grgrlib.jaxed import newton_jax
 from .shooting import find_path_linear
@@ -26,10 +26,10 @@ def find_stack(
 
     st = time.time()
 
-    stst = np.array(list(model["stst"].values()))
+    stst = jnp.array(list(model["stst"].values()))
     nvars = len(model["variables"])
     func = model["func"]
-    pars = np.array(list(model["parameters"].values()))
+    pars = jnp.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
 
     if tol is None:
@@ -41,9 +41,9 @@ def find_stack(
     if parallel and (horizon - 1) % ncores:
         horizon += ncores - (horizon - 1) % ncores
 
-    x0 = np.array(list(x0)) if x0 is not None else stst
-    x = np.ones((horizon + 1, nvars)) * stst
-    x[0] = x0
+    x0 = jnp.array(list(x0)) if x0 is not None else stst
+    x = jnp.ones((horizon + 1, nvars)) * stst
+    x = x.at[0].set(x0)
 
     x_init, x_lin = find_path_linear(
         model, shock, horizon, x, use_linear_guess)
@@ -57,8 +57,8 @@ def find_stack(
     if init_path is not None:
         x_init[1: len(init_path)] = init_path[1:]
 
-    zshock = np.zeros(len(shocks))
-    tshock = np.copy(zshock)
+    zshock = jnp.zeros(len(shocks))
+    tshock = jnp.copy(zshock)
     if shock is not None:
         tshock[shocks.index(shock[0])] = shock[1]
 
@@ -99,7 +99,7 @@ def find_stack(
         x[:nvars], x[nvars:-nvars], x[-nvars:], stst, zshock, pars)))
     jac_shock = jax.jacfwd(lambda x: func(
         x[:nvars], x[nvars:-nvars], x[-nvars:], stst, tshock, pars))
-    hrange = np.arange(nvars)*(horizon-1)
+    hrange = jnp.arange(nvars)*(horizon-1)
 
     def jac(x):
 
@@ -109,11 +109,12 @@ def find_stack(
 
         J = sparse.lil_array(((horizon-1)*nvars, (horizon-1)*nvars))
         if shock is None:
-            J[np.arange(nvars)*(horizon-1), :nvars*2] = jac_parts[0, :, nvars:]
+            J[jnp.arange(nvars)*(horizon-1), :nvars *
+              2] = jac_parts[0, :, nvars:]
         else:
-            J[np.arange(nvars)*(horizon-1), :nvars *
+            J[jnp.arange(nvars)*(horizon-1), :nvars *
               2] = jac_shock(X[:3].flatten())[:, nvars:]
-        J[np.arange(nvars)*(horizon-1)+horizon-2, (horizon-3) *
+        J[jnp.arange(nvars)*(horizon-1)+horizon-2, (horizon-3) *
           nvars:horizon*nvars] = jac_parts[horizon-2, :, :-nvars]
 
         for t in range(1, horizon-2):
@@ -124,16 +125,16 @@ def find_stack(
     res = newton_jax(
         stacked_func, x_init[1:-1].flatten(), jac, maxit, tol, True, verbose=verbose)
 
-    err = np.abs(res['fun']).max()
-    x[1:-1] = res['x'].reshape((horizon - 1, nvars))
+    err = jnp.abs(res['fun']).max()
+    x = x.at[1:-1].set(res['x'].reshape((horizon - 1, nvars)))
 
     mess = res['message']
     if err > tol:
-        mess += " Max error is %1.2e." % np.abs(stacked_func(res['x'])).max()
+        mess += " Max error is %1.2e." % jnp.abs(stacked_func(res['x'])).max()
 
     if verbose:
-        duration = np.round(time.time() - st, 3)
-        print("(find_path_stacked:) Stacking done after %s seconds. " %
-              duration + mess)
+        duration = time.time() - st
+        print(
+            f"(find_path_stacked:) Stacking done after {duration:1.3f} seconds. " + mess)
 
     return x, x_lin, not res['success']

@@ -174,6 +174,7 @@ def compile_func_dist_str(distributions, decisions_outputs):
             'More than one distribution is not yet implemented.')
 
     func_stst_dist_str_tpl = ()
+    func_dist_str_tpl = ()
 
     for dist_name in distributions:
 
@@ -183,11 +184,16 @@ def compile_func_dist_str(distributions, decisions_outputs):
 
         if len(exog) > 1:
             raise NotImplementedError(
-                'More than 1-D endogenous distributions are not yet implemented.')
+                'Endogenous distributions larger thank 1-D are not yet implemented.')
 
         func_stst_dist_str_tpl += f"""
             \n endog_inds, endog_probs = dists.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})
             \n {dist_name} = dists.stationary_distribution_forward_policy_1d(endog_inds, endog_probs, {dist[exog[0]]['grid_variables'][2]})
+            """,
+
+        func_dist_str_tpl += f"""
+            \n endog_inds, endog_probs = dists.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})
+            \n {dist_name} = {dist[exog[0]]['grid_variables'][2]}.T @ dists.stationary_distribution_forward_policy_1d({dist_name}, endog_inds, endog_probs)
             """,
 
     func_stst_dist_str = f"""def func_stst_dist(decisions_outputs):
@@ -195,9 +201,12 @@ def compile_func_dist_str(distributions, decisions_outputs):
         \n {"".join(func_stst_dist_str_tpl)}
         \n return ({"".join(d + ', ' for d in distributions.keys())})"""
 
-    # TODO: also compile dynamic distributions func str
+    func_dist_str = f"""def func_dist(dist, decisions_outputs):
+        \n ({", ".join(decisions_outputs)},) = decisions_outputs
+        \n {"".join(func_stst_dist_str_tpl)}
+        \n return ({"".join(d + ', ' for d in distributions.keys())})"""
 
-    return func_stst_dist_str
+    return func_stst_dist_str, func_dist_str
 
 
 def compile_init_values(evars, decisions_inputs, initvals, stst):
@@ -378,8 +387,10 @@ def load(
 
     if model.get('distributions'):
         dist_names = list(model['distributions'].keys())
-        model["func_dist_str"] = compile_func_dist_str(
+        model["func_stst_dist_str"], model["func_dist_str"] = compile_func_dist_str(
             model['distributions'], decisions_outputs)
+        tmpf_names += define_function(
+            model['func_stst_dist_str'], model['context']),
         tmpf_names += define_function(model['func_dist_str'],
                                       model['context']),
 

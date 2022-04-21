@@ -29,8 +29,7 @@ It's as simple as:
 Documentation
 -------------
 
-There is some `documentation <https://econpizza.readthedocs.io/en/latest/index.html>`_ out there.
-
+There is some `documentation <https://econpizza.readthedocs.io/en/latest/tutorial.html>`_ out there.
 
 Citation
 --------

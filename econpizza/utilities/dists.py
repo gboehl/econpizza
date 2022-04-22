@@ -94,18 +94,6 @@ def forward_policy_1d(D, x_i, x_pi):
 
 
 @jax.jit
-def stationary_distribution_forward_policy_1d_fixed_n(endog_inds, endog_probs, exog_probs, n=1000):
-
-    dist = np.ones_like(endog_inds)
-    dist /= dist.sum()
-
-    def body(x, dist): return exog_probs.T @ forward_policy_1d(dist,
-                                                               endog_inds, endog_probs)
-
-    return jax.lax.fori_loop(0, 1000, body, dist)
-
-
-@jax.jit
 def stationary_distribution_forward_policy_1d(endog_inds, endog_probs, exog_probs, tol=1e-10):
 
     dist = np.ones_like(endog_inds)

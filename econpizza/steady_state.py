@@ -46,7 +46,7 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
 
     def func_stst_raw(x, return_vf_and_dist=False):
 
-        x = func_pre_stst(x, par)
+        x = func_pre_stst(x, par)[..., jnp.newaxis]
 
         if not func_stst_dist:
             return func(x, x, x, x, jax.numpy.zeros(len(shocks)), par)
@@ -57,7 +57,10 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
         if return_vf_and_dist:
             return x, vf, dist
 
-        return func(x, x, x, x, [], par, dist, decisions_output)
+        # TODO: for more than one dist this should be a loop...
+        decisions_output_array = jnp.array(decisions_output)[..., jnp.newaxis]
+        dist_array = jnp.array(dist)[..., jnp.newaxis]
+        return func(x, x, x, x, [], par, dist_array, decisions_output_array)
 
     # define jitted stst function that returns jacobian and func. value
     def func_stst(x): return value_and_jac(

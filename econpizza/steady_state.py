@@ -90,11 +90,11 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
     err = jnp.abs(func_stst(jnp.array(stst_vals))[0]).max()
 
     if err > tol:
-        grad = jax.jacfwd(func_stst)(model["init"])
-        rank = jnp.linalg.matrix_rank(grad)
-        df0 = sum(jnp.all(jnp.isclose(grad, 0), 0))
-        df1 = sum(jnp.all(jnp.isclose(grad, 0), 1))
-        mess = f"Function has rank {rank} ({grad.shape[0]} variables) and {df0} vs {df1} degrees of freedom."
+        _, jac = func_stst(stst_vals)
+        rank = jnp.linalg.matrix_rank(jac)
+        df0 = sum(jnp.all(jnp.isclose(jac, 0), 0))
+        df1 = sum(jnp.all(jnp.isclose(jac, 0), 1))
+        mess = f"Function has rank {rank} ({jac.shape[0]} variables) and {df0} vs {df1} degrees of freedom."
         if raise_error and not res["success"]:
             print(res)
             raise Exception(

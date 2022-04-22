@@ -11,7 +11,7 @@ import jax
 import jaxlib
 import jax.numpy as jnp
 from copy import deepcopy
-from jax.numpy import log, exp, sqrt, maximum, minimum
+# from jax.numpy import log, exp, sqrt, maximum, minimum # maybe better to make this explicit
 from grgrlib import load_as_module
 from inspect import getmembers, isfunction
 from jax.experimental.host_callback import id_print as jax_print
@@ -173,6 +173,7 @@ def load(
     # check if there are dublicate variables
     evars = check_dublicates_and_determinancy(model["variables"], eqns)
     # check if each variable is defined in time t (only defining xSS does not give a valid root)
+    check_if_defined(evars, eqns)
 
     if model.get('distributions'):
         # create strings of the function that define the grids
@@ -181,8 +182,6 @@ def load(
         # execute all of them
         for grid_str in grid_strings:
             exec(grid_str, model['context'])
-    else:
-        check_if_defined(evars, eqns)
 
     shocks = model.get("shocks") or ()
     par = eval_strs(model["parameters"])

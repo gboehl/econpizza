@@ -9,6 +9,18 @@ from .stacking import find_stack
 from .parsing import parse, load
 from .steady_state import solve_stst, solve_linear
 
+
+class PizzaModel(dict):
+    def __init__(self, *args, **kwargs):
+        super(PizzaModel, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
+PizzaModel.find_stack = find_stack
+PizzaModel.find_path = find_pizza
+PizzaModel.solve_stst = solve_stst
+PizzaModel.solve_linear = solve_linear
+
 find_path_stacked = find_stack
 find_path = find_pizza
 

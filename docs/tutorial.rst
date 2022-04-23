@@ -13,12 +13,14 @@ An small-scale nonlinear New Keynesian model with ZLB is provided `as an example
 
     # use the NK model again
     mod = ep.load(example_nk)
+    _ = mod.solve_stst()
+    _ = mod.solve_linear()
 
     # increase the discount factor by .02 (this is NOT percentage deviation!)
     shk = ('e_beta', .02)
 
     # use the stacking method. As above, you could also feed in the initial state instead
-    x, x_lin, flag = ep.find_path_stacked(mod, shock=shk)
+    x, x_lin, flag = mod.find_stack(shock=shk)
 
     # plotting. x_lin is the linearized first-order solution
     for i,v in enumerate(mod['variables']):

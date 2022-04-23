@@ -4,11 +4,16 @@
 # Author: Gregor Boehl [mail@gregorboehl.com]
 # Last-Updated: 06/04/21
 
-name: 'nk'
-variables: [y, c, pi, r, rn, beta, w]
+name: "nk"
+variables: [y, c, pi, r, rn, beta, w, chi]
 shocks: [e_beta]
 
+definitions:
+    - from numpy import log, maximum
+
 equations:
+    # chi is actually a parameter. Define it as a variables to include it into root finding to target nSS = ySS = 0.33
+    ~ chi = chiSS
     ~ w = chi*(c - h*cLag)*y**eta
     ~ 1 = r*betaPrime*(c - h*cLag)/(cPrime - h*c)/piPrime
     ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*betaPrime*(c-h*cLag)/(cPrime-h*c)*(piPrime/piSS - 1)*piPrime/piSS*yPrime/y
@@ -25,18 +30,14 @@ parameters:
     h: .44
     rho: .8
     eta: .33
-    chi: .33
     rho_beta: .9
 
 steady_state:
-    equations:
-        # equations that are only evaluated when searching the steady state
-        - piSS = 1.02^.25
-
     fixed_values:
-        # equivalent to setting an init. guess and adding `betaSS = 0.9984` to equations
+        # equivalent to setting an init. guess and setting all occurences in `equations` to value
         beta: 0.9984
-
-    init_guesses:
-        y: 3.
+        y: .33
         pi: 1.02^.25
+
+    init_guesses: # the default init. guess is always 1.1
+        chi: 6 # just for demonstrative purposes

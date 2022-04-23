@@ -3,20 +3,22 @@
 
 import sys
 import time
+import jax
 import numpy as np
+import jax.numpy as jnp
 import scipy.optimize as so
 
 
 def solve_current(model, shock, XLag, XLastGuess, XPrime, tol):
 
-    func = model["func"]
-    pars = np.array(list(model["parameters"].values()))
-    stst = np.array(list(model["stst"].values()))
+    func = jax.jit(model['context']["func_eqns"])
+    pars = jnp.array(list(model["parameters"].values()))
+    stst = jnp.array(list(model["stst"].values()))
 
     def func_current(x): return func(XLag, x, XPrime, stst, shock, pars)
 
     res = so.root(func_current, XLastGuess, options=model["root_options"])
-    err = np.max(np.abs(func_current(res["x"])))
+    err = jnp.max(jnp.abs(func_current(res["x"])))
 
     return res["x"], not res["success"], err > tol
 

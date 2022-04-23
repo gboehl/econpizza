@@ -47,6 +47,7 @@ def parse(mfile):
     # get dict
     model = yaml.safe_load(mtxt)
     # create nice shortcuts
+    model['path'] = mfile
     model["pars"] = model["parameters"]
     model["vars"] = model["variables"]
 

@@ -11,5 +11,6 @@
    readme
    tutorial
    boehl_hommes
+   method.ipynb
    modules
    indices

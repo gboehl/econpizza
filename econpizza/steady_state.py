@@ -63,8 +63,8 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
         return func(x, x, x, x, [], par, dist_array, decisions_output_array)
 
     # define jitted stst function that returns jacobian and func. value
-    def func_stst(x): return value_and_jac(
-        jax.jit(func_stst_raw, static_argnames='return_vf_and_dist'), x)
+    func_stst = value_and_jac(
+        jax.jit(func_stst_raw, static_argnames='return_vf_and_dist'))
 
     # use a solver that can deal with ill-conditioned jacobians
     def solver(jval, fval): return jax.numpy.linalg.pinv(jval) @ fval

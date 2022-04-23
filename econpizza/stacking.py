@@ -101,6 +101,7 @@ def find_stack(
         x[:nvars], x[nvars:-nvars], x[-nvars:], stst, tshock, pars))
     hrange = jnp.arange(nvars)*(horizon-1)
 
+    # the ordering is ((equation1(t=1,...,T), ..., equationsN(t=1,...,T)) x (period1(var=1,...,N), ..., periodT(var=1,...,N)))
     def jac(x):
 
         X = jax.numpy.vstack((x0, x.reshape((horizon - 1, nvars)), endpoint))
@@ -123,7 +124,8 @@ def find_stack(
         return sparse.csc_matrix(J)
 
     res = newton_jax(
-        stacked_func, x_init[1:-1].flatten(), jac, maxit, tol, True, verbose=verbose)
+        # stacked_func, x_init[1:-1].flatten(), jac, maxit, tol, True, verbose=verbose)
+        stacked_func, x_init[1:-1].flatten(), None, maxit, tol, False, verbose=verbose)
 
     err = jnp.abs(res['fun']).max()
     x = x.at[1:-1].set(res['x'].reshape((horizon - 1, nvars)))

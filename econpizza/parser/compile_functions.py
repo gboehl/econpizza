@@ -49,35 +49,6 @@ def compile_stst_func_str(evars, eqns, par, stst_eqns):
     return func_pre_stst_str.replace("np.", "jnp.").replace("jjnp.", "jnp.")
 
 
-def compile_eqn_func_str(evars, eqns, par, eqns_aux, shocks, distributions, decisions_outputs):
-    """Compile all information from 'equations' section' to a string that defines the function.
-    """
-
-    # start compiling root_container
-    for i, eqn in enumerate(eqns):
-        if "=" in eqn:
-            lhs, rhs = eqn.split("=")
-            eqns[i] = "root_container%s = " % i + lhs + "- (" + rhs + ")"
-        else:
-            eqns[i] = "root_container%s = " % i + eqn
-
-    eqns_aux_stack = "\n ".join(eqns_aux) if eqns_aux else ""
-    eqns_stack = "\n ".join(eqns)
-
-    # compile the final function string
-    func_str = f"""def func_raw(XLag, X, XPrime, XSS, shocks, pars, dists=[], decisions_outputs=[]):
-        {compile_func_basics_str(evars, par, shocks)}
-        \n ({"".join(d+', ' for d in distributions)}) = dists
-        \n ({"".join(d+', ' for d in decisions_outputs)}) = decisions_outputs
-        \n {eqns_aux_stack}
-        \n {eqns_stack}
-        \n {"return jnp.array([" + ", ".join("root_container"+str(i) for i in range(len(evars))) + "]).ravel()"}""" % (
-    )
-
-    # never use real numpy
-    return func_str.replace("np.", "jnp.").replace("jjnp.", "jnp.")
-
-
 def compile_func_dist_str(distributions, decisions_outputs):
     """Compiles the transition functions for distributions.
     """
@@ -108,7 +79,7 @@ def compile_func_dist_str(distributions, decisions_outputs):
 
         func_dist_str_tpl += f"""
             \n endog_inds, endog_probs = dists.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})
-            \n {dist_name} = {dist[exog[0]]['grid_variables'][2]}.T @ dists.stationary_distribution_forward_policy_1d({dist_name}, endog_inds, endog_probs)
+            \n {dist_name} = {dist[exog[0]]['grid_variables'][2]}.T @ dists.forward_policy_1d({dist_name}, endog_inds, endog_probs)
             """,
 
     # join the tuples to one string that defines the final function
@@ -117,9 +88,39 @@ def compile_func_dist_str(distributions, decisions_outputs):
         \n {"".join(func_stst_dist_str_tpl)}
         \n return ({"".join(d + ', ' for d in distributions.keys())})"""
 
-    func_dist_str = f"""def func_dist(dist, decisions_outputs):
+    func_dist_str = f"""def func_dist(distributions, decisions_outputs):
         \n ({", ".join(decisions_outputs)},) = decisions_outputs
-        \n {"".join(func_stst_dist_str_tpl)}
+        \n ({"".join(d+', ' for d in distributions)}) = distributions
+        \n {"".join(func_dist_str_tpl)}
         \n return ({"".join(d + ', ' for d in distributions.keys())})"""
 
     return func_stst_dist_str, func_dist_str
+
+
+def compile_eqn_func_str(evars, eqns, par, eqns_aux, shocks, distributions, decisions_outputs):
+    """Compile all information from 'equations' section' to a string that defines the function.
+    """
+
+    # start compiling root_container
+    for i, eqn in enumerate(eqns):
+        if "=" in eqn:
+            lhs, rhs = eqn.split("=")
+            eqns[i] = "root_container%s = " % i + lhs + "- (" + rhs + ")"
+        else:
+            eqns[i] = "root_container%s = " % i + eqn
+
+    eqns_aux_stack = "\n ".join(eqns_aux) if eqns_aux else ""
+    eqns_stack = "\n ".join(eqns)
+
+    # compile the final function string
+    func_str = f"""def func_raw(XLag, X, XPrime, XSS, shocks, pars, distributions=[], decisions_outputs=[]):
+        {compile_func_basics_str(evars, par, shocks)}
+        \n ({"".join(d+', ' for d in distributions)}) = distributions
+        \n ({"".join(d+', ' for d in decisions_outputs)}) = decisions_outputs
+        \n {eqns_aux_stack}
+        \n {eqns_stack}
+        \n {"return jnp.array([" + ", ".join("root_container"+str(i) for i in range(len(evars))) + "]).ravel()"}""" % (
+    )
+
+    # never use real numpy
+    return func_str.replace("np.", "jnp.").replace("jjnp.", "jnp.")

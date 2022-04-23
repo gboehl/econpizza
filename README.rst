@@ -17,6 +17,8 @@ The baseline mechanism is a Newton-based stacking method in the spirit of Boucek
 
 The package makes heavy use of `automatic differentiation <https://en.wikipedia.org/wiki/Automatic_differentiation>`_ via `jax <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_!
 
+There is some experimental, undocumented support to solve nonlinear HANK models. The workflow is inspired by the `Sequence-Space Jacobian <https://github.com/shade-econ/sequence-jacobian>`_ method (`Auclert et al., 2022, ECMA <https://doi.org/10.3982/ECTA17434>`_).
+
 Installation
 -------------
 

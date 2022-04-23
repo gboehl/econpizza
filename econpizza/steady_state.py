@@ -18,53 +18,56 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
     st = time.time()
 
     evars = model["variables"]
-    func = model["func"]
     func_pre_stst = model['context']["func_pre_stst"]
     par = jnp.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
 
-    func_backw_raw = model['context'].get('func_backw_raw')
-    func_stst_dist = model['context'].get('func_stst_dist')
-    if func_stst_dist:
-        init_vf = model['steady_state']['init_guesses'][model['decisions']['inputs'][0]]
+    # check if steady state was already calculated
+    if jnp.all(model.get("stst_used_params") == par):
+        if verbose:
+            print("(solve_stst:) Steady state already known.")
 
-    # TODO: these two functions could be sourced out
+        return model['stst']
+
+    func_eqns = model['context']['func_eqns']
+    func_backw = model['context'].get('func_backw')
+    func_stst_dist = model['context'].get('func_stst_dist')
+
+    decisions_output_init = model['init_run'].get('decisions_output')
+    init_vf = model.get('init_vf')
 
     def func_backw_ext(x):
 
         def cond_func(cont):
-            return jnp.abs(cont[0]-cont[1]).max() > tol
+            return jnp.abs(cont[0]-cont[2]).max() > tol
 
         def body_func(cont):
-            vf, _ = cont
-            return func_backw_raw(x, x, x, x, vf, [], par)[0], vf
+            vf, _, _ = cont
+            return *func_backw(x, x, x, x, vf, [], par), vf
 
-        vf = jax.lax.while_loop(cond_func, body_func, (init_vf, init_vf+1))[0]
-        vf, decisions_output = func_backw_raw(x, x, x, x, vf, [], par)
+        vf, decisions_output, _ = jax.lax.while_loop(
+            cond_func, body_func, (init_vf, decisions_output_init, init_vf+1))
 
         return vf, decisions_output
 
-    def func_stst_raw(x, return_vf_and_dist=False):
+    def func_stst_raw(x):
 
         x = func_pre_stst(x, par)[..., jnp.newaxis]
 
         if not func_stst_dist:
-            return func(x, x, x, x, jax.numpy.zeros(len(shocks)), par)
+            return func_eqns(x, x, x, x, jax.numpy.zeros(len(shocks)), par)
 
         vf, decisions_output = func_backw_ext(x)
         dist = func_stst_dist(decisions_output)
 
-        if return_vf_and_dist:
-            return x, vf, dist
-
         # TODO: for more than one dist this should be a loop...
         decisions_output_array = jnp.array(decisions_output)[..., jnp.newaxis]
         dist_array = jnp.array(dist)[..., jnp.newaxis]
-        return func(x, x, x, x, [], par, dist_array, decisions_output_array)
+
+        return func_eqns(x, x, x, x, [], par, dist_array, decisions_output_array)
 
     # define jitted stst function that returns jacobian and func. value
-    func_stst = value_and_jac(
-        jax.jit(func_stst_raw, static_argnames='return_vf_and_dist'))
+    func_stst = value_and_jac(jax.jit(func_stst_raw))
 
     # use a solver that can deal with ill-conditioned jacobians
     def solver(jval, fval): return jax.numpy.linalg.pinv(jval) @ fval
@@ -79,9 +82,11 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
     rdict = dict(zip(evars, stst_vals))
     model["stst"] = rdict
     model["init"] = stst_vals
+    model["stst_used_params"] = par
 
     if func_stst_dist:
-        xSS, vfSS, distSS = func_stst_raw(stst_vals, return_vf_and_dist=True)
+        vfSS, decisions_output = func_backw_ext(stst_vals)
+        distSS = func_stst_dist(decisions_output)
         # TODO: this should loop over the objects in distSS/vfSS and store under the name of the distribution/decisions (i.e. 'D' or 'Va')
         model["distributions"]['stst'] = distSS
         model['decisions']['stst'] = vfSS
@@ -123,7 +128,7 @@ def solve_linear(
     """Does half-way SGU, solves the model using linear time iteration and uses Klein's method to check for determinancy if the solution fails"""
 
     evars = model["variables"]
-    func = model["func"]
+    func = model['context']["func_eqns"]
     par = np.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
     stst = list(model["stst"].values())
@@ -212,6 +217,6 @@ def solve_linear(
             )
 
     if mess and verbose:
-        print("(solve_linear:) {mess} {'' if mess[-1] in '.?!' else '.'}")
+        print(f"(solve_linear:) {mess} {'' if mess[-1] in '.?!' else '.'}")
 
     return model["ABC"]

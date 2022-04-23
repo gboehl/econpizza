@@ -70,7 +70,7 @@ def eval_strs(vdict, pars=None, context=globals()):
     return vdict
 
 
-def load_functions_file(model, context):
+def load_external_functions_file(model, context):
     """Load the functions file as a module.
     """
 
@@ -151,7 +151,7 @@ def load(
     if model in cached_mdicts:
         model = cached_models[cached_mdicts.index(model)]
         model['context'] = globals()
-        load_functions_file(model, model['context'])
+        load_external_functions_file(model, model['context'])
         print("(parse:) Loading cached model.")
         return model
 
@@ -159,7 +159,7 @@ def load(
     model['context'] = globals()
 
     # load file with additional functions as module (if it exists)
-    load_functions_file(model, model['context'])
+    load_external_functions_file(model, model['context'])
 
     defs = model.get("definitions")
     # never ever use real numpy
@@ -203,27 +203,31 @@ def load(
             stst_eqns.append(f"{key} = {stst[key]}")
 
     tmpf_names = ()
+    # initialize storage for all function strings
+    model['func_strings'] = {}
 
     # get function strings for decisions and distributions, if they exist
     if model.get('decisions'):
         decisions_outputs = model['decisions']['outputs']
         decisions_inputs = model['decisions']['inputs']
-        model["func_backw_str"] = compile_backw_func_str(
-            evars, par, shocks, model['decisions']['inputs'], decisions_outputs, model['decisions']['calls'])
-        tmpf_names += define_function(model['func_backw_str'],
-                                      model['context']),
+        model['func_strings']["func_backw"] = compile_backw_func_str(
+            evars, par, shocks, decisions_inputs, decisions_outputs, model['decisions']['calls'])
+        tmpf_names += define_function(model['func_strings']
+                                      ['func_backw'], model['context']),
     else:
         decisions_outputs = []
         decisions_inputs = []
 
     if model.get('distributions'):
         dist_names = list(model['distributions'].keys())
-        model["func_stst_dist_str"], model["func_dist_str"] = compile_func_dist_str(
+        func_stst_dist_str, func_dist_str = compile_func_dist_str(
             model['distributions'], decisions_outputs)
-        tmpf_names += define_function(
-            model['func_stst_dist_str'], model['context']),
-        tmpf_names += define_function(model['func_dist_str'],
-                                      model['context']),
+        # store both strings
+        model['func_strings']["func_stst_dist"] = func_stst_dist_str
+        model['func_strings']["func_dist"] = func_dist_str
+        # execute them
+        tmpf_names += define_function(func_stst_dist_str, model['context']),
+        tmpf_names += define_function(func_dist_str, model['context']),
 
     else:
         dist_names = []
@@ -233,27 +237,27 @@ def load(
         model["steady_state"].get("init_guesses")), stst)
 
     # get strings that contains the function definitions
-    model["func_pre_stst_str"] = compile_stst_func_str(
+    model['func_strings']["func_pre_stst"] = compile_stst_func_str(
         evars, eqns, par, stst_eqns)
-    model["func_str"] = compile_eqn_func_str(evars, eqns, par, eqns_aux=model.get(
+    model['func_strings']["func_eqns"] = compile_eqn_func_str(evars, eqns, par, eqns_aux=model.get(
         'aux_equations'), shocks=shocks, distributions=dist_names, decisions_outputs=decisions_outputs)
 
-    tmpf_names += define_function(model["func_str"], model['context']),
-    tmpf_names += define_function(model['func_pre_stst_str'],
-                                  model['context']),
+    tmpf_names += define_function(model['func_strings']
+                                  ["func_eqns"], model['context']),
+    tmpf_names += define_function(model['func_strings']
+                                  ['func_pre_stst'], model['context']),
 
     # test if model works. Writing to tempfiles helps to get nice debug traces if not
-    if not model.get('decisions'):
+    if model.get('decisions'):
         # try if function works on initvals
-        check_func(model['context']['func_raw'], model["init"], shocks, par)
-        # TODO: also test other functions
+        model['init_vf'] = model['steady_state']['init_guesses'][model['decisions']
+                                                                 ['inputs'][0]]  # let us for now assume that this must be present
 
-    model['func'] = jax.jit(model['context']['func_raw'])
-    # TODO: good idea to jit here and not later (or not at all)?
+    check_func(model, shocks, par)
 
-    # unlink the temporary files
-    for tmpf in tmpf_names:
-        os.unlink(tmpf)
+    # unlink the temporary files (is this even necessary?)
+    # for tmpf in tmpf_names:
+    # os.unlink(tmpf)
 
     if verbose:
         print("(load:) Parsing done.")

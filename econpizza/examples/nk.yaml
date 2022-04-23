@@ -9,7 +9,7 @@ variables: [y, c, pi, r, rn, beta, w, chi]
 shocks: [e_beta]
 
 definitions:
-    - from numpy import log, sqrt
+    - from numpy import log, maximum
 
 equations:
     # chi is actually a parameter. Define it as a variables to include it into root finding to target nSS = ySS = 0.33

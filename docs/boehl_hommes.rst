@@ -29,6 +29,7 @@ This is also the weakness of the method: not every DSGE model (that is Blanchard
     # load the example. The steady state is automatically solved for
     # example_nk is nothing else but the path to the yaml, hence you could also use `filename = 'path_to/model.yaml'`
     mod = ep.load(example_nk)
+    _ = mod.solve_stst()
 
     # get the steady state as an initial state
     state = mod['stst'].copy()
@@ -36,7 +37,7 @@ This is also the weakness of the method: not every DSGE model (that is Blanchard
     state['beta'] *= 1.02
 
     # simulate the model
-    x, _, flag = ep.find_path(mod, state.values())
+    x, _, flag = mod.find_path(state.values())
 
     # plotting
     for i,v in enumerate(mod['variables']):
@@ -56,14 +57,14 @@ Lets go for a second, numerically more challenging example: the chaotic rational
 
     # parse the yaml
     mod = ep.load(example_bh, raise_errors=False)
-    # B-K conditions will complain because the model is not determined around the steady state. This is not a problem
+    _ = mod.solve_stst()
 
     # choose an interesting initial state
     state = np.zeros(len(mod['variables']))
     state[:-1] = [.1, .2, 0.]
 
     # solve and simulate. The lower eps is not actually necessary
-    x, _, flag = ep.find_path(mod, state, T=1000, max_horizon=1000, tol=1e-8)
+    x, _, flag = ep.find_path(mod, state, T=500, max_horizon=1000, tol=1e-8)
 
     # plotting
     for i,v in enumerate(mod['variables']):

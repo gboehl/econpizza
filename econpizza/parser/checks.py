@@ -42,12 +42,28 @@ def check_dublicates_and_determinancy(evars, eqns):
     return sorted_evars
 
 
-def check_func(func_raw, init, shocks, par):
+def check_func(model, shocks, par):
 
-    test = func_raw(
-        init, init, init, init, jnp.zeros(
-            len(shocks)), jnp.array(list(par.values())), [], []
-    )
+    init = model['init']
+    # collect some information needed later
+    model['init_run'] = {}
+
+    if model.get('decisions'):
+        # make a test backward and forward run
+        init_vf = model['init_vf']
+        _, decisions_output_init = model['context']['func_backw'](
+            init, init, init, init, init_vf, jnp.zeros(len(shocks)), jnp.array(list(par.values())))
+        dists_init = model['context']['func_stst_dist'](decisions_output_init)
+    else:
+        decisions_output_init = dists_init = []
+
+    model['init_run']['decisions_output'] = decisions_output_init
+    model['init_run']['dists'] = dists_init
+
+    # final test of main function
+    test = model['context']['func_eqns'](init, init, init, init, jnp.zeros(
+        len(shocks)), jnp.array(list(par.values())), dists_init, decisions_output_init)
+
     if jnp.isnan(test).any():
         raise Exception("Initial values are NaN.")
     if jnp.isinf(test).any():

@@ -117,6 +117,7 @@ Equations. The central part of the yaml. Here you define the model equations, wh
 Define the model parameters. Note that for parameters that need to be fitted, it is better to define a variable instead (such as `vphi` above).
 
 .. code-block::
+
     steady_state:
         fixed_values:
             Y: 1.0

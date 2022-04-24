@@ -1,7 +1,7 @@
 Getting started
 ===============
 
-This package contains two methods. _Stacking_, the main method, is a generic nonlinear solver that should work on all sorts of problems. _Shooting_ is the method of Boehl & Hommes (2021), which is useful for models with nonlinear, chaotic dynamics.
+This package contains two methods. *Stacking*, the main method, is a generic nonlinear solver that should work on all sorts of problems. *Shooting* is the method of Boehl & Hommes (2021), which is useful for models with nonlinear, chaotic dynamics.
 
 Quickstart
 ----------

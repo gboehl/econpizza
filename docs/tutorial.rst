@@ -39,7 +39,7 @@ An small-scale nonlinear New Keynesian model with ZLB is provided `as an example
 
 The impulse responses are the usual dynamics of a nonlinear DSGE.
 
-The folder `yaml files <https://github.com/gboehl/econpizza/tree/master/econpizza/examples>`_ also contains a medium scale New Keynesian DSGE model as an example file (`med_scale_nk.yaml`). It can be imported with:
+The folder `yaml files <https://github.com/gboehl/econpizza/tree/master/econpizza/examples>`_ also contains a medium scale New Keynesian DSGE model as an example file (``med_scale_nk`.yaml`). It can be imported with:
 
 .. code-block:: python
 
@@ -54,6 +54,8 @@ The yaml files in the folder follow a simple structure:
 3. provide the parameters and values.
 4. optionally provide some steady state values and/or values for initial guesses
 5. optionally provide some auxilliary equations that are not directly part of the nonlinear system (see the `yaml for the BH model <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/bh.yaml>`_)
+
+A more detailed description can be found further below.
 
 .. include:: boehl_hommes.rst
 .. include:: the_yaml.rst

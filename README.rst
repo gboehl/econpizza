@@ -22,11 +22,20 @@ There is some experimental, undocumented support to solve nonlinear HANK models.
 Installation
 -------------
 
-It's as simple as:
+Installing the `repository version <https://pypi.org/project/econpizza/>`_ from PyPi is as simple as:
 
 .. code-block:: bash
 
    pip install econpizza
+  
+The most recent version from GitHub with all **experimental features** can be installed via
+
+.. code-block:: bash
+
+   pip install git+https://github.com/gboehl/grgrlib
+   pip install git+https://github.com/gboehl/econpizza
+
+Note that the latter requires `git <https://www.activestate.com/resources/quick-reads/pip-install-git/#:~:text=To%20install%20Git%20for%20Windows,installer%20and%20follow%20the%20steps.>`_ to be installed.
 
 Documentation
 -------------

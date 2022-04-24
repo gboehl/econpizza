@@ -2,20 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import jax
-import jax.numpy as np
-
-jax.config.update("jax_enable_x64", True)
+import jax.numpy as jnp
 
 
 def hh_init(a_grid, we, r, eis, T):
-    fininc = (1 + r) * a_grid + T[:, np.newaxis] - a_grid[0]
-    coh = (1 + r) * a_grid[np.newaxis, :] + \
-        we[:, np.newaxis] + T[:, np.newaxis]
+    fininc = (1 + r) * a_grid + T[:, jnp.newaxis] - a_grid[0]
+    coh = (1 + r) * a_grid[jnp.newaxis, :] + \
+        we[:, jnp.newaxis] + T[:, jnp.newaxis]
     Va = (1 + r) * (0.1 * coh) ** (-1 / eis)
     return fininc, Va
-
-# this is double checked against the original and works
-# there is potentially room for more vectorization
 
 
 @jax.jit
@@ -24,29 +19,20 @@ def hh(Va_p, a_grid, we, T, r, beta, eis, frisch, vphi):
 
     uc_nextgrid = beta * Va_p
     c_nextgrid, n_nextgrid = cn(
-        uc_nextgrid, we[:, np.newaxis], eis, frisch, vphi)
+        uc_nextgrid, we[:, jnp.newaxis], eis, frisch, vphi)
 
-    lhs = c_nextgrid - we[:, np.newaxis] * n_nextgrid + \
-        a_grid[np.newaxis, :] - T[:, np.newaxis]
+    lhs = c_nextgrid - we[:, jnp.newaxis] * n_nextgrid + \
+        a_grid[jnp.newaxis, :] - T[:, jnp.newaxis]
     rhs = (1 + r) * a_grid
 
-    # interpolation was hand-taylored in ssj. So there certainly is a better solution than this
-    c = jax.vmap(np.interp)(rhs.broadcast((lhs.shape[0],)), lhs, c_nextgrid)
-    n = jax.vmap(np.interp)(rhs.broadcast((lhs.shape[0],)), lhs, n_nextgrid)
+    # there certainly is a better solution than this
+    c = jax.vmap(jnp.interp)(rhs.broadcast((lhs.shape[0],)), lhs, c_nextgrid)
+    n = jax.vmap(jnp.interp)(rhs.broadcast((lhs.shape[0],)), lhs, n_nextgrid)
 
-    a = rhs + we[:, np.newaxis] * n + T[:, np.newaxis] - c
-    # inds = a < a_grid[0]
-    # inds = jax.lax.lt(a, a_grid[0])
-    # print(inds.shape)
-    # solve_cn(we[:, np.newaxis], rhs + T[:, np.newaxis] - a_grid, eis, frisch, vphi, Va_p)
-    # solve_cn(we.broadcast((lhs.shape[1],)).T[inds], rhs[inds] + T.broadcast((lhs.shape[1],)).T[inds] - a_grid[inds], eis, frisch, vphi, Va_p)
-    # cna = solve_cn(we.broadcast((lhs.shape[1],)).T[inds], rhs.broadcast((lhs.shape[0],))[inds] + T.broadcast((lhs.shape[1],)).T[inds] - a_grid.broadcast((lhs.shape[0],))[inds], eis, frisch, vphi, Va_p[inds])
+    a = rhs + we[:, jnp.newaxis] * n + T[:, jnp.newaxis] - c
 
-    # c = c.at[inds].set(cna[0])
-    # n = n.at[inds].set(cna[1])
-    c, n = np.where(a < a_grid[0], solve_cn(
-        we[:, np.newaxis], rhs + T[:, np.newaxis] - a_grid, eis, frisch, vphi, Va_p), np.array((c, n)))
-    a = np.where(a > a_grid[0], a, a_grid)
+    c, n = jnp.where(a < a_grid[0], solve_cn(we[:, jnp.newaxis], rhs + T[:, jnp.newaxis] - a_grid, eis, frisch, vphi, Va_p), jnp.array((c, n)))
+    a = jnp.where(a > a_grid[0], a, a_grid)
 
     Va = (1 + r) * c ** (-1 / eis)
 
@@ -58,7 +44,7 @@ def hh(Va_p, a_grid, we, T, r, beta, eis, frisch, vphi):
 
 def cn(uc, w, eis, frisch, vphi):
     """Return optimal c, n as function of u'(c) given parameters"""
-    return np.array((uc ** (-eis), (w * uc / vphi) ** frisch))
+    return jnp.array((uc ** (-eis), (w * uc / vphi) ** frisch))
 
 
 def solve_cn(w, T, eis, frisch, vphi, uc_seed):
@@ -73,7 +59,7 @@ def solve_uc(w, T, eis, frisch, vphi, uc_seed):
     """
 
     def solve_uc_cond(cont):
-        return np.abs(cont[0]).max() > 1e-11
+        return jnp.abs(cont[0]).max() > 1e-11
 
     def solve_uc_body(cont):
         ne, log_uc = cont
@@ -81,17 +67,17 @@ def solve_uc(w, T, eis, frisch, vphi, uc_seed):
         log_uc -= ne / ne_p
         return (ne, log_uc)
 
-    log_uc = np.log(uc_seed)
+    log_uc = jnp.log(uc_seed)
 
     _, log_uc = jax.lax.while_loop(
         solve_uc_cond, solve_uc_body, (uc_seed, log_uc))
 
-    return np.exp(log_uc)
+    return jnp.exp(log_uc)
 
 
 def netexp(log_uc, w, T, eis, frisch, vphi):
     """Return net expenditure as a function of log uc and its derivative."""
-    c, n = cn(np.exp(log_uc), w, eis, frisch, vphi)
+    c, n = cn(jnp.exp(log_uc), w, eis, frisch, vphi)
     ne = c - w * n - T
 
     # c and n have elasticities of -eis and frisch wrt log u'(c)
@@ -105,8 +91,8 @@ def netexp(log_uc, w, T, eis, frisch, vphi):
 def transfers(pi_e, Div, Tax, e_grid):
     # hardwired incidence rules are proportional to skill; scale does not matter
     tax_rule, div_rule = e_grid, e_grid
-    div = Div / np.sum(pi_e * div_rule) * div_rule
-    tax = Tax / np.sum(pi_e * tax_rule) * tax_rule
+    div = Div / jnp.sum(pi_e * div_rule) * div_rule
+    tax = Tax / jnp.sum(pi_e * tax_rule) * tax_rule
     T = div - tax
     return T
 
@@ -117,5 +103,5 @@ def wages(w, e_grid):
 
 
 def labor_supply(n, e_grid):
-    ne = e_grid[:, np.newaxis] * n
+    ne = e_grid[:, jnp.newaxis] * n
     return ne

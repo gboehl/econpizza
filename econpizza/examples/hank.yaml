@@ -1,8 +1,8 @@
-# nk.yaml ---
+# hank.yaml ---
 #
 # Description: a small example HANK model
 # Author: Gregor Boehl [mail@gregorboehl.com]
-# Last-Updated: 22/04/22
+# Last-Updated: 24/04/22
 
 name: '1ahank'
 functions_file: '../examples/hank_functions.py'
@@ -12,29 +12,28 @@ definitions:
     - from numpy import log
     - from jax.experimental.host_callback import id_print as jax_print
 
-variables: [Div, Y, Yprod, w, pi, rn, r, rstar, Tax, Z, beta, vphi, C, L, B] # Yprod is actually produced output gross of price adj. costs
+variables: [Div, Y, Yprod, w, pi, rn, r, rstar, Tax, Z, beta, vphi, C, L, B] # Yprod is actually produced output, Y is net of price adjustment costs  
 distributions:
-  D: # contents/distributions of the distribution named 'dist'
-    # ordering matters because it is the same ordering as the axis of distribution variables
-    e: # dim1
+  D: # a distribution named 'D'
+    # ordering matters because it is the same ordering as the axis of all distribution variables
+    e: # dim0
       type: exogenous
       grid_variables: [e_grid, e_stationary, e_tmat] # returns e_grid, e_stationary, e_tmat
       rho: 0.966
       sigma: 0.5
       # alternatively: if the previous 3 are not defined here, it is assumed that the grid_variables are available during the distribution stage (as an output of 'decisions')
       n: 4
-    a: # dim0
+    a: # dim1
       type: endogenous
-      grid_variables: a_grid # a variable named <grid_names> will be made available during decisions_calls and aggregation_calls
+      grid_variables: a_grid # a variable named a_grid will be made available during decisions calls and distributions calls
       min: 0.0
       max: 150
       n: 10
 
-# stage one: decisions
-# these are executed subsequently, starting with the latest in time T. Each call takes the previous outputs as given
-decisions:
+decisions: # stage one
   inputs: [VaPrime] # additional to all aggregated variables defined in 'variables'
   calls:
+    # these are executed subsequently, starting with the latest in time T. Each call takes the previous outputs as given
     ~ T = transfers(e_stationary, Div, Tax, e_grid)
     ~ we = wages(w, e_grid)
     ~ VaPrimeExp = e_tmat @ VaPrime
@@ -44,19 +43,19 @@ decisions:
 
 # stage two: finding distributions via forward calls. This is done automatically using the information provided in 'distributions'
 # inputs are all grid_variables and, for endogenous distribution variables, variables named like the members of 'distributions' (e.g. 'a')
-# outputs are the distribution(s) named as define in 'distributions' (e.g. 'D')
+# outputs are the distribution(s) named as define in 'distributions' (e.g. here 'D')
 
 # stage three (optional): aux_equations
-# these can contain misc definitions that are available during the final stage. Takes only aggregate variables as inputs
-# from here on the objects are _sequences_ with shapes either (1, horizon) or (n1, n2, horizon), hence last dimension is the time dimension
+# these can contain misc definitions that are available during the final stage. 
+# outputs from decisions, the grid variables, the distributions and 
+# aggregate variables from 'variables' (including those with "Prime", "Lag",...) are included by default
+# from here on the objects are _sequences_ with shapes either (1, horizon) or (n1, n2, horizon). Last dimension is always the time dimension
 aux_equations:
-    ~ A = np.sum(D*a, axis=(0,1))
+    ~ A = np.sum(D*a, axis=(0,1)) # note that we are summing over the first two dimensions e and a, but not the time dimension (dimension 2)
     ~ NE = np.sum(D*ne, axis=(0,1))
-    ~ Caggr = np.sum(D*c, axis=(0,1))
+    ~ Caggr = np.sum(D*c, axis=(0,1)) 
 
-# final stage: equations
-# outputs from aggregation_calls, everything defined in aux_equations, and those from 'variables' (including those with "Prime", "Lag",...) are included by default, so there should not be a need to define inputs
-equations:
+equations: # final stage
     ~ L = Yprod / Z
     ~ Div = - w * L + (1 - psi*(pi/piSS - 1)**2/2)*Yprod
     ~ C = (1 - psi*(pi/piSS - 1)**2/2)*Yprod

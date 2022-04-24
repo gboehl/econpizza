@@ -9,11 +9,11 @@ All relevant information is supplied via the yaml file. Let us have a look of th
 
     functions_file: '../examples/hank_functions.py'
 
-The relative path to a functions-file, which may provide additional functions.
-
+The relative path to a functions-file, which may provide additional functions. Here the functions ``transfers``, ``wages``, ``hh``, ``labor_supply`` and ``hh_init`` are defined in this file.
 
 .. code-block::
 
+    # these are available during all three stages (decisions, distributions, equations)
     definitions:
         - from numpy import log
         - from jax.experimental.host_callback import id_print as jax_print
@@ -29,18 +29,18 @@ All the _aggregate_ variables that are being tracked on a global level. If a mod
 .. code-block::
 
     distributions:
-      D: # contents/distributions of the distribution named 'dist'
-        # ordering matters because it is the same ordering as the axis of distribution variables
-        e: # dim1
+      D: # a distribution named 'D'
+        # ordering matters because it is the same ordering as the axis of all distribution variables
+        e: # dim0
           type: exogenous
           grid_variables: [e_grid, e_stationary, e_tmat] # returns e_grid, e_stationary, e_tmat
           rho: 0.966
           sigma: 0.5
           # alternatively: if the previous 3 are not defined here, it is assumed that the grid_variables are available during the distribution stage (as an output of 'decisions')
           n: 4
-        a: # dim0
+        a: # dim1
           type: endogenous
-          grid_variables: a_grid # a variable named <grid_names> will be made available during decisions_calls and aggregation_calls
+          grid_variables: a_grid # a variable named a_grid will be made available during decisions calls and distributions calls
           min: 0.0
           max: 150
           n: 10
@@ -49,11 +49,10 @@ The distributions block. Defines a distribution (here ``D``) and all its dimensi
 
 .. code-block::
 
-    # stage one: decisions
-    # these are executed subsequently, starting with the latest in time T. Each call takes the previous outputs as given
-    decisions:
+    decisions: # stage one
       inputs: [VaPrime] # additional to all aggregated variables defined in 'variables'
       calls:
+        # these are executed subsequently, starting with the latest in time T. Each call takes the previous outputs as given
         ~ T = transfers(e_stationary, Div, Tax, e_grid)
         ~ we = wages(w, e_grid)
         ~ VaPrimeExp = e_tmat @ VaPrime
@@ -66,19 +65,20 @@ The decisions block. Only relevant for heterogeneous agents models. It is import
 .. code-block::
 
     # stage three (optional): aux_equations
-    # these can contain misc definitions that are available during the final stage. Takes only aggregate variables as inputs
-    # from here on the objects are _sequences_ with shapes either (1, horizon) or (n1, n2, horizon), hence last dimension is the time dimension
+    # these can contain misc definitions that are available during the final stage. 
+    # outputs from decisions, the grid variables, the distributions and 
+    # aggregate variables from 'variables' (including those with "Prime", "Lag",...) are included by default
+    # from here on the objects are _sequences_ with shapes either (1, horizon) or (n1, n2, horizon). Last dimension is always the time dimension
     aux_equations:
-        ~ A = np.sum(D*a, axis=(0,1))
+        ~ A = np.sum(D*a, axis=(0,1)) # note that we are summing over the first two dimensions e and a, but not the time dimension (dimension 2)
         ~ NE = np.sum(D*ne, axis=(0,1))
+        ~ Caggr = np.sum(D*c, axis=(0,1)) 
 
 Auxiliary equations. These are executed before the `equations` block, and can be used for all sorts of definitions that you may not want to keep track of. For heterogeneous agents models, this is a good place to do aggregation. Auxiliary equations are executed subsequently.
 
 .. code-block::
 
-    # final stage: equations
-    # outputs from aggregation_calls, everything defined in aux_equations, and those from 'variables' (including those with "Prime", "Lag",...) are included by default, so there should not be a need to define inputs
-    equations:
+    equations: # final stage
         ~ L = Yprod / Z
         ~ Div = - w * L + (1 - psi*(pi/piSS - 1)**2/2)*Yprod
         ~ C = (1 - psi*(pi/piSS - 1)**2/2)*Yprod

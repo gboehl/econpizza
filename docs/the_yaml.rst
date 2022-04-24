@@ -24,7 +24,7 @@ General definitions and imports. These are available during all three stages (de
 
     variables: [Div, Y, Yprod, w, pi, rn, r, rstar, Tax, Z, beta, vphi, C, L, B] 
 
-All the _aggregate_ variables that are being tracked on a global level. If a model is not listed here, you will not be able to recover it later. Since these are aggregate variables, they have dimensionality 1.
+All the *aggregate* variables that are being tracked on a global level. If a variable is not listed here, you will not be able to recover it later. Since these are aggregate variables, they have dimensionality one.
 
 .. code-block::
 
@@ -74,7 +74,7 @@ The decisions block. Only relevant for heterogeneous agents models. It is import
         ~ NE = np.sum(D*ne, axis=(0,1))
         ~ Caggr = np.sum(D*c, axis=(0,1)) 
 
-Auxiliary equations. These are executed before the `equations` block, and can be used for all sorts of definitions that you may not want to keep track of. For heterogeneous agents models, this is a good place to do aggregation. Auxiliary equations are executed subsequently.
+Auxiliary equations. These are executed before the ``equations`` block, and can be used for all sorts of definitions that you may not want to keep track of. For heterogeneous agents models, this is a good place to do aggregation. Auxiliary equations are also executed subsequently.
 
 .. code-block::
 
@@ -95,7 +95,7 @@ Auxiliary equations. These are executed before the `equations` block, and can be
         ~ rstar = rstarSS*(rstarLag/rstarSS)**rho_rstar
         ~ Z = ZSS*(ZLag/ZSS)**rho_Z
 
-Equations. The central part of the yaml. Here you define the model equations, which will then be parsed such that each row must hold. Use ``xPrime`` for variable `x` in `t+1` and ``xLag`` for `t-1`. Access steady-state values with ``xSS``.
+Equations. The central part of the yaml. Here you define the model equations, which will then be parsed such that each row must hold. Use ``xPrime`` for variable `x` in `t+1` and ``xLag`` for `t-1`. Access steady-state values with ``xSS``. You could specify a representative agent model with just stating the equations block (additional to variables). Importantly, ``equations`` are *not* executed subsequently but simultaneously!
 
 .. code-block::
 

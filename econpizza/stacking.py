@@ -115,6 +115,7 @@ def find_stack(
         return out
 
     stacked_func = jax.jit(stacked_func)
+    model['context']['stacked_func'] = stacked_func
 
     if verbose:
         print("(find_path_stacked:) Solving stack (size: %s)..." %

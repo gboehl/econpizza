@@ -3,7 +3,7 @@ The *.yaml-file
 -------------------
 
 All relevant information is supplied via the yaml file. Let us have a look of the yaml of a hank model. For more general information about the YAML markup language and syntax, see 
-`Wikipedia<https://en.wikipedia.org/wiki/YAML>`_.
+`Wikipedia <https://en.wikipedia.org/wiki/YAML>`_.
 
 .. code-block::
 
@@ -45,7 +45,7 @@ All the _aggregate_ variables that are being tracked on a global level. If a mod
           max: 150
           n: 10
 
-The distributions block. Defines a distribution (here `D`) and all its dimensions. The information provided here will later be used to construct the distribution-forward-functions. If this is not supplied, Pizza assumes that you are providing a representative agent model.
+The distributions block. Defines a distribution (here ``D``) and all its dimensions. The information provided here will later be used to construct the distribution-forward-functions. If this is not supplied, Pizza assumes that you are providing a representative agent model.
 
 .. code-block::
 
@@ -95,7 +95,7 @@ Auxiliary equations. These are executed before the `equations` block, and can be
         ~ rstar = rstarSS*(rstarLag/rstarSS)**rho_rstar
         ~ Z = ZSS*(ZLag/ZSS)**rho_Z
 
-Equations. The central part of the yaml. Here you define the model equations, which will then be parsed such that each row must hold. Use `xPrime` for variables in `t+1` and `xLag` for `t-1`. Access steady-state values with `xSS`.
+Equations. The central part of the yaml. Here you define the model equations, which will then be parsed such that each row must hold. Use ``xPrime`` for variable `x` in `t+1` and ``xLag`` for `t-1`. Access steady-state values with ``xSS``.
 
 .. code-block::
 
@@ -114,7 +114,7 @@ Equations. The central part of the yaml. Here you define the model equations, wh
         rho_rstar: .8
         rho_Z: .8
 
-Define the model parameters. Note that for parameters that need to be fitted, it is better to define a variable instead (such as `vphi` above).
+Define the model parameters. Note that for parameters that need to be fitted, it is better to define a variable instead (such as ``vphi`` above).
 
 .. code-block::
 
@@ -138,4 +138,4 @@ Define the model parameters. Note that for parameters that need to be fitted, it
             T: transfers(e_stationary, Div, Tax, e_grid)
             VaPrime: hh_init(a_grid, we, r, eis, T)[1]
 
-The steady state block. `fixed_values` are those steady state values that are fixed ex-ante. `init_guesses` are initial guesses for steady state finding. Note that for heterogeneous agents models it is required that the initial value of inputs to the decisions-stage are given (here `VaPrime`).
+The steady state block. ``fixed_values`` are those steady state values that are fixed ex-ante. ``init_guesses`` are initial guesses for steady state finding. Note that for heterogeneous agents models it is required that the initial value of inputs to the decisions-stage are given (here ``VaPrime``).

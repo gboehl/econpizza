@@ -1,4 +1,5 @@
 pre-commit
+nbsphinx
 numpy
 numba
 scipy

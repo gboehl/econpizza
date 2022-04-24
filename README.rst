@@ -40,6 +40,17 @@ Citation
 
 .. code-block::
 
+    @Misc{boehl2022tools,
+    title         = {Econpizza: Solve all sorts of nonlinear perfect foresight models},
+    author        = {Boehl, Gregor},
+    howpublished  = {\url{https://github.com/gboehl/econpizza}},
+    year = {2022}
+    }
+
+For the Boehl-Hommes method:
+
+.. code-block::
+
     @techreport{boehl2021rational,
     title         = {Rational vs. Irrational Beliefs in a Complex World},
     author        = {Boehl, Gregor and Hommes, Cars},

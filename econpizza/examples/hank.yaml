@@ -52,6 +52,7 @@ decisions:
 aux_equations:
     ~ A = np.sum(D*a, axis=(0,1))
     ~ NE = np.sum(D*ne, axis=(0,1))
+    ~ Caggr = np.sum(D*c, axis=(0,1))
 
 # final stage: equations
 # outputs from aggregation_calls, everything defined in aux_equations, and those from 'variables' (including those with "Prime", "Lag",...) are included by default, so there should not be a need to define inputs
@@ -60,7 +61,7 @@ equations:
     ~ Div = - w * L + (1 - psi*(pi/piSS - 1)**2/2)*Yprod
     ~ C = (1 - psi*(pi/piSS - 1)**2/2)*Yprod
     ~ C = Y
-    ~ C = np.sum(D*c, (0,1))
+    ~ C = Caggr
     ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*betaPrime*C/CPrime*(piPrime/piSS - 1)*piPrime/piSS*YprodPrime/Yprod
     ~ r = rnLag/pi
     ~ rn = (rstar*((pi/piSS)**phi_pi)*((Y/YLag)**phi_y))**(1-rho)*rnLag**rho

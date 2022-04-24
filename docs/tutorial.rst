@@ -56,3 +56,4 @@ The yaml files in the folder follow a simple structure:
 5. optionally provide some auxilliary equations that are not directly part of the nonlinear system (see the `yaml for the BH model <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/bh.yaml>`_)
 
 .. include:: boehl_hommes.rst
+.. include:: the_yaml.rst

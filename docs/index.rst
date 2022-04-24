@@ -1,5 +1,4 @@
-.. econpizza documentation master file, created by
-   sphinx-quickstart on Fri Feb 11 18:28:24 2022.
+.. econpizza documentation master file,
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 

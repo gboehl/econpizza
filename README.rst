@@ -49,7 +49,7 @@ Citation
 
 .. code-block::
 
-    @Misc{boehl2022tools,
+    @Misc{boehl2022pizza,
     title         = {Econpizza: Solve all sorts of nonlinear perfect foresight models},
     author        = {Boehl, Gregor},
     howpublished  = {\url{https://github.com/gboehl/econpizza}},

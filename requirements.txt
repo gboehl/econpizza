@@ -1,5 +1,7 @@
-pre-commit
+ipykernel
+ipython_genutils
 nbsphinx
+pre-commit
 numpy
 numba
 scipy

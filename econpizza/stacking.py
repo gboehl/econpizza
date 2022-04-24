@@ -6,7 +6,7 @@ import jax
 import time
 import jax.numpy as jnp
 from scipy import sparse
-from grgrlib.jaxed import newton_jax
+from grgrlib.jaxed import newton_jax, jax_print
 from .shooting import find_path_linear
 
 
@@ -65,51 +65,43 @@ def find_stack(
         vfSS = model['decisions']['stst']
         distSS = jnp.array(model['distributions']['stst'])
 
-        # define shapes
-        decisions_output_shape = jnp.shape(
-            model['init_run']['decisions_output'])
-        dist_shape = jnp.shape(distSS)
-
         # load functions
         func_backw = model['context'].get('func_backw')
         func_dist = model['context'].get('func_dist')
 
     nshpe = (nvars, horizon-1)
 
-    def backwards_step(i, cont):
+    def backwards_step(carry, i):
 
-        i = horizon-2-i  # reversed
-        decisions_output_storage, vf_old, X = cont
+        vf_old, X = carry
         vf, decisions_output = func_backw(
             X[:, i], X[:, i+1], X[:, i+2], stst, vf_old, [], pars)
-        decisions_output_storage = decisions_output_storage.at[..., i].set(
-            decisions_output)
 
-        return decisions_output_storage, vf, X
+        return (vf, X), jnp.array(decisions_output)
 
-    def forwards_step(i, cont):
+    def forwards_step(carry, i):
 
-        dists_storage, dist_old, decisions_output_storage = cont
+        dist_old, decisions_output_storage = carry
         dist = func_dist(dist_old, decisions_output_storage[..., i])
-        dists_storage = dists_storage.at[..., i].set(dist)
+        dist_array = jnp.array(dist)
 
-        return dists_storage, jnp.array(dist), decisions_output_storage
+        return (dist_array, decisions_output_storage), dist_array
 
     def stacked_func(x):
 
         X = jax.numpy.vstack((x0, x.reshape((horizon - 1, nvars)), endpoint)).T
 
         if model.get('distributions'):
-            decisions_output_storage = jnp.empty(
-                (*decisions_output_shape, horizon-1))  # last storage is the stst
-            dists_storage = jnp.empty((*dist_shape, horizon-1))
-
             # backwards step
-            decisions_output_storage, _, _ = jax.lax.fori_loop(
-                0, horizon-1, backwards_step, (decisions_output_storage, vfSS, X))
+            _, decisions_output_storage = jax.lax.scan(
+                backwards_step, (vfSS, X), jnp.arange(horizon-2, -1, -1))
+            decisions_output_storage = jnp.flip(decisions_output_storage, 0)
+            decisions_output_storage = jnp.moveaxis(
+                decisions_output_storage, 0, -1)
             # forwards step
-            dists_storage, _, _ = jax.lax.fori_loop(
-                0, horizon-1, forwards_step, (dists_storage, distSS, decisions_output_storage))
+            _, dists_storage = jax.lax.scan(
+                forwards_step, (distSS, decisions_output_storage), jnp.arange(horizon-1))
+            dists_storage = jnp.moveaxis(dists_storage, 0, -1)
         else:
             decisions_output_storage, dists_storage = [], []
 

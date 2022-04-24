@@ -1,5 +1,10 @@
+Getting started
+===============
+
+This package contains two methods. _Stacking_, the main method, is a generic nonlinear solver that should work on all sorts of problems. _Shooting_ is the method of Boehl & Hommes (2021), which is useful for models with nonlinear, chaotic dynamics.
+
 Quickstart
-==========
+----------
 
 An small-scale nonlinear New Keynesian model with ZLB is provided `as an example <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_. Here is how to simulate it and plot some nonlinear impulse responses:
 
@@ -39,7 +44,7 @@ The folder `yaml files <https://github.com/gboehl/econpizza/tree/master/econpizz
 .. code-block:: python
 
     from econpizza import example_dsge
-    
+
     mod = ep.load(example_dsge)
 
 The yaml files in the folder follow a simple structure:

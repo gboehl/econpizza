@@ -1,6 +1,6 @@
 
 Boehl-Hommes method
-===================
+-------------------
 
 An alternative method is implemented, similar to the one introduced in Boehl & Hommes (2021), where we use it to solve for chaotic asset price dynamics. It can be understood as a policy function iteration where the initial state is the only fixed grid point and all other grid points are chosen endogenously (as in a "reverse" EGM) to map the expected trajectory.
 

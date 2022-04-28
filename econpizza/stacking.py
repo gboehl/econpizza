@@ -6,7 +6,7 @@ import jax
 import time
 import jax.numpy as jnp
 from scipy import sparse
-from grgrlib.jaxed import newton_jax, jax_print
+from grgrlib.jaxed import newton_jax, jax_print, value_and_jac
 from .shooting import find_path_linear
 
 
@@ -131,7 +131,7 @@ def find_stack(
     # TODO: an ordering ((equation1(t=1,...,T), ..., equationsN(t=1,...,T)) x (variable1(t=1,...,T), ..., variableN(t=1,...,T))) would actually be clearer
     # this is simply done by adjusting the way the funcition output is flattened
     # TODO: also, this function can be sourced out
-    def jac_func(x):
+    def jac(x):
 
         X = jax.numpy.vstack((x0, x.reshape((horizon - 1, nvars)), endpoint))
         Y = jax.numpy.hstack((X[:-2], X[1:-1], X[2:]))
@@ -152,9 +152,13 @@ def find_stack(
 
         return sparse.csc_matrix(J)
 
-    jac = None if model.get('distributions') else jac_func
-    res = newton_jax(
-        stacked_func, x_init[1:-1].flatten(), jac, maxit, tol, True, verbose=verbose)
+    if model.get('distributions'):
+        # res = newton_jax(value_and_jac(stacked_func, sparse=True), x_init[1:-1].flatten(), None, maxit, tol, sparse=True, func_returns_jac=True, verbose=verbose)
+        res = newton_jax(stacked_func, x_init[1:-1].flatten(
+        ), None, maxit, tol, sparse=True, func_returns_jac=False, verbose=verbose)
+    else:
+        res = newton_jax(
+            stacked_func, x_init[1:-1].flatten(), jac, maxit, tol, sparse=True, verbose=verbose)
 
     err = jnp.abs(res['fun']).max()
     x = x.at[1:-1].set(res['x'].reshape((horizon - 1, nvars)))

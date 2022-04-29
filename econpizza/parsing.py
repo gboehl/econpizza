@@ -80,6 +80,11 @@ def load_external_functions_file(model, context):
         if not os.path.isabs(model["functions_file"]):
             yaml_dir = os.path.dirname(model["path"])
             functions_file = os.path.join(yaml_dir, model["functions_file"])
+
+        # store content
+        f = open(functions_file)
+        model['functions_file_plain'] = f.read()
+        f.close()
         # load as a module
         context['module'] = load_as_module(functions_file)
 

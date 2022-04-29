@@ -17,7 +17,7 @@ def solver(jval, fval):
     return jax.numpy.linalg.pinv(jval) @ fval
 
 
-def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
+def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, force=False, verbose=True):
     """Solves for the steady state.
     """
 
@@ -29,7 +29,7 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
     shocks = model.get("shocks") or ()
 
     # check if steady state was already calculated
-    if jnp.all(model.get("stst_used_params") == par):
+    if jnp.all(model.get("stst_used_params") == par) and (model.get('functions_file_plain') == model['stst_used_functions_file']) and not force:
         if verbose:
             print("(solve_stst:) Steady state already known.")
 
@@ -59,6 +59,7 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, verbose=True):
     model["stst"] = rdict
     model["init"] = stst_vals
     model["stst_used_params"] = par
+    model["stst_used_functions_file"] = model.get('functions_file_plain')
 
     if func_stst_dist:
         vfSS, decisions_output = func_backw_ext(stst_vals)

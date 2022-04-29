@@ -240,7 +240,7 @@ def load(
     # get strings that contains the function definitions
     model['func_strings']["func_pre_stst"] = compile_stst_func_str(
         evars, eqns, par, stst_eqns)
-    model['func_strings']["func_eqns"] = compile_eqn_func_str(evars, eqns, par, eqns_aux=model.get(
+    model['func_strings']["func_eqns"] = compile_eqn_func_str(evars, deepcopy(eqns), par, eqns_aux=model.get(
         'aux_equations'), shocks=shocks, distributions=dist_names, decisions_outputs=decisions_outputs)
 
     tmpf_names += define_function(model['func_strings']
@@ -255,10 +255,6 @@ def load(
                                                                  ['inputs'][0]]  # let us for now assume that this must be present
 
     check_func(model, shocks, par)
-
-    # unlink the temporary files (is this even necessary?)
-    # for tmpf in tmpf_names:
-    # os.unlink(tmpf)
 
     if verbose:
         print("(load:) Parsing done.")

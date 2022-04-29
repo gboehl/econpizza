@@ -7,7 +7,7 @@ import time
 import jax.numpy as jnp
 from grgrlib.jaxed import newton_jax, jax_print, value_and_jac
 from .shooting import find_path_linear
-from .utilities.function_builders import get_stacked_func, get_jac
+from .utilities.function_builders import *
 
 
 def find_stack(
@@ -29,7 +29,10 @@ def find_stack(
     nvars = len(model["variables"])
     pars = jnp.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
+    # load functions
     func_eqns = model['context']["func_eqns"]
+    func_backw = model['context'].get('func_backw')
+    func_dist = model['context'].get('func_dist')
 
     if tol is None:
         tol = 1e-8
@@ -67,12 +70,9 @@ def find_stack(
     else:
         vfSS = distSS = None
 
-    # load functions
-    func_backw = model['context'].get('func_backw')
-    func_dist = model['context'].get('func_dist')
-
-    stacked_func = jax.jit(get_stacked_func(pars, func_backw, func_dist, func_eqns, x0, stst,
-                           vfSS, distSS, zshock, tshock, horizon, nvars, endpoint, model.get('distributions'), shock))
+    stacked_func_raw = get_stacked_func(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS,
+                                        distSS, zshock, tshock, horizon, nvars, endpoint, model.get('distributions'), shock)
+    stacked_func = jax.jit(stacked_func_raw)
     model['context']['stacked_func'] = stacked_func
 
     if verbose:

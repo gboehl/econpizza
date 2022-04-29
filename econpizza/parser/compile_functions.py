@@ -105,9 +105,9 @@ def compile_eqn_func_str(evars, eqns, par, eqns_aux, shocks, distributions, deci
     for i, eqn in enumerate(eqns):
         if "=" in eqn:
             lhs, rhs = eqn.split("=")
-            eqns[i] = "root_container%s = " % i + lhs + "- (" + rhs + ")"
+            eqns[i] = f"root_container{i} = {lhs} - ({rhs})"
         else:
-            eqns[i] = "root_container%s = " % i + eqn
+            eqns[i] = f"root_container{i} = {eqn}"
 
     eqns_aux_stack = "\n ".join(eqns_aux) if eqns_aux else ""
     eqns_stack = "\n ".join(eqns)
@@ -119,8 +119,7 @@ def compile_eqn_func_str(evars, eqns, par, eqns_aux, shocks, distributions, deci
         \n ({"".join(d+', ' for d in decisions_outputs)}) = decisions_outputs
         \n {eqns_aux_stack}
         \n {eqns_stack}
-        \n {"return jnp.array([" + ", ".join("root_container"+str(i) for i in range(len(evars))) + "]).ravel()"}""" % (
-    )
+        \n {"return jnp.array([" + ", ".join("root_container"+str(i) for i in range(len(evars))) + "]).ravel()"}"""
 
     # never use real numpy
     return func_str.replace("np.", "jnp.").replace("jjnp.", "jnp.")

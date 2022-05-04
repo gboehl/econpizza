@@ -2,7 +2,7 @@
 econpizza
 =========
 
-**Simulate nonlinear perfect foresight models in Python using AD**
+**Simulate nonlinear perfect foresight models in Python using automatic differentiation**
 
 .. image:: https://github.com/dfm/emcee/workflows/Tests/badge.svg
     :target: https://github.com/gboehl/econpizza/actions?query=workflow%3ATests

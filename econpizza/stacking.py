@@ -5,6 +5,7 @@ import os
 import jax
 import time
 import jax.numpy as jnp
+import scipy.sparse as ssp
 from grgrlib.jaxed import newton_jax, jax_print, value_and_jac
 from .shooting import find_path_linear
 from .utilities.function_builders import *
@@ -21,6 +22,7 @@ def find_stack(
     use_linear_guess=True,
     use_linear_endpoint=None,
     verbose=True,
+    **solver_kwargs,
 ):
 
     st = time.time()
@@ -80,13 +82,14 @@ def find_stack(
               (horizon*nvars))
 
     if model.get('distributions'):
+        stacked_func = value_and_jac(stacked_func, sparse=True)
         res = newton_jax(stacked_func, x_init[1:-1].flatten(
-        ), None, maxit, tol, sparse=True, func_returns_jac=False, verbose=verbose)
+        ), None, maxit, tol, sparse=True, func_returns_jac=True, verbose=verbose, **solver_kwargs)
     else:
         jac = get_jac(pars, func_eqns, stst, x0, horizon,
                       nvars, endpoint, zshock, tshock, shock)
         res = newton_jax(
-            stacked_func, x_init[1:-1].flatten(), jac, maxit, tol, sparse=True, verbose=verbose)
+            stacked_func, x_init[1:-1].flatten(), jac, maxit, tol, sparse=True, verbose=verbose, **solver_kwargs)
 
     err = jnp.abs(res['fun']).max()
     x = x.at[1:-1].set(res['x'].reshape((horizon - 1, nvars)))

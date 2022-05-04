@@ -3,18 +3,18 @@
 
 import jax
 import jax.numpy as jnp
+from grgrlib.jaxed import jax_print
 
 
-def hh_init(a_grid, we, r, eis, T):
-    fininc = (1 + r) * a_grid + T[:, jnp.newaxis] - a_grid[0]
-    coh = (1 + r) * a_grid[jnp.newaxis, :] + \
+def hh_init(a_grid, we, R, eis, T):
+    fininc = R * a_grid + T[:, jnp.newaxis] - a_grid[0]
+    coh = R * a_grid[jnp.newaxis, :] + \
         we[:, jnp.newaxis] + T[:, jnp.newaxis]
-    Va = (1 + r) * (0.1 * coh) ** (-1 / eis)
+    Va = R * (0.1 * coh) ** (-1 / eis)
     return fininc, Va
 
 
-@jax.jit
-def hh(Va_p, a_grid, we, T, r, beta, eis, frisch, vphi):
+def hh(Va_p, a_grid, we, T, R, beta, eis, frisch, vphi):
     '''Single backward step via EGM.'''
 
     uc_nextgrid = beta * Va_p
@@ -23,18 +23,18 @@ def hh(Va_p, a_grid, we, T, r, beta, eis, frisch, vphi):
 
     lhs = c_nextgrid - we[:, jnp.newaxis] * n_nextgrid + \
         a_grid[jnp.newaxis, :] - T[:, jnp.newaxis]
-    rhs = (1 + r) * a_grid
+    rhs = R * a_grid
 
     # there certainly is a better solution than this
     c = jax.vmap(jnp.interp)(rhs.broadcast((lhs.shape[0],)), lhs, c_nextgrid)
     n = jax.vmap(jnp.interp)(rhs.broadcast((lhs.shape[0],)), lhs, n_nextgrid)
 
     a = rhs + we[:, jnp.newaxis] * n + T[:, jnp.newaxis] - c
-
-    c, n = jnp.where(a < a_grid[0], solve_cn(we[:, jnp.newaxis], rhs + T[:, jnp.newaxis] - a_grid, eis, frisch, vphi, Va_p), jnp.array((c, n)))
+    c, n = jnp.where(a < a_grid[0], solve_cn(
+        we[:, jnp.newaxis], rhs + T[:, jnp.newaxis] - a_grid, eis, frisch, vphi, Va_p), jnp.array((c, n)))
     a = jnp.where(a > a_grid[0], a, a_grid)
 
-    Va = (1 + r) * c ** (-1 / eis)
+    Va = R * c ** (-1 / eis)
 
     return Va, a, c, n
 
@@ -65,7 +65,7 @@ def solve_uc(w, T, eis, frisch, vphi, uc_seed):
         ne, log_uc = cont
         ne, ne_p = netexp(log_uc, w, T, eis, frisch, vphi)
         log_uc -= ne / ne_p
-        return (ne, log_uc)
+        return ne, log_uc
 
     log_uc = jnp.log(uc_seed)
 

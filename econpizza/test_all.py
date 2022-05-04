@@ -1,8 +1,8 @@
 #!/bin/python
 # -*- coding: utf-8 -*-
 
-# from .__init__ import *
 from econpizza.__init__ import *
+import econpizza as ep
 
 
 def test_bh():
@@ -53,4 +53,22 @@ def test_stacked():
         x[9],
         np.array([1.00703268, 0.32763172, 6.50140449, 1.00377031,
                  1., 0.99306852, 0.82840695, 0.32765387])
+    )
+
+
+def test_hank():
+
+    mod_dict = ep.parse(example_hank)
+    mod = ep.load(mod_dict)
+    _ = mod.solve_stst()
+
+    x0 = mod['stst'].copy()
+    x0['beta'] = 0.99  # setting a shock on the discount factor
+
+    x, _, flag = mod.find_stack(x0.values(), horizon=100, tol=1e-8)
+
+    assert not flag
+    assert np.allclose(
+        x[9], np.array([5.59972820e+00, 9.87076681e-01, 9.99560287e-01, 1.67844345e-01, 9.99576990e-01, 9.99409975e-01, 1.00024259e+00, 1.00000000e+00, 9.99889857e-01,
+                       1.00200000e+00, 1.35843559e-03, 4.83871308e-01, 3.50762007e-01, 7.85965157e-01, 8.32067915e-01, 9.99560287e-01, 9.99576990e-01, 1.00000000e+00])
     )

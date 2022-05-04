@@ -44,7 +44,7 @@ def check_dublicates_and_determinancy(evars, eqns):
 
 def check_func(model, shocks, par):
 
-    init = model['init']
+    init = model['init'][..., jnp.newaxis]
     # collect some information needed later
     model['init_run'] = {}
 
@@ -61,8 +61,8 @@ def check_func(model, shocks, par):
     model['init_run']['dists'] = dists_init
 
     # final test of main function
-    test = model['context']['func_eqns'](init, init, init, init, jnp.zeros(
-        len(shocks)), jnp.array(list(par.values())), dists_init, decisions_output_init)
+    test = model['context']['func_eqns'](init, init, init, init, jnp.zeros(len(shocks)), jnp.array(list(
+        par.values())), jnp.array(dists_init)[..., jnp.newaxis], jnp.array(decisions_output_init)[..., jnp.newaxis])
 
     if jnp.isnan(test).any():
         raise Exception("Initial values are NaN.")

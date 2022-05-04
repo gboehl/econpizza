@@ -21,7 +21,7 @@ An small-scale nonlinear New Keynesian model with ZLB is provided `as an example
     _ = mod.solve_stst()
     _ = mod.solve_linear()
 
-    # increase the discount factor by .02 (this is NOT percentage deviation!)
+    # increase the discount factor by .02 (this is _not_ percentage deviation!)
     shk = ('e_beta', .02)
 
     # use the stacking method. As above, you could also feed in the initial state instead
@@ -34,7 +34,6 @@ An small-scale nonlinear New Keynesian model with ZLB is provided `as an example
         plt.plot(x[:,i])
         plt.plot(x_lin[:,i])
         plt.title(v)
-
 
 
 The impulse responses are the usual dynamics of a nonlinear DSGE.
@@ -58,4 +57,5 @@ The yaml files in the folder follow a simple structure:
 A more detailed description can be found further below.
 
 .. include:: boehl_hommes.rst
+.. include:: hank.rst
 .. include:: the_yaml.rst

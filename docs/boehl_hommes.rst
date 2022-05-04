@@ -26,9 +26,10 @@ This is also the weakness of the method: not every DSGE model (that is Blanchard
     import econpizza as ep
     from econpizza import example_nk
 
-    # load the example. The steady state is automatically solved for
+    # load the example.
     # example_nk is nothing else but the path to the yaml, hence you could also use `filename = 'path_to/model.yaml'`
     mod = ep.load(example_nk)
+    # solve for the steady state
     _ = mod.solve_stst()
 
     # get the steady state as an initial state

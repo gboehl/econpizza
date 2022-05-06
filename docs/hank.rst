@@ -28,6 +28,7 @@ There is **experimental** support for heterogenous agent models. So far only one
     # plot the dynamic responses using the pplot function from grgrlib
     pplot(xst[:30], labels=mod['variables'])
 
+This is the same model as used by Auclert et al., 2022, which is documented `in a notebook here <https://github.com/shade-econ/sequence-jacobian/blob/master/notebooks/hank.ipynb>`_ and given in the appendix of their paper. Deviating from this, I added a monetary policy rule with interest rate inertia and the zero lower bound on nominal interest rates.
+
 Further details on the implementation and the yaml file can be found `in the next section <https://econpizza.readthedocs.io/en/latest/method.html>`_ or `right below <https://econpizza.readthedocs.io/en/latest/tutorial.html#the-yaml-file>`_.
 
-.. include:: model.ipynb

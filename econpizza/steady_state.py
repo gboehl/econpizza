@@ -29,11 +29,16 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, force=False, verbose
     shocks = model.get("shocks") or ()
 
     # check if steady state was already calculated
-    if jnp.all(model.get("stst_used_params") == par) and (model.get('functions_file_plain') == model['stst_used_functions_file']) and not force:
-        if verbose:
-            print("(solve_stst:) Steady state already known.")
+    try:
+        oldpar, oldffp, oldtol = model.get("stst_used_setup")
+        ffp = model.get('functions_file_plain')
+        if np.allclose(oldpar, par) & (oldffp == ffp) & (oldtol == tol):
+            if verbose:
+                print("(solve_stst:) Steady state already known.")
 
-        return model['stst']
+            return model['stst']
+    except TypeError:
+        pass
 
     func_eqns = model['context']['func_eqns']
     func_backw = model['context'].get('func_backw')
@@ -58,8 +63,7 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, force=False, verbose
     rdict = dict(zip(evars, stst_vals))
     model["stst"] = rdict
     model["init"] = stst_vals
-    model["stst_used_params"] = par
-    model["stst_used_functions_file"] = model.get('functions_file_plain')
+    model["stst_used_setup"] = (par, model.get('functions_file_plain'), tol)
 
     if func_stst_dist:
         vfSS, decisions_output = func_backw_ext(stst_vals)
@@ -69,7 +73,7 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, force=False, verbose
         model['decisions']['stst'] = vfSS
 
     # calculate error
-    err = jnp.abs(func_stst(jnp.array(stst_vals))[0]).max()
+    err = jnp.abs(res['fun']).max()
 
     if err > tol:
         _, jac = func_stst(stst_vals)
@@ -90,7 +94,7 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, force=False, verbose
         duration = time.time() - st
         print(f"(solve_stst:) Steady state found in {duration:1.5g} seconds.")
 
-    return model['stst']
+    return res
 
 
 def solve_linear(

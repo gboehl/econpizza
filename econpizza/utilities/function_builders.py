@@ -3,6 +3,7 @@
 
 import jax
 import jax.numpy as jnp
+from jax.experimental.host_callback import id_print as jax_print
 from scipy import sparse
 
 
@@ -11,14 +12,15 @@ def get_func_stst_raw(par, func_pre_stst, func_backw, func_stst_dist, func_eqns,
     def func_backw_ext(x):
 
         def cond_func(cont):
-            return jnp.abs(cont[0]-cont[2]).max() > tol
+            vf, _, old_vf, cnt = cont
+            return jnp.abs(vf-old_vf).max() > tol
 
         def body_func(cont):
-            vf, _, _ = cont
-            return *func_backw(x, x, x, x, vf, [], par), vf
+            vf, _, _, cnt = cont
+            return *func_backw(x, x, x, x, vf, [], par), vf, cnt + 1
 
-        vf, decisions_output, _ = jax.lax.while_loop(
-            cond_func, body_func, (init_vf, decisions_output_init, init_vf+1))
+        vf, decisions_output, _, _ = jax.lax.while_loop(
+            cond_func, body_func, (init_vf, decisions_output_init, init_vf+1, 0))
 
         return vf, decisions_output
 

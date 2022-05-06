@@ -29,3 +29,5 @@ There is **experimental** support for heterogenous agent models. So far only one
     pplot(xst[:30], labels=mod['variables'])
 
 Further details on the implementation and the yaml file can be found `in the next section <https://econpizza.readthedocs.io/en/latest/method.html>`_ or `right below <https://econpizza.readthedocs.io/en/latest/tutorial.html#the-yaml-file>`_.
+
+.. include:: model.ipynb

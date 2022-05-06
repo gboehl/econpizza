@@ -32,7 +32,7 @@ def hh(Va_p, a_grid, we, T, R, beta, eis, frisch, vphi):
     a = rhs + we[:, jnp.newaxis] * n + T[:, jnp.newaxis] - c
     c, n = jnp.where(a < a_grid[0], solve_cn(
         we[:, jnp.newaxis], rhs + T[:, jnp.newaxis] - a_grid, eis, frisch, vphi, Va_p), jnp.array((c, n)))
-    a = jnp.where(a > a_grid[0], a, a_grid)
+    a = jnp.where(a > a_grid[0], a, a_grid[0])
 
     Va = R * c ** (-1 / eis)
 

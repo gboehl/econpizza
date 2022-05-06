@@ -28,7 +28,7 @@ distributions:
       grid_variables: a_grid # a variable named a_grid will be made available during decisions calls and distributions calls
       min: 0.0
       max: 150
-      n: 100
+      n: 80
 
 decisions: # stage one
   inputs: [VaPrime] # additional to all aggregated variables defined in 'variables'
@@ -54,13 +54,15 @@ aux_equations:
     ~ A = np.sum(D*a, axis=(0,1)) # note that we are summing over the first two dimensions e and a, but not the time dimension (dimension 2)
     ~ NE = np.sum(D*ne, axis=(0,1))
     ~ aggr_c = np.sum(D*c, axis=(0,1))
+
     # calculate consumption share of top-10% cumsumers
     ~ c_flat = c.reshape(-1,c.shape[-1]) # consumption flattend for each t
     ~ dist_sorted_c = jnp.take_along_axis(D.reshape(-1,c.shape[-1]), jnp.argsort(c_flat, axis=0), axis=0) # distribution sorted after consumption level, flattend for each t
     ~ top10c = jnp.where(jnp.cumsum(dist_sorted_c, axis=0) > .9, c_flat, 0.).sum(0)/c_flat.sum(axis=0) # must use `where` for jax. All sums must be taken over the non-time axis
+
     # calculate wealth share of top-10% wealth holders
     ~ a_flat = a.reshape(-1,a.shape[-1]) # assets flattend for each t
-    ~ dist_sorted_a = jnp.take_along_axis(D.reshape(-1,a.shape[-1]), jnp.argsort(a_flat, axis=0), axis=0) # as above ...
+    ~ dist_sorted_a = jnp.take_along_axis(D.reshape(-1,a.shape[-1]), jnp.argsort(a_flat, axis=0), axis=0) # as above
     ~ top10a = jnp.where(jnp.cumsum(dist_sorted_a, axis=0) > .9, a_flat, 0.).sum(0)/a_flat.sum(axis=0)
 
 equations: # final stage

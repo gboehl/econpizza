@@ -11,7 +11,7 @@ There are some deviations:
  * a monetary policy rule with interest rate inertia
  * the zero lower bound on nominal interest rates
  * the NK-Phillips Curve is the conventional nonlinear Phillips Curve as derived from Rothemberg pricing
-Detailscan be found in the section on the `yaml` file `right below <https://econpizza.readthedocs.io/en/latest/tutorial.html#the-yaml-file>`_.
+Details can be found in the section on the `yaml` file `right below <https://econpizza.readthedocs.io/en/latest/tutorial.html#the-yaml-file>`_.
 
 The following code block simulates the example model:
 

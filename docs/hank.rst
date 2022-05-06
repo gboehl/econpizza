@@ -14,6 +14,7 @@ There are some deviations:
 Detailscan be found in the section on the `yaml` file `right below <https://econpizza.readthedocs.io/en/latest/tutorial.html#the-yaml-file>`_.
 
 The following code block simulates the example model:
+
 .. code-block:: python
 
     from grgrlib import pplot
@@ -39,5 +40,5 @@ The following code block simulates the example model:
     pplot(xst[:30], labels=mod['variables'])
 
 
-Further details on the implementation are given `in the technical section <https://econpizza.readthedocs.io/en/latest/method.html>`_.
+Further details on the implementation of heterogeneous agent models are given `in the technical section <https://econpizza.readthedocs.io/en/latest/method.html>`_.
 

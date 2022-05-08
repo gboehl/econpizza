@@ -17,7 +17,7 @@ def solver(jval, fval):
     return jax.numpy.linalg.pinv(jval) @ fval
 
 
-def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, force=False, verbose=True):
+def solve_stst(model, raise_error=True, tol=1e-8, maxit_newton=30, tol_backwards=None, maxit_backwards=1000, tol_forwards=None, maxit_forwards=1000, force=False, verbose=True):
     """Solves for the steady state.
     """
 
@@ -28,12 +28,21 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, force=False, verbose
     par = jnp.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
 
-    # check if steady state was already calculated
-    if jnp.all(model.get("stst_used_params") == par) and (model.get('functions_file_plain') == model['stst_used_functions_file']) and not force:
-        if verbose:
-            print("(solve_stst:) Steady state already known.")
+    tol_backwards = tol if tol_backwards is None else tol_backwards
+    tol_forwards = tol if tol_forwards is None else tol_forwards
 
-        return model['stst']
+    # check if steady state was already calculated
+    try:
+        cond0 = np.allclose(model["stst_used_pars"], par)
+        cond1 = model["stst_used_setup"] == (
+            model.get('functions_file_plain'), tol, maxit_backwards)
+        if cond0 and cond1 and not force:
+            if verbose:
+                print("(solve_stst:) Steady state already known.")
+
+            return model['stst_used_res']
+    except KeyError:
+        pass
 
     func_eqns = model['context']['func_eqns']
     func_backw = model['context'].get('func_backw')
@@ -43,13 +52,13 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, force=False, verbose
     init_vf = model.get('init_vf')
 
     func_stst_raw, func_backw_ext = get_func_stst_raw(
-        par, func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, tol)
+        par, func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
 
     # define jitted stst function that returns jacobian and func. value
     func_stst = value_and_jac(jax.jit(func_stst_raw))
 
     # actual root finding
-    res = newton_jax(func_stst, model['init'], None, maxit, tol,
+    res = newton_jax(func_stst, model['init'], None, maxit_newton, tol,
                      sparse=False, func_returns_jac=True, solver=solver, verbose=verbose)
 
     # exchange those values that are identified via stst_equations
@@ -58,12 +67,21 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, force=False, verbose
     rdict = dict(zip(evars, stst_vals))
     model["stst"] = rdict
     model["init"] = stst_vals
-    model["stst_used_params"] = par
-    model["stst_used_functions_file"] = model.get('functions_file_plain')
+    model["stst_used_pars"] = par
+    model["stst_used_setup"] = model.get(
+        'functions_file_plain'), tol, maxit_backwards
+    model["stst_used_res"] = res
+
+    mess = ''
 
     if func_stst_dist:
-        vfSS, decisions_output = func_backw_ext(stst_vals)
-        distSS = func_stst_dist(decisions_output)
+        vfSS, decisions_output, cnt_backwards = func_backw_ext(stst_vals)
+        distSS, cnt_forwards = func_stst_dist(
+            decisions_output, tol_forwards, maxit_forwards)
+        if cnt_backwards == maxit_backwards:
+            mess += f'Maximum of {maxit_backwards} backwards calls reached. '
+        if cnt_forwards == maxit_forwards:
+            mess += f'Maximum of {maxit_forwards} forwards calls reached. '
         # TODO: this should loop over the objects in distSS/vfSS and store under the name of the distribution/decisions (i.e. 'D' or 'Va')
         model["distributions"]['stst'] = distSS
         model['decisions']['stst'] = vfSS
@@ -76,11 +94,11 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, force=False, verbose
         rank = jnp.linalg.matrix_rank(jac)
         df0 = sum(jnp.all(jnp.isclose(jac, 0), 0))
         df1 = sum(jnp.all(jnp.isclose(jac, 0), 1))
-        mess = f"Function has rank {rank} ({jac.shape[0]} variables) and {df0} vs {df1} degrees of freedom."
+        mess += f"Function has rank {rank} ({jac.shape[0]} variables) and {df0} vs {df1} degrees of freedom. "
         if raise_error and not res["success"]:
             print(res)
             raise Exception(
-                f"Steady state not found (error is {err:1.2e}). {mess} The root finding result is given above."
+                f"Steady state not found (error is {err:1.2e}). {mess}The root finding result is given above."
             )
         else:
             print(
@@ -88,9 +106,10 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit=30, force=False, verbose
             )
     elif verbose:
         duration = time.time() - st
-        print(f"(solve_stst:) Steady state found in {duration:1.5g} seconds.")
+        print(
+            f"(solve_stst:) {mess}Steady state found in {duration:1.5g} seconds.")
 
-    return model['stst']
+    return res
 
 
 def solve_linear(

@@ -2,7 +2,6 @@
 """Grids and Markov chains"""
 
 import jax
-import numpy as np
 import jax.numpy as jnp
 from scipy.stats import norm
 from .dists import stationary_distribution
@@ -10,20 +9,20 @@ from .dists import stationary_distribution
 
 def log_grid(amax, n, amin=0):
     """Create grid between amin and amax that is equidistant in logs."""
-    pivot = np.abs(amin) + 0.25
-    a_grid = np.geomspace(amin + pivot, amax + pivot, n) - pivot
-    a_grid[0] = amin  # make sure *exactly* equal to amin
+    pivot = jnp.abs(amin) + 0.25
+    a_grid = jnp.geomspace(amin + pivot, amax + pivot, n) - pivot
+    a_grid = a_grid.at[0].set(amin)  # make sure *exactly* equal to amin
     return a_grid
 
 
 def mean(x, pi):
     """Mean of discretized random variable with support x and probability mass function pi."""
-    return np.sum(pi * x)
+    return jnp.sum(pi * x)
 
 
 def variance(x, pi):
     """Variance of discretized random variable with support x and probability mass function pi."""
-    return np.sum(pi * (x - np.sum(pi * x)) ** 2)
+    return jnp.sum(pi * (x - jnp.sum(pi * x)) ** 2)
 
 
 def markov_rouwenhorst(rho, sigma, N=7):
@@ -40,13 +39,13 @@ def markov_rouwenhorst(rho, sigma, N=7):
 
     # implement recursion to build from n=3 to n=N
     for n in range(3, N + 1):
-        P1, P2, P3, P4 = (np.zeros((n, n)) for _ in range(4))
-        P1[:-1, :-1] = p * Pi
-        P2[:-1, 1:] = (1 - p) * Pi
-        P3[1:, :-1] = (1 - p) * Pi
-        P4[1:, 1:] = p * Pi
+        P1, P2, P3, P4 = (jnp.zeros((n, n)) for _ in range(4))
+        P1 = P1.at[:-1, :-1].set(p * Pi)
+        P2 = P2.at[:-1, 1:].set((1 - p) * Pi)
+        P3 = P3.at[1:, :-1].set((1 - p) * Pi)
+        P4 = P4.at[1:, 1:].set(p * Pi)
         Pi = P1 + P2 + P3 + P4
-        Pi[1:-1] /= 2
+        Pi = Pi.at[1:-1].divide(2)
 
     # invariant distribution and scaling
     pi = stationary_distribution(jnp.array(Pi.T))

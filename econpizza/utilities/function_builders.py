@@ -6,21 +6,24 @@ import jax.numpy as jnp
 from scipy import sparse
 
 
-def get_func_stst_raw(par, func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, tol):
+def get_func_stst_raw(par, func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, tol_backw, maxit_backw, tol_forw, maxit_forw):
 
     def func_backw_ext(x):
 
         def cond_func(cont):
-            return jnp.abs(cont[0]-cont[2]).max() > tol
+            vf, _, vf_old, cnt = cont
+            cond0 = jnp.abs(vf-vf_old).max() > tol_backw
+            cond1 = cnt < maxit_backw
+            return cond0 & cond1
 
         def body_func(cont):
-            vf, _, _ = cont
-            return *func_backw(x, x, x, x, vf, [], par), vf
+            vf, _, _, cnt = cont
+            return *func_backw(x, x, x, x, vf, [], par), vf, cnt + 1
 
-        vf, decisions_output, _ = jax.lax.while_loop(
-            cond_func, body_func, (init_vf, decisions_output_init, init_vf+1))
+        vf, decisions_output, _, cnt = jax.lax.while_loop(
+            cond_func, body_func, (init_vf, decisions_output_init, init_vf+1, 0))
 
-        return vf, decisions_output
+        return vf, decisions_output, cnt
 
     def func_stst_raw(x):
 
@@ -29,8 +32,8 @@ def get_func_stst_raw(par, func_pre_stst, func_backw, func_stst_dist, func_eqns,
         if not func_stst_dist:
             return func_eqns(x, x, x, x, jax.numpy.zeros(len(shocks)), par)
 
-        vf, decisions_output = func_backw_ext(x)
-        dist = func_stst_dist(decisions_output)
+        vf, decisions_output, _ = func_backw_ext(x)
+        dist, cnt = func_stst_dist(decisions_output, tol_forw, maxit_forw)
 
         # TODO: for more than one dist this should be a loop...
         decisions_output_array = jnp.array(decisions_output)[..., jnp.newaxis]

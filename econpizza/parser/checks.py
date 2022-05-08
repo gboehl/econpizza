@@ -53,7 +53,8 @@ def check_func(model, shocks, par):
         init_vf = model['init_vf']
         _, decisions_output_init = model['context']['func_backw'](
             init, init, init, init, init_vf, jnp.zeros(len(shocks)), jnp.array(list(par.values())))
-        dists_init = model['context']['func_stst_dist'](decisions_output_init)
+        dists_init, _ = model['context']['func_stst_dist'](
+            decisions_output_init, 1e-8, 10_000)
     else:
         decisions_output_init = dists_init = []
 

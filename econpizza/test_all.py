@@ -60,7 +60,7 @@ def test_hank():
 
     mod_dict = ep.parse(example_hank)
     mod = ep.load(mod_dict)
-    _ = mod.solve_stst(tol=1e-4)
+    _ = mod.solve_stst(tol_newton=1e-4)
 
     x0 = mod['stst'].copy()
     x0['beta'] = 0.99  # setting a shock on the discount factor

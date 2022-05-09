@@ -17,7 +17,7 @@ def solver(jval, fval):
     return jax.numpy.linalg.pinv(jval) @ fval
 
 
-def solve_stst(model, raise_error=True, tol=1e-8, maxit_newton=30, tol_backwards=None, maxit_backwards=1000, tol_forwards=None, maxit_forwards=1000, force=False, verbose=True):
+def solve_stst(model, raise_error=True, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxit_backwards=1000, tol_forwards=None, maxit_forwards=1000, force=False, verbose=True, **newton_kwargs):
     """Solves for the steady state.
     """
 
@@ -28,14 +28,14 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit_newton=30, tol_backwards
     par = jnp.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
 
-    tol_backwards = tol if tol_backwards is None else tol_backwards
-    tol_forwards = tol if tol_forwards is None else tol_forwards
+    tol_backwards = tol_newton if tol_backwards is None else tol_backwards
+    tol_forwards = tol_newton if tol_forwards is None else tol_forwards
 
     # check if steady state was already calculated
     try:
         cond0 = np.allclose(model["stst_used_pars"], par)
         cond1 = model["stst_used_setup"] == (
-            model.get('functions_file_plain'), tol, maxit_backwards)
+            model.get('functions_file_plain'), tol_newton, maxit_newton, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
         if cond0 and cond1 and not force:
             if verbose:
                 print("(solve_stst:) Steady state already known.")
@@ -58,18 +58,17 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit_newton=30, tol_backwards
     func_stst = value_and_jac(jax.jit(func_stst_raw))
 
     # actual root finding
-    res = newton_jax(func_stst, model['init'], None, maxit_newton, tol,
-                     sparse=False, func_returns_jac=True, solver=solver, verbose=verbose)
+    res = newton_jax(func_stst, model['init'], None, maxit_newton, tol_newton,
+                     sparse=False, func_returns_jac=True, solver=solver, verbose=verbose, **newton_kwargs)
 
     # exchange those values that are identified via stst_equations
     stst_vals = func_pre_stst(res['x'][:len(evars)], par)
 
     rdict = dict(zip(evars, stst_vals))
     model["stst"] = rdict
-    model["init"] = stst_vals
     model["stst_used_pars"] = par
     model["stst_used_setup"] = model.get(
-        'functions_file_plain'), tol, maxit_backwards
+        'functions_file_plain'), tol_newton, maxit_newton, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
     model["stst_used_res"] = res
 
     mess = ''
@@ -89,12 +88,10 @@ def solve_stst(model, raise_error=True, tol=1e-8, maxit_newton=30, tol_backwards
     # calculate error
     err = jnp.abs(func_stst(jnp.array(stst_vals))[0]).max()
 
-    if err > tol:
+    if err > tol_newton:
         _, jac = func_stst(stst_vals)
         rank = jnp.linalg.matrix_rank(jac)
-        df0 = sum(jnp.all(jnp.isclose(jac, 0), 0))
-        df1 = sum(jnp.all(jnp.isclose(jac, 0), 1))
-        mess += f"Function has rank {rank} ({jac.shape[0]} variables) and {df0} vs {df1} degrees of freedom. "
+        mess += f"Function has rank {rank} and {jac.shape[0]} variables. "
         if raise_error and not res["success"]:
             print(res)
             raise Exception(

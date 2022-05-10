@@ -82,8 +82,8 @@ def solve_stst(model, raise_error=True, tol_newton=1e-8, maxit_newton=30, tol_ba
         if cnt_forwards == maxit_forwards:
             mess += f'Maximum of {maxit_forwards} forwards calls reached. '
         # TODO: this should loop over the objects in distSS/vfSS and store under the name of the distribution/decisions (i.e. 'D' or 'Va')
-        model["distributions"]['stst'] = distSS
-        model['decisions']['stst'] = vfSS
+        model['steady_state']["distributions"] = distSS
+        model['steady_state']['decisions'] = vfSS
 
     # calculate error
     err = jnp.abs(func_stst(jnp.array(stst_vals))[0]).max()

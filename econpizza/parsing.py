@@ -71,22 +71,35 @@ def eval_strs(vdict, pars=None, context=globals()):
     return vdict
 
 
-def load_external_functions_file(model, context):
-    """Load the functions file as a module.
+def parse_external_functions_file(model):
+    """Parse the functions file.
     """
 
     try:
         # prepare path
         if not os.path.isabs(model["functions_file"]):
             yaml_dir = os.path.dirname(model["path"])
-            functions_file = os.path.join(yaml_dir, model["functions_file"])
+            model["functions_file"] = os.path.join(
+                yaml_dir, model["functions_file"])
 
         # store content
-        f = open(functions_file)
+        f = open(model["functions_file"])
         model['functions_file_plain'] = f.read()
         f.close()
+
+    except KeyError:
+        pass
+
+    return
+
+
+def load_external_functions_file(model, context):
+    """Load the functions file as a module.
+    """
+
+    try:
         # load as a module
-        context['module'] = load_as_module(functions_file)
+        context['module'] = load_as_module(model["functions_file"])
 
         def func_or_compiled(func): return isinstance(
             func, jaxlib.xla_extension.CompiledFunction) or isfunction(func)
@@ -96,7 +109,7 @@ def load_external_functions_file(model, context):
     except KeyError:
         pass
 
-    return
+    return False
 
 
 def compile_init_values(evars, decisions_inputs, initvals, stst):
@@ -153,6 +166,10 @@ def load(
 
     model = PizzaModel(model)
 
+    # load file with additional functions as module (if it exists)
+    parse_external_functions_file(model)
+    mdict_raw = deepcopy(model)
+
     # check if model is already cached
     if model in cached_mdicts:
         model = cached_models[cached_mdicts.index(model)]
@@ -161,10 +178,7 @@ def load(
         print("(parse:) Loading cached model.")
         return model
 
-    mdict_raw = deepcopy(model)
     model['context'] = globals()
-
-    # load file with additional functions as module (if it exists)
     load_external_functions_file(model, model['context'])
 
     defs = model.get("definitions")

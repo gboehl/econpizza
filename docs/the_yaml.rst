@@ -2,8 +2,9 @@
 The *.yaml-file
 -------------------
 
-All relevant information is supplied via the yaml file. Let us have a look of the yaml of a hank model. For more general information about the YAML markup language and syntax, see 
-`Wikipedia <https://en.wikipedia.org/wiki/YAML>`_.
+All relevant information is supplied via the yaml file. For general information about the YAML markup language and its syntax see `Wikipedia <https://en.wikipedia.org/wiki/YAML>`_.
+
+Let us have a look of the yaml of a hank model. 
 
 .. code-block::
 
@@ -30,7 +31,7 @@ All the *aggregate* variables that are being tracked on a global level. If a var
 
     distributions:
       D: # a distribution named 'D'
-        # ordering matters because it is the same ordering as the axis of all distribution variables
+        # ordering matters. The ordering here is corresponds to the ordering of the axis of the distribution
         e: # dim0
           type: exogenous
           grid_variables: [e_grid, e_stationary, e_tmat] # returns e_grid, e_stationary, e_tmat

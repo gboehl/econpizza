@@ -15,7 +15,7 @@ definitions:
 variables: [Div, Y, Yprod, w, pi, Rn, Rs, R, Rstar, Tax, Z, beta, vphi, C, L, B, Top10C, Top10A]
 distributions:
   D: # a distribution named 'D'
-    # ordering matters because it is the same ordering as the axis of all distribution variables
+    # ordering matters. The ordering here is corresponds to the ordering of the axis of the distribution
     e: # dim0
       type: exogenous
       grid_variables: [e_grid, e_stationary, e_tmat] # returns e_grid, e_stationary, e_tmat
@@ -90,7 +90,6 @@ parameters:
     frisch: 0.5
     rho_e: 0.966
     sd_e: 0.5
-    mu: 1.2
     theta: 6.
     psi: 96
     phi_pi: 2
@@ -112,10 +111,10 @@ steady_state:
     init_guesses:
         beta: 0.98
         vphi: 0.8
-        w: 1/1.2
-        Div: 1 - 1/1.2
+        w: (theta-1)/theta
+        Div: 1 - w
         Tax: 0.028
-        R: 1.005
+        R: Rstar
         we: wages(w, e_grid)
         T: transfers(e_stationary, Div, Tax, e_grid)
         VaPrime: hh_init(a_grid, we, R, eis, T)[1]

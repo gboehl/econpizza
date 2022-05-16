@@ -74,7 +74,7 @@ def compile_func_dist_str(distributions, decisions_outputs):
 
         func_stst_dist_str_tpl += f"""
             \n endog_inds, endog_probs = dists.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})
-            \n {dist_name} = dists.stationary_distribution_forward_policy_1d(endog_inds, endog_probs, {dist[exog[0]]['grid_variables'][2]})
+            \n {dist_name}, {dist_name}_cnt = dists.stationary_distribution_forward_policy_1d(endog_inds, endog_probs, {dist[exog[0]]['grid_variables'][2]}, tol, maxit)
             """,
 
         func_dist_str_tpl += f"""
@@ -83,10 +83,11 @@ def compile_func_dist_str(distributions, decisions_outputs):
             """,
 
     # join the tuples to one string that defines the final function
-    func_stst_dist_str = f"""def func_stst_dist(decisions_outputs):
+    func_stst_dist_str = f"""def func_stst_dist(decisions_outputs, tol, maxit):
         \n ({", ".join(decisions_outputs)},) = decisions_outputs
         \n {"".join(func_stst_dist_str_tpl)}
-        \n return ({"".join(d + ', ' for d in distributions.keys())})"""
+        \n max_cnt = jnp.max({"".join(d + '_cnt, ' for d in distributions.keys())})
+        \n return ({"".join(d + ', ' for d in distributions.keys())}), max_cnt"""
 
     func_dist_str = f"""def func_dist(distributions, decisions_outputs):
         \n ({", ".join(decisions_outputs)},) = decisions_outputs

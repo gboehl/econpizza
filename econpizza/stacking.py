@@ -67,8 +67,8 @@ def find_stack(
     endpoint = x_lin[-1] if use_linear_endpoint else stst
 
     if model.get('distributions'):
-        vfSS = model['decisions']['stst']
-        distSS = jnp.array(model['distributions']['stst'])
+        vfSS = model['steady_state']['decisions']
+        distSS = jnp.array(model['steady_state']['distributions'])
     else:
         vfSS = distSS = None
 

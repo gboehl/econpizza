@@ -218,7 +218,7 @@ def load(
 
     shocks = model.get("shocks") or ()
     par = eval_strs(model["parameters"])
-    model["stst"] = stst = eval_strs(
+    model["steady_state"]['fixed_evalued'] = stst = eval_strs(
         model["steady_state"].get("fixed_values"), pars=par)
     model["root_options"] = {}
 

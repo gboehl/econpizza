@@ -126,6 +126,6 @@ def get_jac(pars, func_eqns, stst, x0, horizon, nvars, endpoint, zshock, tshock,
         for t in range(1, horizon-2):
             J[hrange+t, (t-1)*nvars:(t-1+3)*nvars] = jac_parts[t]
 
-        return sparse.csc_matrix(J)
+        return sparse.csr_array(J)
 
     return jac

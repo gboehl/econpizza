@@ -17,7 +17,7 @@ def solver(jval, fval):
     return jax.numpy.linalg.pinv(jval) @ fval
 
 
-def solve_stst(model, raise_error=True, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxit_backwards=1000, tol_forwards=None, maxit_forwards=1000, force=False, verbose=True, **newton_kwargs):
+def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxit_backwards=1000, tol_forwards=None, maxit_forwards=1000, force=False, verbose=True, **newton_kwargs):
     """Solves for the steady state.
     """
 
@@ -59,8 +59,8 @@ def solve_stst(model, raise_error=True, tol_newton=1e-8, maxit_newton=30, tol_ba
     func_stst = value_and_jac(jax.jit(func_stst_raw))
 
     # actual root finding
-    res = newton_jax(func_stst, model['init'], None, maxit_newton, tol_newton,
-                     sparse=False, func_returns_jac=True, solver=solver, verbose=verbose, **newton_kwargs)
+    res = newton_jax(func_stst, model['init'], None, maxit_newton, tol_newton, sparse=False,
+                     func_returns_jac=True, solver=solver, verbose=verbose, **newton_kwargs)
 
     # exchange those values that are identified via stst_equations
     stst_vals = func_pre_stst(res['x'][:len(evars)], par)
@@ -79,6 +79,10 @@ def solve_stst(model, raise_error=True, tol_newton=1e-8, maxit_newton=30, tol_ba
             stst_vals)
         distSS, cnt_forwards = func_stst_dist(
             decisions_output, tol_forwards, maxit_forwards)
+        if jnp.isnan(vfSS).any() or jnp.isnan(jnp.array(decisions_output)).any():
+            mess += f"Backward function returns 'NaN's. "
+        elif jnp.isnan(jnp.array(distSS)).any():
+            mess += f"Forward returns 'NaN's. "
         if cnt_backwards == maxit_backwards:
             mess += f'Maximum of {maxit_backwards} backwards calls reached. '
         if cnt_forwards == maxit_forwards:
@@ -90,23 +94,19 @@ def solve_stst(model, raise_error=True, tol_newton=1e-8, maxit_newton=30, tol_ba
     # calculate error
     err = jnp.abs(res['fun']).max()
 
-    if err > tol_newton:
-        _, jac = func_stst(stst_vals)
+    if err > tol_newton or not res['success']:
+        jac = res['jac']
         rank = jnp.linalg.matrix_rank(jac)
-        mess += f"Function has rank {rank} and {jac.shape[0]} variables. "
-        if raise_error and not res["success"]:
-            print(res)
-            raise Exception(
-                f"Steady state not found (error is {err:1.2e}). {mess}The root finding result is given above."
-            )
+        mess += f"Function has rank {rank}, for {jac.shape[0]} variables ({len(model['steady_state']['fixed_evalued'])} fixed). "
+        if not res["success"]:
+            mess = f"Steady state not found (error is {err:1.2e}). {mess}"
         else:
-            print(
-                f"(solve_stst:) Steady state error is {err:1.2e}. {mess}"
-            )
+            mess = f"Steady state error is {err:1.2e}. {mess}"
     elif verbose:
         duration = time.time() - st
-        print(
-            f"(solve_stst:) {mess}Steady state found in {duration:1.5g} seconds.")
+        mess += f"Steady state found in {duration:1.5g} seconds."
+
+    print(f"(solve_stst:) {mess}")
 
     return res
 

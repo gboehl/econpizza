@@ -7,24 +7,24 @@ from jax.experimental.host_callback import id_print as jax_print
 from scipy import sparse
 
 
-def get_func_stst_raw(par, func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, tol_backw, maxit_backw, tol_forw, maxit_forw):
+def get_func_stst_raw(par, func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, exog_grid_vars_init, tol_backw, maxit_backw, tol_forw, maxit_forw):
 
     def func_backw_ext(x):
 
         def cond_func(cont):
-            vf, _, vf_old, cnt = cont
+            vf, _, _, vf_old, cnt = cont
             cond0 = jnp.abs(vf-vf_old).max() > tol_backw
             cond1 = cnt < maxit_backw
             return cond0 & cond1
 
         def body_func(cont):
-            vf, _, _, cnt = cont
+            vf, _, _, _, cnt = cont
             return *func_backw(x, x, x, x, vf, [], par), vf, cnt + 1
 
-        vf, decisions_output, _, cnt = jax.lax.while_loop(
-            cond_func, body_func, (init_vf, decisions_output_init, init_vf+1, 0))
+        vf, decisions_output, exog_grid_vars, _, cnt = jax.lax.while_loop(
+            cond_func, body_func, (init_vf, decisions_output_init, exog_grid_vars_init, init_vf+1, 0))
 
-        return vf, decisions_output, cnt
+        return vf, decisions_output, exog_grid_vars, cnt
 
     def func_stst_raw(x):
 
@@ -33,7 +33,7 @@ def get_func_stst_raw(par, func_pre_stst, func_backw, func_stst_dist, func_eqns,
         if not func_stst_dist:
             return func_eqns(x, x, x, x, jax.numpy.zeros(len(shocks)), par)
 
-        vf, decisions_output, _ = func_backw_ext(x)
+        vf, decisions_output, exog_grid_vars, _ = func_backw_ext(x)
         dist, cnt = func_stst_dist(decisions_output, tol_forw, maxit_forw)
 
         # TODO: for more than one dist this should be a loop...
@@ -52,7 +52,7 @@ def get_stacked_func(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, dis
     def backwards_step(carry, i):
 
         vf_old, X = carry
-        vf, decisions_output = func_backw(
+        vf, decisions_output, exog_grid_vars = func_backw(
             X[:, i], X[:, i+1], X[:, i+2], stst, vf_old, [], pars)
 
         return (vf, X), jnp.array(decisions_output)

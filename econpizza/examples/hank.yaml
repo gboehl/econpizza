@@ -16,12 +16,11 @@ variables: [Div, Y, Yprod, w, pi, Rn, Rs, R, Rstar, Tax, Z, beta, vphi, C, L, B,
 distributions:
   D: # a distribution named 'D'
     # ordering matters. The ordering here is corresponds to the ordering of the axis of the distribution
-    e: # dim0
+    skills: # dim0
       type: exogenous
-      grid_variables: [e_grid, e_stationary, e_tmat] # returns e_grid, e_stationary, e_tmat
+      grid_variables: [skills_grid, skills_stationary, skills_transition] # returns skills_grid, skills_stationary, skills_transition
       rho: 0.966
       sigma: 0.5
-      # alternatively: if the previous 3 are not defined here, it is assumed that the grid_variables are available during the distribution stage (as an output of 'decisions')
       n: 4
     a: # dim1
       type: endogenous
@@ -34,11 +33,11 @@ decisions: # stage one
   inputs: [VaPrime] # additional to all aggregated variables defined in 'variables'
   calls:
     # these are executed subsequently, starting with the latest in time T. Each call takes the previous outputs as given
-    ~ T = transfers(e_stationary, Div, Tax, e_grid)
-    ~ we = wages(w, e_grid)
-    ~ VaPrimeExp = e_tmat @ VaPrime
+    ~ T = transfers(skills_stationary, Div, Tax, skills_grid)
+    ~ we = wages(w, skills_grid)
+    ~ VaPrimeExp = skills_transition @ VaPrime
     ~ Va, a, c, n = hh(VaPrimeExp, a_grid, we, T, R, beta, eis, frisch, vphi)
-    ~ ne = labor_supply(n, e_grid)
+    ~ ne = labor_supply(n, skills_grid)
   outputs: [a,c,ne] # those are the ones stored for the following stages
 
 # stage two: finding distributions via forward calls. This is done automatically using the information provided in 'distributions'
@@ -115,6 +114,6 @@ steady_state:
         Div: 1 - w
         Tax: 0.028
         R: Rstar
-        we: wages(w, e_grid)
-        T: transfers(e_stationary, Div, Tax, e_grid)
+        we: wages(w, skills_grid)
+        T: transfers(skills_stationary, Div, Tax, skills_grid)
         VaPrime: hh_init(a_grid, we, R, eis, T)[1]

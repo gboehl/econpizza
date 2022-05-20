@@ -51,15 +51,16 @@ def check_func(model, shocks, par):
     if model.get('decisions'):
         # make a test backward and forward run
         init_vf = model['init_vf']
-        _, decisions_output_init = model['context']['func_backw'](
+        _, decisions_output_init, exog_grid_vars_init = model['context']['func_backw'](
             init, init, init, init, init_vf, jnp.zeros(len(shocks)), jnp.array(list(par.values())))
         dists_init, _ = model['context']['func_stst_dist'](
             decisions_output_init, 1e-8, 10_000)
     else:
-        decisions_output_init = dists_init = []
+        decisions_output_init = dists_init = exog_grid_vars_init = []
 
     model['init_run']['decisions_output'] = decisions_output_init
     model['init_run']['dists'] = dists_init
+    model['init_run']['exog_grid_vars'] = exog_grid_vars_init
 
     # final test of main function
     test = model['context']['func_eqns'](init, init, init, init, jnp.zeros(len(shocks)), jnp.array(list(

@@ -15,7 +15,7 @@ def compile_func_basics_str(evars, par, shocks):
     return func_str
 
 
-def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls):
+def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls, exog_grid_var_names):
     """Compile all information to a string that defines the backward function for 'decisions'.
     """
 
@@ -23,9 +23,10 @@ def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls):
             {compile_func_basics_str(evars, par, shocks)}
             \n ({", ".join(v for v in inputs)}) = VFPrime
             \n %s
-            \n return ({", ".join(v[:-5] for v in inputs)}), ({", ".join(v for v in outputs)})
+            \n return ({", ".join(v[:-5] for v in inputs)}), ({", ".join(v for v in outputs)}), ({', '.join(v for v in exog_grid_var_names)})
             """ % '\n '.join(calls)
 
+    # \n return ({", ".join(v[:-5] for v in inputs)}), ({", ".join(v for v in outputs)})
     # never use real numpy
     return func_str.replace("np.", "jnp.").replace("jjnp.", "jnp.")
 
@@ -65,7 +66,8 @@ def compile_func_dist_str(distributions, decisions_outputs):
     for dist_name in distributions:
 
         dist = distributions[dist_name]
-        exog = [v for v in dist if dist[v]['type'] == 'exogenous']
+        exog = [v for v in dist if dist[v]['type'] in (
+            'exogenous', 'custom_exogenous', 'time_varying_exogenous')]
         endo = [v for v in dist if dist[v]['type'] == 'endogenous']
 
         if len(exog) > 1:

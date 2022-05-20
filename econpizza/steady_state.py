@@ -49,10 +49,11 @@ def solve_stst(model, raise_error=True, tol_newton=1e-8, maxit_newton=30, tol_ba
     func_stst_dist = model['context'].get('func_stst_dist')
 
     decisions_output_init = model['init_run'].get('decisions_output')
+    exog_grid_vars_init = model['init_run'].get('exog_grid_vars')
     init_vf = model.get('init_vf')
 
     func_stst_raw, func_backw_ext = get_func_stst_raw(
-        par, func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
+        par, func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, exog_grid_vars_init, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
 
     # define jitted stst function that returns jacobian and func. value
     func_stst = value_and_jac(jax.jit(func_stst_raw))
@@ -74,7 +75,8 @@ def solve_stst(model, raise_error=True, tol_newton=1e-8, maxit_newton=30, tol_ba
     mess = ''
 
     if func_stst_dist:
-        vfSS, decisions_output, cnt_backwards = func_backw_ext(stst_vals)
+        vfSS, decisions_output, exog_grid_vars, cnt_backwards = func_backw_ext(
+            stst_vals)
         distSS, cnt_forwards = func_stst_dist(
             decisions_output, tol_forwards, maxit_forwards)
         if cnt_backwards == maxit_backwards:

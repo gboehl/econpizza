@@ -289,7 +289,10 @@ def load(
         model['init_vf'] = model['steady_state']['init_guesses'][model['decisions']
                                                                  ['inputs'][0]]  # let us for now assume that this must be present
 
-    check_func(model, shocks, par)
+    if raise_errors:
+        check_func(model, shocks, par)
+    else:
+        model['init_run'] = {}
 
     if verbose:
         print("(load:) Parsing done.")

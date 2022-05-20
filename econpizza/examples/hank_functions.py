@@ -7,43 +7,49 @@ from grgrlib.jaxed import jax_print
 
 
 def hh_init(a_grid, we, R, eis, T):
-    fininc = R * a_grid + T[:, jnp.newaxis] - a_grid[0]
+    """The initialization for the value function
+    """
+
     coh = R * a_grid[jnp.newaxis, :] + \
         we[:, jnp.newaxis] + T[:, jnp.newaxis]
     Va = R * (0.1 * coh) ** (-1 / eis)
-    return fininc, Va
+    return Va
 
 
 def hh(Va_p, a_grid, we, T, R, beta, eis, frisch, vphi):
-    '''Single backward step via EGM.'''
+    """A single backward step via EGM
+    """
 
+    # MUC as implied by next periods value function
     uc_nextgrid = beta * Va_p
+    # back out consumption and labor supply from MUC
     c_nextgrid, n_nextgrid = cn(
         uc_nextgrid, we[:, jnp.newaxis], eis, frisch, vphi)
 
+    # get consumption and labor supply in grid space
     lhs = c_nextgrid - we[:, jnp.newaxis] * n_nextgrid + \
         a_grid[jnp.newaxis, :] - T[:, jnp.newaxis]
     rhs = R * a_grid
 
-    # there certainly is a better solution than this
     c = jax.vmap(jnp.interp)(rhs.broadcast((lhs.shape[0],)), lhs, c_nextgrid)
     n = jax.vmap(jnp.interp)(rhs.broadcast((lhs.shape[0],)), lhs, n_nextgrid)
 
+    # get todays distribution of assets
     a = rhs + we[:, jnp.newaxis] * n + T[:, jnp.newaxis] - c
+    # fix consumption and labor for constrained households
     c, n = jnp.where(a < a_grid[0], solve_cn(
         we[:, jnp.newaxis], rhs + T[:, jnp.newaxis] - a_grid, eis, frisch, vphi, Va_p), jnp.array((c, n)))
     a = jnp.where(a > a_grid[0], a, a_grid[0])
 
+    # calculate new MUC
     Va = R * c ** (-1 / eis)
 
     return Va, a, c, n
 
 
-'''Supporting functions for HA block'''
-
-
 def cn(uc, w, eis, frisch, vphi):
-    """Return optimal c, n as function of u'(c) given parameters"""
+    """Return optimal c, n as function of u'(c) given parameters
+    """
     return jnp.array((uc ** (-eis), (w * uc / vphi) ** frisch))
 
 
@@ -76,7 +82,8 @@ def solve_uc(w, T, eis, frisch, vphi, uc_seed):
 
 
 def netexp(log_uc, w, T, eis, frisch, vphi):
-    """Return net expenditure as a function of log uc and its derivative."""
+    """Return net expenditure as a function of log uc and its derivative
+    """
     c, n = cn(jnp.exp(log_uc), w, eis, frisch, vphi)
     ne = c - w * n - T
 

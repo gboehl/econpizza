@@ -87,8 +87,6 @@ equations: # final stage
 parameters:
     eis: 0.5
     frisch: 0.5
-    rho_e: 0.966
-    sd_e: 0.5
     theta: 6.
     psi: 96
     phi_pi: 2

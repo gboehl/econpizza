@@ -26,8 +26,8 @@ distributions:
       type: endogenous
       grid_variables: a_grid # a variable named a_grid will be made available during decisions calls and distributions calls
       min: 0.0
-      max: 150
-      n: 80
+      max: 100
+      n: 40
 
 decisions: # stage one
   inputs: [VaPrime] # additional to all aggregated variables defined in 'variables'

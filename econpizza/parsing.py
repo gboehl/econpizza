@@ -15,7 +15,6 @@ from copy import deepcopy
 from grgrlib import load_as_module
 from inspect import getmembers, isfunction
 from jax.experimental.host_callback import id_print as jax_print
-from .steady_state import solve_stst, solve_linear
 from .utilities import grids, dists
 from .parser.compile_functions import *
 from .parser.checks import *
@@ -211,7 +210,7 @@ def load(
     # check if there are dublicate variables
     evars = check_dublicates_and_determinancy(model["variables"], eqns)
     # check if each variable is defined in time t (only defining xSS does not give a valid root)
-    check_if_defined(evars, eqns)
+    check_if_defined(evars, eqns, model.get('skip_check_if_defined'))
 
     # create fixed (time invariant) grids
     grids.create_grids(model.get('distributions'), model["context"])
@@ -289,10 +288,12 @@ def load(
         model['init_vf'] = model['steady_state']['init_guesses'][model['decisions']
                                                                  ['inputs'][0]]  # let us for now assume that this must be present
 
-    if raise_errors:
+    model['init_run'] = {}
+    try:
         check_func(model, shocks, par)
-    else:
-        model['init_run'] = {}
+    except:
+        if raise_errors:
+            raise
 
     if verbose:
         print("(load:) Parsing done.")

@@ -10,7 +10,6 @@
    readme
    tutorial
    walkthrough.ipynb
-   boehl_hommes.rst
    method.ipynb
    modules
    indices

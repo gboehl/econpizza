@@ -2,7 +2,7 @@
 econpizza
 =========
 
-**Simulate nonlinear perfect foresight models in Python using automatic differentiation**
+**Simulate all sorts of nonlinear perfect foresight models in Python, including models with heterogeneous agents**
 
 .. image:: https://github.com/dfm/emcee/workflows/Tests/badge.svg
     :target: https://github.com/gboehl/econpizza/actions?query=workflow%3ATests
@@ -17,7 +17,7 @@ The baseline mechanism is a Newton-based stacking method in the spirit of Boucek
 
 The package makes heavy use of `automatic differentiation <https://en.wikipedia.org/wiki/Automatic_differentiation>`_ via `jax <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_!
 
-There is some experimental, undocumented support to solve nonlinear HANK models. The approach to deal with the distribution is inspired by the `Sequence-Space Jacobian <https://github.com/shade-econ/sequence-jacobian>`_ method (`Auclert et al., 2022, ECMA <https://doi.org/10.3982/ECTA17434>`_). Steady state and nonlinear impulse responses (including, e.g., the ELB) can typically be found within a few seconds.
+The package allows to solve nonlinear HANK models. The approach to deal with the distribution is inspired by the `Sequence-Space Jacobian <https://github.com/shade-econ/sequence-jacobian>`_ method (`Auclert et al., 2022, ECMA <https://doi.org/10.3982/ECTA17434>`_). Steady state and nonlinear impulse responses (including, e.g., the ELB) can typically be found within a few seconds.
 
 Installation
 -------------
@@ -28,7 +28,7 @@ Installing the `repository version <https://pypi.org/project/econpizza/>`_ from 
 
    pip install econpizza
   
-The most recent version from GitHub with all **experimental features** can be installed via
+Alternatively, the most recent version from GitHub with all **experimental features** can be installed via
 
 .. code-block:: bash
 

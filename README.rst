@@ -28,7 +28,7 @@ Installing the `repository version <https://pypi.org/project/econpizza/>`_ from 
 
    pip install econpizza
   
-The most recent version from GitHub with all **experimental features** can be installed via
+Alternatively, the most recent version from GitHub with all **experimental features** can be installed via
 
 .. code-block:: bash
 

@@ -40,5 +40,7 @@ The following code block simulates the example model:
     pplot(xst[:30], labels=mod['variables'])
 
 
+Note the binding ZLB for 'Rn'!
+
 Further details on the implementation of heterogeneous agent models are given `in the technical section <https://econpizza.readthedocs.io/en/latest/method.html>`_.
 

@@ -56,6 +56,4 @@ The yaml files in the folder follow a simple structure:
 
 A more detailed description can be found further below.
 
-.. include:: boehl_hommes.rst
-.. include:: hank.rst
 .. include:: the_yaml.rst

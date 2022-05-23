@@ -38,7 +38,7 @@ def hh(Va_p, a_grid, we, T, R, beta, eis, frisch, vphi):
     a = rhs + we[:, jnp.newaxis] * n + T[:, jnp.newaxis] - c
     # fix consumption and labor for constrained households
     c, n = jnp.where(a < a_grid[0], solve_cn(
-        we[:, jnp.newaxis], rhs + T[:, jnp.newaxis] - a_grid, eis, frisch, vphi, Va_p), jnp.array((c, n)))
+        we[:, jnp.newaxis], rhs + T[:, jnp.newaxis] - a_grid[0], eis, frisch, vphi, Va_p), jnp.array((c, n)))
     a = jnp.where(a > a_grid[0], a, a_grid[0])
 
     # calculate new MUC

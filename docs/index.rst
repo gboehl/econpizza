@@ -9,6 +9,7 @@
 
    readme
    tutorial
+   walkthrough.ipynb
    method.ipynb
    modules
    indices

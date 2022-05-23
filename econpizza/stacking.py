@@ -62,7 +62,7 @@ def find_stack(
     if shock is not None:
         tshock = tshock.at[shocks.index(shock[0])].set(shock[1])
         if model.get('distributions'):
-            print("(find_path_stacked:) Warning: shocks for heterogenous agent models are not yet fully supported.")
+            print("(find_path_stacked:) Warning: shocks for heterogenous agent models are not yet fully supported. Use adjusted steady state values as x0 instead.")
 
     endpoint = x_lin[-1] if use_linear_endpoint else stst
 
@@ -91,16 +91,20 @@ def find_stack(
         res = newton_jax(
             stacked_func, x_init[1:-1].flatten(), jac, maxit, tol, sparse=True, verbose=verbose, **solver_kwargs)
 
+    # calculate error
     err = jnp.abs(res['fun']).max()
     x = x.at[1:-1].set(res['x'].reshape((horizon - 1, nvars)))
 
     mess = res['message']
-    if err > tol:
-        mess += " Max error is %1.2e." % jnp.abs(stacked_func(res['x'])).max()
+
+    if err > tol or not res['success']:
+        mess += f" Max. error is {err:1.2e}."
+        verbose = True
 
     if verbose:
         duration = time.time() - st
+        sucess = 'done' if res['success'] else 'failed'
         print(
-            f"(find_path_stacked:) Stacking done after {duration:1.3f} seconds. " + mess)
+            f"(find_path_stacked:) Stacking {sucess} after {duration:1.3f} seconds. " + mess)
 
     return x, x_lin, not res['success']

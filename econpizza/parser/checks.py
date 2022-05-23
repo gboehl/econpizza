@@ -4,7 +4,7 @@
 import jax.numpy as jnp
 
 
-def check_if_defined(evars, eqns):
+def check_if_defined(evars, eqns, skipped_vars):
     """Check if all variables are defined in period t.
     """
 
@@ -14,7 +14,7 @@ def check_if_defined(evars, eqns):
                                                  "").replace(v + "Prime", "")
             for e in eqns
         ]
-        if not any(v_in_eqns):
+        if not any(v_in_eqns) and not v in skipped_vars:
             raise Exception(f"Variable `{v}` is not defined for time t.")
     return
 

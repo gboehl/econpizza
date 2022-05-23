@@ -4,7 +4,7 @@ The *.yaml-file
 
 All relevant information is supplied via the yaml file. For general information about the YAML markup language and its syntax see `Wikipedia <https://en.wikipedia.org/wiki/YAML>`_.
 
-Let us have a look of the yaml of a hank model. 
+Let us have a look of the yaml of a hank model we will discuss in `the tutorial <https://econpizza.readthedocs.io/en/latest/walkthrough.html>`_.
 
 .. code-block::
 

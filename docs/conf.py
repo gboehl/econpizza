@@ -22,7 +22,7 @@ copyright = '2022, Gregor Boehl'
 author = 'Gregor Boehl'
 
 # The full version, including alpha/beta/rc tags
-release = '0.5'
+release = '0.1.5'
 
 
 # -- General configuration ---------------------------------------------------

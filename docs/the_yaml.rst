@@ -36,23 +36,23 @@ All the *aggregate* variables that are being tracked on a global level. If a var
 .. code-block::
 
     distributions:
-      D: # a distribution named 'D'
+      dist: # a distribution named 'dist'
         # ordering matters. The ordering here is corresponds to the ordering of the axis of the distribution
-        e: # dim0
+        skills: # dim0
           type: exogenous
-          grid_variables: [e_grid, e_stationary, e_tmat] # returns e_grid, e_stationary, e_tmat
+          grid_variables: [skills_grid, skills_stationary, skills_transition] # returns skills_grid, skills_stationary, skills_transition
           rho: 0.966
           sigma: 0.5
-          # alternatively: if the previous 3 are not defined here, it is assumed that the grid_variables are available during the distribution stage (as an output of 'decisions')
           n: 4
         a: # dim1
           type: endogenous
           grid_variables: a_grid # a variable named a_grid will be made available during decisions calls and distributions calls
           min: 0.0
-          max: 150
-          n: 100
+          max: 100
+          n: 40
 
-The distributions block. Defines a distribution (here ``D``) and all its dimensions. The information provided here will later be used to construct the distribution-forward-functions. If this is not supplied, Pizza assumes that you are providing a representative agent model.
+
+The distributions block. Defines a distribution (here ``dist``) and all its dimensions. The information provided here will later be used to construct the distribution-forward-functions. If this is not supplied, Pizza assumes that you are providing a representative agent model.
 
 .. code-block::
 

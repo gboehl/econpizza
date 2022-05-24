@@ -2,7 +2,7 @@
 econpizza
 =========
 
-**Simulate all sorts of nonlinear perfect foresight models in Python, including models with heterogeneous agents**
+**Simulate nonlinear perfect foresight models, with or without heterogeneous agents**
 
 .. image:: https://github.com/dfm/emcee/workflows/Tests/badge.svg
     :target: https://github.com/gboehl/econpizza/actions?query=workflow%3ATests
@@ -13,7 +13,7 @@ econpizza
 .. image:: https://readthedocs.org/projects/econpizza/badge/?version=latest
     :target: http://econpizza.readthedocs.io/en/latest/?badge=latest    
 
-The baseline mechanism is a Newton-based stacking method in the spirit of Boucekkine (1995), Juillard (1996) and others. It is hence similar to the solver in dynare, but faster and more robust due to the use of automatic differentiation and sparse jacobians. Even IRFs for large-scale models with occassionally binding constraints can be computed in less than a second.
+The baseline mechanism is a Newton-based stacking method in the spirit of Boucekkine (1995), Juillard (1996) and others. Hence, the method is similar to the solver in dynare, but faster and more robust due to the use of automatic differentiation and sparse jacobians. Even perfect-foresight IRFs for large-scale nonlinear models with, e.g., occassionally binding constraints can be computed in less than a second. 
 
 The package makes heavy use of `automatic differentiation <https://en.wikipedia.org/wiki/Automatic_differentiation>`_ via `jax <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_!
 
@@ -40,7 +40,7 @@ Note that the latter requires `git <https://www.activestate.com/resources/quick-
 Documentation
 -------------
 
-There is some `documentation <https://econpizza.readthedocs.io/en/latest/tutorial.html>`_ out there.
+The documentation can be found `here <https://econpizza.readthedocs.io/en/latest/tutorial.html>`_.
 
 Citation
 --------

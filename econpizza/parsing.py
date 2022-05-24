@@ -19,11 +19,6 @@ from .utilities import grids, dists
 from .parser.compile_functions import *
 from .parser.checks import *
 
-jax.config.update("jax_enable_x64", True)
-# set number of cores for XLA
-os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
-
-
 # initialize model cache
 cached_mdicts = ()
 cached_models = ()

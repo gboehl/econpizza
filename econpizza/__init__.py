@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import jax
 import os
 import numpy as np
 from .shooting import find_pizza
@@ -9,6 +10,10 @@ from .stacking import find_stack
 from .parsing import parse, load
 from .steady_state import solve_stst
 from .solve_linear import solve_linear
+
+jax.config.update("jax_enable_x64", True)
+# set number of cores for XLA
+os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
 
 
 class PizzaModel(dict):

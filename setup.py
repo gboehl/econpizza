@@ -11,7 +11,7 @@ setup(
     long_description_content_type="text/x-rst",
     url="https://github.com/gboehl/econpizza",
     name="econpizza",
-    version="0.1.5",
+    version="0.1.6",
     author="Gregor Boehl",
     author_email="admin@gregorboehl.com",
     description="Solve nonlinear perfect foresight models",

@@ -8,8 +8,8 @@
    :maxdepth: 2
 
    readme
-   tutorial
-   walkthrough.ipynb
+   quickstart
+   tutorial.ipynb
    method.ipynb
    modules
    indices

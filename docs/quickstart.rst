@@ -46,15 +46,6 @@ The folder `yaml files <https://github.com/gboehl/econpizza/tree/master/econpizz
 
     mod = ep.load(example_dsge)
 
-The yaml files in the folder follow a simple structure:
-
-1. define all variables and shocks
-2. provide the nonlinear equations. Note that each line starts with a `~`.
-3. provide the parameters and values.
-4. optionally provide some steady state values and/or values for initial guesses
-5. optionally provide some auxilliary equations that are not directly part of the nonlinear system (see the `yaml for the BH model <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/bh.yaml>`_)
-
-A more detailed description can be found further below.
 
 .. include:: the_yaml.rst
 .. include:: boehl_hommes.rst

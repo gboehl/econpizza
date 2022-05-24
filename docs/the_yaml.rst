@@ -2,9 +2,15 @@
 The *.yaml-file
 -------------------
 
-All relevant information is supplied via the yaml file. For general information about the YAML markup language and its syntax see `Wikipedia <https://en.wikipedia.org/wiki/YAML>`_.
+All relevant information is supplied via the yaml file. For general information about the YAML markup language and its syntax see `Wikipedia <https://en.wikipedia.org/wiki/YAML>`_. The yaml files follow a simple structure:
 
-Let us have a look of the yaml of a hank model we will discuss in `the tutorial <https://econpizza.readthedocs.io/en/latest/walkthrough.html>`_.
+1. define all variables and shocks
+2. provide the nonlinear equations. Note that each line starts with a `~`.
+3. provide the parameters and values.
+4. optionally provide some steady state values and/or values for initial guesses
+5. optionally provide some auxilliary equations that are not directly part of the nonlinear system (see the `yaml for the BH model <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/bh.yaml>`_)
+
+Let us have a look of the yaml of a hank model we will discuss in `the tutorial <https://econpizza.readthedocs.io/en/latest/tutorial.html>`_. The file can be found `here <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/hank.yaml>`_. The first line reads:
 
 .. code-block::
 

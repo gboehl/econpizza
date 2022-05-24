@@ -16,7 +16,7 @@ Let us have a look of the yaml of a hank model we will discuss in `the tutorial 
 
     functions_file: '../examples/hank_functions.py'
 
-The relative path to a functions-file, which may provide additional functions. Here the functions ``transfers``, ``wages``, ``hh``, ``labor_supply`` and ``hh_init`` are defined in this file.
+The relative path to a functions-file, which may provide additional functions. Here, the file defines the functions ``transfers``, ``wages``, ``hh``, ``labor_supply`` and ``hh_init``.
 
 .. code-block::
 

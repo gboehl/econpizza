@@ -6,6 +6,37 @@ import jax.numpy as jnp
 from functools import partial
 
 
+@partial(jnp.vectorize, signature='(n),(nq),(n)->(nq)')
+def interpolate_y(x, xq, y):
+    """Efficient linear interpolation exploiting monotonicity.
+
+    Complexity O(n+nq), so most efficient when x and xq have comparable number of points.
+    Extrapolates linearly when xq out of domain of x.
+
+    Parameters
+    ----------
+    x  : array (n), ascending data points
+    xq : array (nq), ascending query points
+    y  : array (n), data points
+
+    Returns
+    ----------
+    yq : array (nq), interpolated points
+    """
+
+    nx = x.shape[0]
+
+    # xi = jnp.minimum(jnp.searchsorted(x, xq, side='right'), nx-2)
+    xi = jnp.searchsorted(x, xq, side='right') - 1
+    x_low = x[xi]
+    x_high = x[xi + 1]
+
+    xqpi_cur = (x_high - xq) / (x_high - x_low)
+    yq = xqpi_cur * y[xi] + (1 - xqpi_cur) * y[xi + 1]
+
+    return yq
+
+
 @jax.jit
 def interpolate_coord_robust_vector(x, xq):
     """Does interpolate_coord_robust where xq must be a vector, more general function is wrapper"""
@@ -50,32 +81,72 @@ def interpolate_coord_robust(x, xq, check_increasing=False):
         return i.reshape(xq.shape), pi.reshape(xq.shape)
 
 
-@partial(jnp.vectorize, signature='(n),(nq),(n)->(nq)')
-def interpolate_y(x, xq, y):
-    """Efficient linear interpolation exploiting monotonicity.
-
-    Complexity O(n+nq), so most efficient when x and xq have comparable number of points.
-    Extrapolates linearly when xq out of domain of x.
+@partial(jnp.vectorize, signature='(nq),(nq)->(nq),(nq)')
+def interpolate_coord(x, xq):
+    """Get representation xqi, xqpi of xq interpolated against x:
+    xq = xqpi * x[xqi] + (1-xqpi) * x[xqi+1]
 
     Parameters
     ----------
-    x  : array (n), ascending data points
-    xq : array (nq), ascending query points
+    x    : array (n), ascending data points
+    xq   : array (nq), ascending query points
+
+    Returns
+    ----------
+    xqi  : array (nq), indices of lower bracketing gridpoints
+    xqpi : array (nq), weights on lower bracketing gridpoints
+    """
+
+    nx = x.shape[0]
+
+    xqi = jnp.minimum(jnp.searchsorted(x, xq, side='right') - 1, nx-2)
+    xqpi = (x[xqi + 1] - xq) / (x[xqi + 1] - x[xqi])
+
+    return xqi, xqpi
+
+
+@partial(jnp.vectorize, signature='(nq),(nq),(n)->(nq)')
+def apply_coord(x_i, x_pi, y):
+    """Use representation xqi, xqpi to get yq at xq:
+    yq = xqpi * y[xqi] + (1-xqpi) * y[xqi+1]
+
+    Parameters
+    ----------
+    xqi  : array (nq), indices of lower bracketing gridpoints
+    xqpi : array (nq), weights on lower bracketing gridpoints
     y  : array (n), data points
 
     Returns
     ----------
     yq : array (nq), interpolated points
     """
+    return x_pi*y[x_i] + (1-x_pi)*y[x_i+1]
 
-    nx = x.shape[0]
 
-    # xi = jnp.minimum(jnp.searchsorted(x, xq, side='right'), nx-2)
-    xi = jnp.searchsorted(x, xq, side='right') - 1
-    x_low = x[xi]
-    x_high = x[xi + 1]
+@partial(jnp.vectorize, signature='(ni),(ni,nj)->(nj),(nj)')
+def lhs_equals_rhs_interpolate(lhs, rhs):
+    """
+    Given lhs (i) and rhs (i,j), for each j, find the i such that
 
-    xqpi_cur = (x_high - xq) / (x_high - x_low)
-    yq = xqpi_cur * y[xi] + (1 - xqpi_cur) * y[xi + 1]
+        lhs[i] > rhs[i,j] and lhs[i+1] < rhs[i+1,j]
 
-    return yq
+    i.e. where given j, lhs == rhs in between i and i+1.
+
+    Also return the pi such that
+
+        pi*(lhs[i] - rhs[i,j]) + (1-pi)*(lhs[i+1] - rhs[i+1,j]) == 0
+
+    i.e. such that the point at pi*i + (1-pi)*(i+1) satisfies lhs == rhs by linear interpolation.
+    """
+
+    rhs_check = rhs.at[-1, :].set(jnp.inf)
+
+    ii = jnp.sum(lhs > rhs_check, 0)
+    jj = jnp.arange(lhs.shape[0])
+
+    iout = jnp.maximum(ii - 1, 0)
+    err_upper = rhs[ii, jj] - lhs[ii]
+    err_lower = rhs[ii - 1, jj] - lhs[ii - 1]
+    piout = jnp.where(ii == 0, 1, err_upper / (err_upper - err_lower))
+
+    return iout, piout

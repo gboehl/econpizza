@@ -15,7 +15,7 @@ from copy import deepcopy
 from grgrlib import load_as_module
 from inspect import getmembers, isfunction
 from jax.experimental.host_callback import id_print as jax_print
-from .utilities import grids, dists
+from .utilities import grids, dists, interpolate
 from .parser.compile_functions import *
 from .parser.checks import *
 

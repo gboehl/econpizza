@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import scipy.sparse as ssp
 from grgrlib.jaxed import newton_jax, jax_print, value_and_jac
 from .shooting import find_path_linear
-from .utilities.function_builders import *
+from .parser.build_functions import *
 
 
 def find_stack(

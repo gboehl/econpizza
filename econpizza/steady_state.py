@@ -8,7 +8,7 @@ import jax.numpy as jnp
 from scipy.linalg import block_diag
 from grgrlib import klein, speed_kills
 from grgrlib.jaxed import newton_jax, value_and_jac
-from .utilities.function_builders import get_func_stst_raw
+from .parser.build_functions import get_func_stst_raw
 
 
 # use a solver that can deal with ill-conditioned jacobians

@@ -75,12 +75,12 @@ def compile_func_dist_str(distributions, decisions_outputs):
                 'Endogenous distributions larger thank 1-D are not yet implemented.')
 
         func_stst_dist_str_tpl += f"""
-            \n endog_inds, endog_probs = interpolate.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})
+            \n endog_inds, endog_probs = interp.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})
             \n {dist_name}, {dist_name}_cnt = dists.stationary_distribution_forward_policy_1d(endog_inds, endog_probs, {dist[exog[0]]['grid_variables'][2]}, tol, maxit)
             """,
 
         func_dist_str_tpl += f"""
-            \n endog_inds, endog_probs = interpolate.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})
+            \n endog_inds, endog_probs = interp.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})
             \n {dist_name} = {dist[exog[0]]['grid_variables'][2]}.T @ dists.forward_policy_1d({dist_name}, endog_inds, endog_probs)
             """,
 

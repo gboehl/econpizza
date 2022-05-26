@@ -4,7 +4,7 @@
 import jax
 import jax.numpy as jnp
 from grgrlib.jaxed import jax_print
-import econpizza.utilities.interpolate as interp
+from econpizza.utilities.interp import interpolate
 
 
 def hh_init(a_grid, we, R, eis, T):
@@ -32,8 +32,8 @@ def hh(Va_p, a_grid, we, T, R, beta, eis, frisch, vphi):
         a_grid[jnp.newaxis, :] - T[:, jnp.newaxis]
     rhs = R * a_grid
 
-    c = interp.interpolate(lhs, rhs, c_nextgrid)
-    n = interp.interpolate(lhs, rhs, n_nextgrid)
+    c = interpolate(lhs, rhs, c_nextgrid)
+    n = interpolate(lhs, rhs, n_nextgrid)
 
     # get todays distribution of assets
     a = rhs + we[:, jnp.newaxis] * n + T[:, jnp.newaxis] - c

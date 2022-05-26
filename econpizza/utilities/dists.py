@@ -39,14 +39,32 @@ def tmat_from_endo(x_i, probs):
 
 @jax.jit
 def forward_policy_1d(D, x_i, x_pi):
-    nZ, nX = D.shape
+
+    nZ, _ = D.shape
     Dnew = jnp.zeros_like(D)
 
     j = jnp.arange(nZ)[:, jnp.newaxis]
 
     Dnew = Dnew.at[j, x_i].add(D * x_pi)
+    Dnew = Dnew.at[j, x_i+1].add(D * (1 - x_pi))
 
-    return Dnew.at[j, x_i+1].add(D * (1 - x_pi))
+    return Dnew
+
+
+@jax.jit
+def forward_policy_2d(D, x_i, y_i, x_pi, y_pi):
+
+    nZ, _, _ = D.shape
+    Dnew = jnp.zeros_like(D)
+
+    j = jnp.arange(nZ)[:, jnp.newaxis, jnp.newaxis]
+
+    Dnew = Dnew.at[j, x_i, y_i].add(y_pi * x_pi * D)
+    Dnew = Dnew.at[j, x_i+1, y_i].add(y_pi * (1 - x_pi) * D)
+    Dnew = Dnew.at[j, x_i, y_i+1].add((1 - y_pi) * x_pi * D)
+    Dnew = Dnew.at[j, x_i+1, y_i+1].add((1 - y_pi) * (1 - x_pi) * D)
+
+    return Dnew
 
 
 @jax.jit

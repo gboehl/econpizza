@@ -58,9 +58,11 @@ def eval_strs(vdict, pars=None, context=globals()):
             f"{', '.join(pars.keys())} = {', '.join(str(p) for p in pars.values())}", context)
 
     for v in vdict:
-        exec(f'{v} = {vdict[v]}', context)
         if isinstance(vdict[v], str):
-            vdict[v] = eval(f'{v}')
+            context[v] = eval(vdict[v])
+            vdict[v] = eval(v, context)
+        else:
+            context[v] = vdict[v]
 
     return vdict
 

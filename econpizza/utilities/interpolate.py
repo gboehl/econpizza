@@ -7,7 +7,7 @@ from functools import partial
 
 
 @partial(jnp.vectorize, signature='(n),(nq),(n)->(nq)')
-def interpolate_y(x, xq, y):
+def interpolate(x, xq, y):
     """Efficient linear interpolation exploiting monotonicity.
 
     Complexity O(n+nq), so most efficient when x and xq have comparable number of points.

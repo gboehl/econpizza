@@ -25,7 +25,7 @@ def check_dublicates_and_determinancy(evars, eqns):
 
     dubs = [x for i, x in enumerate(evars) if x in evars[:i]]
     dubmess = (
-        ", variables list contains dublicate(s): %s" % ", ".join(
+        " The variables list contains dublicate(s): %s" % ", ".join(
             dubs) if dubs else ""
     )
 
@@ -33,8 +33,7 @@ def check_dublicates_and_determinancy(evars, eqns):
 
     if len(sorted_evars) != len(eqns):
         raise Exception(
-            "Model has %s variables but %s equations%s."
-            % (len(sorted_evars), len(eqns), dubmess)
+            f"Model has {len(sorted_evars)} variables but {len(eqns)} equations." + dubmess
         )
     elif dubs:
         print("(parse:) Warning%s" % dubmess)

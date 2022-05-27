@@ -16,7 +16,7 @@ def solver(jval, fval):
     return jax.numpy.linalg.pinv(jval) @ fval
 
 
-def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxit_backwards=1000, tol_forwards=None, maxit_forwards=1000, force=False, verbose=True, **newton_kwargs):
+def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, verbose=True, **newton_kwargs):
     """Solves for the steady state.
     """
 
@@ -28,7 +28,7 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
     shocks = model.get("shocks") or ()
 
     tol_backwards = tol_newton if tol_backwards is None else tol_backwards
-    tol_forwards = tol_newton if tol_forwards is None else tol_forwards
+    tol_forwards = 1e-2*tol_newton if tol_forwards is None else tol_forwards
 
     # check if steady state was already calculated
     try:

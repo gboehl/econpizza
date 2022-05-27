@@ -25,24 +25,38 @@ def interpolate(x, xq, y):
 
     nx = x.shape[0]
 
-    # xi = jnp.minimum(jnp.searchsorted(x, xq, side='right'), nx-2)
-    xi = jnp.searchsorted(x, xq, side='right') - 1
-    x_low = x[xi]
-    x_high = x[xi + 1]
-
-    xqpi_cur = (x_high - xq) / (x_high - x_low)
+    xi = jnp.minimum(jnp.searchsorted(x, xq, side='right') - 1, nx-2)
+    xqpi_cur = (x[xi + 1] - xq) / (x[xi + 1] - x[xi])
     yq = xqpi_cur * y[xi] + (1 - xqpi_cur) * y[xi + 1]
 
     return yq
 
 
 def interpolate_coord_robust_vector(x, xq):
-    """Does interpolate_coord_robust where xq must be a vector, more general function is wrapper"""
+    """Get representation xqi, xqpi of xq interpolated against x:
+    xq = xqpi * x[xqi] + (1-xqpi) * x[xqi+1]
 
-    xqi = jnp.searchsorted(x, xq, side='right') - 1
+    Parameters
+    ----------
+    x    : array (n), ascending data points
+    xq   : array (nq), ascending query points
+
+    Returns
+    ----------
+    xqi  : array (nq), indices of lower bracketing gridpoints
+    xqpi : array (nq), weights on lower bracketing gridpoints
+    """
+
+    nx = x.shape[0]
+
+    xqi = jnp.minimum(jnp.searchsorted(x, xq, side='right') - 1, nx-2)
     xqpi = (x[xqi+1] - xq) / (x[xqi+1] - x[xqi])
 
     return xqi, xqpi
+
+
+interpolate_coord = jnp.vectorize(
+    interpolate_coord_robust_vector, signature='(nq),(nq)->(nq),(nq)')
 
 
 def interpolate_coord_robust(x, xq, check_increasing=False):
@@ -76,30 +90,6 @@ def interpolate_coord_robust(x, xq, check_increasing=False):
     else:
         i, pi = interpolate_coord_robust_vector(x, xq.ravel())
         return i.reshape(xq.shape), pi.reshape(xq.shape)
-
-
-@partial(jnp.vectorize, signature='(nq),(nq)->(nq),(nq)')
-def interpolate_coord(x, xq):
-    """Get representation xqi, xqpi of xq interpolated against x:
-    xq = xqpi * x[xqi] + (1-xqpi) * x[xqi+1]
-
-    Parameters
-    ----------
-    x    : array (n), ascending data points
-    xq   : array (nq), ascending query points
-
-    Returns
-    ----------
-    xqi  : array (nq), indices of lower bracketing gridpoints
-    xqpi : array (nq), weights on lower bracketing gridpoints
-    """
-
-    nx = x.shape[0]
-
-    xqi = jnp.minimum(jnp.searchsorted(x, xq, side='right') - 1, nx-2)
-    xqpi = (x[xqi + 1] - xq) / (x[xqi + 1] - x[xqi])
-
-    return xqi, xqpi
 
 
 @partial(jnp.vectorize, signature='(nq),(nq),(n)->(nq)')

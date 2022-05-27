@@ -260,7 +260,6 @@ def load(
         # execute them
         tmpf_names += define_function(func_stst_dist_str, model['context']),
         tmpf_names += define_function(func_dist_str, model['context']),
-
     else:
         dist_names = []
 
@@ -274,21 +273,30 @@ def load(
     model['func_strings']["func_eqns"] = compile_eqn_func_str(evars, deepcopy(eqns), par, eqns_aux=model.get(
         'aux_equations'), shocks=shocks, distributions=dist_names, decisions_outputs=decisions_outputs)
 
+    # test if model works. Writing to tempfiles helps to get nice debug traces if not
     tmpf_names += define_function(model['func_strings']
                                   ["func_eqns"], model['context']),
     tmpf_names += define_function(model['func_strings']
                                   ['func_pre_stst'], model['context']),
 
-    # test if model works. Writing to tempfiles helps to get nice debug traces if not
+    # get the initial decision functions
     if model.get('decisions'):
-        # try if function works on initvals
         init_vf_list = [model['steady_state']['init_guesses'][dec_input]
                         for dec_input in model['decisions']['inputs']]  # let us for now assume that this must be present
         model['init_vf'] = jnp.array(init_vf_list)
 
+        # check if initial decision functions and the distribution have same shapes
+        dist_shape = tuple(
+            [d['n'] for d in model['distributions'][dist_names[0]].values()])
+        decisions_shape = model['init_vf'].shape
+        if decisions_shape[-len(dist_shape):] != dist_shape:
+            raise Exception(
+                f"Initial decision and the distribution have different shapes: {decisions_shape}, {dist_shape}")
+
+    # try if function works on initvals
     model['init_run'] = {}
     try:
-        check_func(model, shocks, par)
+        check_initial_values(model, shocks, par)
     except:
         if raise_errors:
             raise

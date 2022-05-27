@@ -88,7 +88,7 @@ def compile_func_dist_str(distributions, decisions_outputs):
             func_dist_str_tpl += f"""
                 \n endog_inds1, endog_probs1 = interp.interpolate_coord_robust({dist[endo[1]]['grid_variables']}, {endo[1]})
                 \n forwarded_dist = dists.forward_policy_2d({dist_name}, endog_inds0, endog_inds1, endog_probs0, endog_probs1)
-                \n {dist_name}, {dist_name}_cnt = expect_transition({dist[exog[0]]['grid_variables'][2]}.T, forwarded_dist)
+                \n {dist_name} = expect_transition({dist[exog[0]]['grid_variables'][2]}.T, forwarded_dist)
                 """,
 
         else:

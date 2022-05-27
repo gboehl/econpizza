@@ -41,19 +41,29 @@ def check_dublicates_and_determinancy(evars, eqns):
     return sorted_evars
 
 
-def check_func(model, shocks, par):
+def check_initial_values(model, shocks, par):
 
     init = model['init'][..., jnp.newaxis]
     # collect some information needed later
     model['init_run'] = {}
 
+    mess = ''
     if model.get('decisions'):
         # make a test backward and forward run
         init_vf = model['init_vf']
         _, decisions_output_init, exog_grid_vars_init = model['context']['func_backw'](
             init, init, init, init, init_vf, jnp.zeros(len(shocks)), jnp.array(list(par.values())))
         dists_init, _ = model['context']['func_stst_dist'](
-            decisions_output_init, 1e-8, 10_000)
+            decisions_output_init, 1e-8, 1)
+
+        if jnp.isnan(decisions_output_init).any():
+            mess = 'Outputs of decision stage contains `NaN`s'
+        elif jnp.isinf(decisions_output_init).any():
+            mess = 'Outputs of decision stage are not finite'
+        elif jnp.isnan(dists_init).any():
+            mess = 'Distribution contains `NaN`s'
+        elif jnp.isinf(dists_init).any():
+            mess = 'Distribution is not finite'
     else:
         decisions_output_init = dists_init = exog_grid_vars_init = []
 
@@ -65,9 +75,14 @@ def check_func(model, shocks, par):
     test = model['context']['func_eqns'](init, init, init, init, jnp.zeros(len(shocks)), jnp.array(list(
         par.values())), jnp.array(dists_init)[..., jnp.newaxis], jnp.array(decisions_output_init)[..., jnp.newaxis])
 
-    if jnp.isnan(test).any():
-        raise Exception("Initial values are NaN.")
-    if jnp.isinf(test).any():
-        raise Exception("Initial values are not finite.")
+    if mess:
+        pass
+    elif jnp.isnan(test).any():
+        mess += 'Output of final stage contains `NaN`s'
+    elif jnp.isinf(test).any():
+        mess += 'Output of final stage is not finite'
+
+    if mess:
+        raise Exception(mess + ' for initial values.')
 
     return

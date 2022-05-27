@@ -108,8 +108,9 @@ def stationary_distribution_forward_policy_2d(endog_inds0, endog_inds1, endog_pr
 
     def body_func(cont):
         dist, _, cnt = cont
-        new_dist = expect_transition(exog_probs.T, forward_policy_2d(
-            dist, endog_inds0, endog_inds1, endog_probs0, endog_probs1))
+        pre_exo_dist = forward_policy_2d(
+            dist, endog_inds0, endog_inds1, endog_probs0, endog_probs1)
+        new_dist = expect_transition(exog_probs.T, pre_exo_dist)
         return new_dist, dist, cnt + 1
 
     dist, _, cnt = jax.lax.while_loop(cond_func, body_func, (dist, dist+1, 0))

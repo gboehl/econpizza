@@ -1,7 +1,6 @@
 #!/bin/python
 # -*- coding: utf-8 -*-
 
-import jax
 import jax.numpy as jnp
 from functools import partial
 
@@ -37,7 +36,6 @@ def interpolate(x, xq, y):
     return yq
 
 
-@jax.jit
 def interpolate_coord_robust_vector(x, xq):
     """Does interpolate_coord_robust where xq must be a vector, more general function is wrapper"""
 
@@ -47,7 +45,6 @@ def interpolate_coord_robust_vector(x, xq):
     return xqi, xqpi
 
 
-@jax.jit
 def interpolate_coord_robust(x, xq, check_increasing=False):
     """Linear interpolation exploiting monotonicity only in data x, not in query points xq.
     Simple binary search, less efficient but more robust.

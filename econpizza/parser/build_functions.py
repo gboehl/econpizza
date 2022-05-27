@@ -13,7 +13,7 @@ def get_func_stst_raw(par, func_pre_stst, func_backw, func_stst_dist, func_eqns,
 
         def cond_func(cont):
             vf, _, _, vf_old, cnt = cont
-            cond0 = jnp.abs(vf-vf_old).max() > tol_backw
+            cond0 = jnp.abs(vf - vf_old).max() > tol_backw
             cond1 = cnt < maxit_backw
             return cond0 & cond1
 
@@ -37,8 +37,8 @@ def get_func_stst_raw(par, func_pre_stst, func_backw, func_stst_dist, func_eqns,
         dist, cnt = func_stst_dist(decisions_output, tol_forw, maxit_forw)
 
         # TODO: for more than one dist this should be a loop...
-        decisions_output_array = jnp.array(decisions_output)[..., jnp.newaxis]
-        dist_array = jnp.array(dist)[..., jnp.newaxis]
+        decisions_output_array = decisions_output[..., jnp.newaxis]
+        dist_array = dist[..., jnp.newaxis]
 
         return func_eqns(x, x, x, x, [], par, dist_array, decisions_output_array)
 
@@ -55,15 +55,14 @@ def get_stacked_func(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, dis
         vf, decisions_output, exog_grid_vars = func_backw(
             X[:, i], X[:, i+1], X[:, i+2], stst, vf_old, [], pars)
 
-        return (vf, X), jnp.array(decisions_output)
+        return (vf, X), decisions_output
 
     def forwards_step(carry, i):
 
         dist_old, decisions_output_storage = carry
         dist = func_dist(dist_old, decisions_output_storage[..., i])
-        dist_array = jnp.array(dist)
 
-        return (dist_array, decisions_output_storage), dist_array
+        return (dist, decisions_output_storage), dist
 
     def stacked_func(x):
 

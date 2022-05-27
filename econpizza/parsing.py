@@ -282,8 +282,9 @@ def load(
     # test if model works. Writing to tempfiles helps to get nice debug traces if not
     if model.get('decisions'):
         # try if function works on initvals
-        model['init_vf'] = model['steady_state']['init_guesses'][model['decisions']
-                                                                 ['inputs'][0]]  # let us for now assume that this must be present
+        init_vf_list = [model['steady_state']['init_guesses'][dec_input]
+                        for dec_input in model['decisions']['inputs']]  # let us for now assume that this must be present
+        model['init_vf'] = jnp.array(init_vf_list)
 
     model['init_run'] = {}
     try:

@@ -81,9 +81,9 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
             stst_vals)
         distSS, cnt_forwards = func_stst_dist(
             decisions_output, tol_forwards, maxit_forwards)
-        if jnp.isnan(vfSS).any() or jnp.isnan(jnp.array(decisions_output)).any():
+        if jnp.isnan(jnp.array(vfSS)).any() or jnp.isnan(jnp.array(decisions_output)).any():
             mess += f"Backward iteration returns 'NaN's. "
-        elif jnp.isnan(jnp.array(distSS)).any():
+        elif jnp.isnan(distSS).any():
             mess += f"Forward iteration returns 'NaN's. "
         if cnt_backwards == maxit_backwards:
             mess += f'Maximum of {maxit_backwards} backwards calls reached. '
@@ -99,7 +99,8 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
     if err > tol_newton or not res['success']:
         jac = res['jac']
         rank = jnp.linalg.matrix_rank(jac)
-        mess += f"Jacobian has rank {rank} for {jac.shape[0]} variables ({len(model['steady_state']['fixed_evalued'])} fixed). "
+        if rank:
+            mess += f"Jacobian has rank {rank} for {jac.shape[0]} variables ({len(model['steady_state']['fixed_evalued'])} fixed). "
         if not res["success"]:
             mess = f"Steady state not found (error is {err:1.2e}). {res['message']} {mess}"
         else:

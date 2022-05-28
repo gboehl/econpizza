@@ -26,8 +26,7 @@ def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls, exog_grid
             \n return jnp.array(({"".join(v[:-5] + ", " for v in inputs)})), jnp.array(({", ".join(v for v in outputs)})), ({', '.join(v for v in exog_grid_var_names)})
             """ % '\n '.join(calls)
 
-    # never use real numpy
-    return func_str.replace("np.", "jnp.").replace("jjnp.", "jnp.")
+    return func_str
 
 
 def compile_stst_func_str(evars, eqns, par, stst_eqns):
@@ -45,8 +44,7 @@ def compile_stst_func_str(evars, eqns, par, stst_eqns):
         \n X = ({"".join(v + ", " for v in evars)})
         \n return jnp.array(X)"""
 
-    # never use real numpy
-    return func_pre_stst_str.replace("np.", "jnp.").replace("jjnp.", "jnp.")
+    return func_pre_stst_str
 
 
 def compile_func_dist_str(distributions, decisions_outputs):
@@ -135,5 +133,4 @@ def compile_eqn_func_str(evars, eqns, par, eqns_aux, shocks, distributions, deci
         \n {eqns_stack}
         \n {"return jnp.array([" + ", ".join("root_container"+str(i) for i in range(len(evars))) + "]).ravel()"}"""
 
-    # never use real numpy
-    return func_str.replace("np.", "jnp.").replace("jjnp.", "jnp.")
+    return func_str

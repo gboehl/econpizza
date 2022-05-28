@@ -36,10 +36,8 @@ def find_stack(
     func_backw = model['context'].get('func_backw')
     func_dist = model['context'].get('func_dist')
 
-    if tol is None:
-        tol = 1e-8
-    if maxit is None:
-        maxit = 30
+    tol = 1e-8 if tol is None else tol
+    maxit = 30 if maxit is None else maxit
 
     x0 = jnp.array(list(x0)) if x0 is not None else stst
     x = jnp.ones((horizon + 1, nvars)) * stst

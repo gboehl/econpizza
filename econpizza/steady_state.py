@@ -3,7 +3,6 @@
 
 import jax
 import time
-import numpy as np
 import jax.numpy as jnp
 from scipy.linalg import block_diag
 from grgrlib import klein, speed_kills
@@ -13,7 +12,7 @@ from .parser.build_functions import get_func_stst_raw
 
 # use a solver that can deal with ill-conditioned jacobians
 def solver(jval, fval):
-    return jax.numpy.linalg.pinv(jval) @ fval
+    return jnp.linalg.pinv(jval) @ fval
 
 
 def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, verbose=True, **newton_kwargs):
@@ -32,7 +31,7 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
 
     # check if steady state was already calculated
     try:
-        cond0 = np.allclose(model["stst_used_pars"], par)
+        cond0 = jnp.allclose(model["stst_used_pars"], par)
         cond1 = model["stst_used_setup"] == (
             model.get('functions_file_plain'), tol_newton, maxit_newton, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
         if cond0 and cond1 and not force:

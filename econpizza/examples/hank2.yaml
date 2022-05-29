@@ -2,7 +2,6 @@
 #
 # Description: a medium-scale HANK model with portfolio choice
 # Author: Gregor Boehl [mail@gregorboehl.com]
-# Last-Updated: 28/05/22
 
 name: 'hank2'
 functions_file: 'hank2_functions.py'

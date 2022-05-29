@@ -63,7 +63,7 @@ html_theme = 'alabaster'
 html_static_path = ['_static']
 
 html_theme_options = {
-    "description": "Solving all sorts of perfect foresight models",
+    "description": " Solve nonlinear heterogeneous agents models",
     "github_button": True,
     "github_repo": "econpizza",
     "github_user": "gboehl",

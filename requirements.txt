@@ -7,3 +7,4 @@ numba
 scipy
 jax
 jaxlib
+grgrlib

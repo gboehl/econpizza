@@ -50,7 +50,7 @@ Citation
 .. code-block::
 
     @Misc{boehl2022pizza,
-    title         = {Econpizza: Solve all sorts of nonlinear perfect foresight models},
+    title         = {Econpizza: Solve nonlinear heterogeneous agents models},
     author        = {Boehl, Gregor},
     howpublished  = {\url{https://github.com/gboehl/econpizza}},
     year = {2022}

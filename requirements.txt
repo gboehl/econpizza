@@ -6,3 +6,4 @@ numpy
 numba
 scipy
 jax
+jaxlib

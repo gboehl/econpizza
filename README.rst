@@ -11,9 +11,9 @@ econpizza
 .. image:: https://img.shields.io/badge/GitHub-gboehl%2Feconpizza-blue.svg?style=flat
     :target: https://github.com/gboehl/econpizza
 .. image:: https://readthedocs.org/projects/econpizza/badge/?version=latest
-    :target: http://econpizza.readthedocs.io/en/latest/?badge=latest    
+    :target: http://econpizza.readthedocs.io/en/latest/?badge=latest
 
-The baseline mechanism is a Newton-based stacking method in the spirit of Boucekkine (1995), Juillard (1996) and others. Hence, the method is similar to the solver in dynare, but faster and more robust due to the use of automatic differentiation and sparse jacobians. Even perfect-foresight IRFs for large-scale nonlinear models with, e.g., occassionally binding constraints can be computed in less than a second. 
+The baseline mechanism is a Newton-based stacking method in the spirit of Boucekkine (1995), Juillard (1996) and others. Hence, the method is similar to the solver in dynare, but faster and more robust due to the use of automatic differentiation and sparse jacobians. Even perfect-foresight IRFs for large-scale nonlinear models with, e.g., occassionally binding constraints can be computed in less than a second.
 
 The package makes heavy use of `automatic differentiation <https://en.wikipedia.org/wiki/Automatic_differentiation>`_ via `jax <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_.
 
@@ -27,7 +27,7 @@ Installing the `repository version <https://pypi.org/project/econpizza/>`_ from 
 .. code-block:: bash
 
    pip install econpizza
-  
+
 Alternatively, the most recent version from GitHub with some experimental features can be installed via
 
 .. code-block:: bash
@@ -36,6 +36,14 @@ Alternatively, the most recent version from GitHub with some experimental featur
    pip install git+https://github.com/gboehl/econpizza
 
 Note that the latter requires `git <https://www.activestate.com/resources/quick-reads/pip-install-git/#:~:text=To%20install%20Git%20for%20Windows,installer%20and%20follow%20the%20steps.>`_ to be installed.
+
+Econpizza needs **Jax** to be installed. This is not a problem for MacOS and Linux, but the time for Jax to fully support Windows has not yet come. Following the (somewhat cryptic) guide `here <https://github.com/cloudhan/jax-windows-builder>`_, one could try
+
+.. code-block:: bash
+
+    pip install jax[cpu]==0.3.7 -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
+
+which works for GitHub Actions (but causes problems lateron).
 
 Documentation
 -------------

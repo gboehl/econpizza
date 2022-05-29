@@ -45,7 +45,7 @@ Econpizza needs **Jax** to be installed. This is not a problem for MacOS and Lin
 
     pip install jax[cpu]==0.3.7 -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
 
-which works for GitHub Actions (but causes problems lateron).
+which works for GitHub Actions (but seems to cause problems later).
 
 Documentation
 -------------

@@ -36,7 +36,7 @@ distributions:
       max: 4000
       n: 16
 
-decisions: # stage one
+decisions: # backwards stage
   inputs: [VaPrime,VbPrime]
   calls:
     ~ z_grid = income(skills_grid, tax, w, N)
@@ -60,10 +60,10 @@ aux_equations:
     ~ kap_adj_cost = 1/(2*phiss)*(dI - 1)**2
     ~ pshareLag = pLag / ALag
 
-    # parameters defined in steady state
+    # parameters defined by steady state
     ~ theta = 1/(1-mcSS)
 
-equations: # final stage
+equations: # main stage
   # definitions that should be tracked
   ~ A = aggr_a
   ~ B = aggr_b
@@ -72,8 +72,7 @@ equations: # final stage
   ~ p + Bg = wealth
 
   # firms
-  #~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*mc + psi*betaPrime*C/CPrime*(piPrime/piSS - 1)*piPrime/piSS*YPrime/Y # NKPC
-  ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*mc + psi*piPrime/Rn*(piPrime/piSS - 1)*piPrime/piSS*YPrime/Y # NKPC (alternative without HHDF)
+  ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*mc + psi*piPrime/Rn*(piPrime/piSS - 1)*piPrime/piSS*YPrime/Y # NKPC
   ~ divPrime + pPrime = p * RPrime
   ~ N = (Y / Z / KLag ** alpha) ** (1 / (1 - alpha))
   ~ mc = w * N / (1 - alpha) / Y
@@ -86,7 +85,7 @@ equations: # final stage
   ~ Rn = (Rstar*((pi/piSS)**phi_pi)*((Y/YLag)**phi_y))**(1-rho)*RnLag**rho
   ~ Rb = R - omega
   ~ Ra = pshareLag * (div + p) / pLag + (1 - pshareLag) * R
-  ~ RnLag = R * pi
+  ~ R = RnLag/pi # ex-post real rate
   ~ tax = ((R-1) * Bg + G) / w / N
 
   # unions
@@ -99,7 +98,7 @@ equations: # final stage
   ~ Z = ZSS*(ZLag/ZSS)**rho_Z
   ~ beta = betaSS*(betaLag/betaSS)**rho_beta
 
-  # parameters that must be found during steady state
+  # parameters that must be found during steady state (and don't have a closed form solution)
   ~ vphi = vphiSS
   ~ chi1 = chi1SS
   ~ alpha = alphaSS
@@ -110,13 +109,11 @@ parameters:
     psi: 96
     psiw: 96
     delta: 0.02
-    kappap: 0.1
     Bg: 2.8
     chi0: 0.25
     chi2: 2
     phiss: 4
     omega: 0.005
-    kappaw: 0.1
     phi_pi: 1.5
     phi_y: 1.5
     rho: 0.8

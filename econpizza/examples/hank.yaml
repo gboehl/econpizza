@@ -2,9 +2,8 @@
 #
 # Description: a small example HANK model
 # Author: Gregor Boehl [mail@gregorboehl.com]
-# Last-Updated: 24/04/22
 
-name: '1ahank'
+name: 'hank2'
 functions_file: 'hank_functions.py'
 
 # these are available during all three stages (decisions, distributions, equations)
@@ -14,8 +13,8 @@ definitions:
 
 variables: [Div, Y, Yprod, w, pi, Rn, Rs, R, Rstar, Tax, Z, beta, vphi, C, L, B, Top10C, Top10A]
 distributions:
-  dist: # a distribution named 'dist'
-    # ordering matters. The ordering here is corresponds to the ordering of the axis of the distribution
+  dist: # the name of the first distribution
+    # ordering matters. The ordering here is corresponds to the shape of the axis of the distribution
     skills: # dim0
       type: exogenous
       grid_variables: [skills_grid, skills_stationary, skills_transition] # returns skills_grid, skills_stationary, skills_transition

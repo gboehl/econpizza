@@ -12,8 +12,8 @@ econpizza
     :target: https://github.com/gboehl/econpizza
 .. image:: https://readthedocs.org/projects/econpizza/badge/?version=latest
     :target: http://econpizza.readthedocs.io/en/latest/?badge=latest
-.. image:: https://github.com/gboehl/econpizza/workflows/Continuous%20Integration%20Workflow/badge.svg?branch=master
-    :target: https://github.com/gboehl/econpizza/actions
+
+![example workflow](https://github.com/gboehl/econpizza/actions/workflows/continuous-integration.yml/badge.svg)
 
 The baseline mechanism is a Newton-based stacking method in the spirit of Boucekkine (1995), Juillard (1996) and others. Hence, the method is similar to the solver in dynare, but faster and more robust due to the use of automatic differentiation and sparse jacobians. Even perfect-foresight IRFs for large-scale nonlinear models with, e.g., occassionally binding constraints can be computed in less than a second.
 

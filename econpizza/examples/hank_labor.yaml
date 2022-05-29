@@ -1,0 +1,116 @@
+# hank.yaml ---
+#
+# Description: a small example HANK model
+# Author: Gregor Boehl [mail@gregorboehl.com]
+
+name: 'hank_labor'
+functions_file: 'hank_labor_functions.py'
+
+# these are available during all three stages (decisions, distributions, equations)
+definitions:
+    - from numpy import log, maximum
+    - from jax.experimental.host_callback import id_print as jax_print
+
+variables: [Div, Y, Yprod, w, pi, Rn, Rs, R, Rstar, Tax, Z, beta, vphi, C, L, B, Top10C, Top10A]
+distributions:
+  dist: # the name of the first distribution
+    # ordering matters. The ordering here is corresponds to the shape of the axis of the distribution
+    skills: # dim0
+      type: exogenous
+      grid_variables: [skills_grid, skills_stationary, skills_transition] # returns skills_grid, skills_stationary, skills_transition
+      rho: 0.966
+      sigma: 0.5
+      n: 4
+    a: # dim1
+      type: endogenous
+      grid_variables: a_grid # a variable named a_grid will be made available during decisions calls and distributions calls
+      min: 0.0
+      max: 100
+      n: 40
+
+decisions: # stage one
+  inputs: [VaPrime] # additional to all aggregated variables defined in 'variables'
+  calls:
+    # these are executed subsequently, starting with the latest in time T. Each call takes the previous outputs as given
+    ~ T = transfers(skills_stationary, Div, Tax, skills_grid)
+    ~ we = wages(w, skills_grid)
+    ~ VaPrimeExp = skills_transition @ VaPrime
+    ~ Va, a, c, n = hh(VaPrimeExp, a_grid, we, T, R, beta, eis, frisch, vphi)
+    ~ ne = labor_supply(n, skills_grid)
+  outputs: [a,c,ne] # those are the ones stored for the following stages
+
+# stage two: finding distributions via forward calls. This is done automatically using the information provided in 'distributions'
+# inputs are all grid_variables and, for endogenous distribution variables, variables named like the members of 'distributions' (e.g. 'a')
+# outputs are the distribution(s) named as define in 'distributions' (e.g. here 'dist')
+
+# stage three (optional): aux_equations
+# these can contain misc definitions that are available during the final stage.
+# outputs from decisions, the grid variables, the distributions and
+# aggregate variables from 'variables' (including those with "Prime", "Lag",...) are included by default
+# from here on the objects are _sequences_ with shapes either (1, horizon) or (n1, n2, horizon). Last dimension is always the time dimension
+aux_equations:
+    ~ A = jnp.sum(dist*a, axis=(0,1)) # note that we are summing over the first two dimensions e and a, but not the time dimension (dimension 2)
+    ~ NE = jnp.sum(dist*ne, axis=(0,1)) # also note that we are using jax.numpy (as jnp)
+    ~ aggr_c = jnp.sum(dist*c, axis=(0,1))
+
+    # calculate consumption share of top-10% cumsumers
+    ~ c_flat = c.reshape(-1,c.shape[-1]) # consumption flattend for each t
+    ~ dist_sorted_c = jnp.take_along_axis(dist.reshape(-1,c.shape[-1]), jnp.argsort(c_flat, axis=0), axis=0) # distribution sorted after consumption level, flattend for each t
+    ~ top10c = jnp.where(jnp.cumsum(dist_sorted_c, axis=0) > .9, c_flat, 0.).sum(0)/c_flat.sum(axis=0) # must use `where` for jax. All sums must be taken over the non-time axis
+
+    # calculate wealth share of top-10% wealth holders
+    ~ a_flat = a.reshape(-1,a.shape[-1]) # assets flattend for each t
+    ~ dist_sorted_a = jnp.take_along_axis(dist.reshape(-1,a.shape[-1]), jnp.argsort(a_flat, axis=0), axis=0) # as above
+    ~ top10a = jnp.where(jnp.cumsum(dist_sorted_a, axis=0) > .9, a_flat, 0.).sum(0)/a_flat.sum(axis=0)
+
+equations: # final stage
+    ~ C = aggr_c # definition
+    ~ Top10C = top10c # definition
+    ~ Top10A = top10a # definition
+    ~ L = Yprod / Z # production function
+    ~ Div = - w * L + (1 - psi*(pi/piSS - 1)**2/2)*Yprod # dividends
+    ~ Y = (1 - psi*(pi/piSS - 1)**2/2)*Yprod # "effective" output
+    ~ C = Y # market clearing
+    ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w/Z + psi*piPrime/Rn*(piPrime/piSS - 1)*piPrime/piSS*YprodPrime/Yprod # NKPC
+    ~ R = RsLag/pi # real rate ex-post
+    ~ Rs = (Rstar*((pi/piSS)**phi_pi)*((Y/YLag)**phi_y))**(1-rho)*RsLag**rho # MP rule on shadow nominal rate
+    ~ Rn = maximum(1, Rs) # ZLB
+    ~ Tax = (R-1) * B # balanced budget
+    ~ B = A # bond market clearing
+    ~ NE = L # labor market clearing
+    ~ beta = betaSS*(betaLag/betaSS)**rho_beta # exogenous beta
+    ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_rstar # exogenous rstar
+    ~ Z = ZSS*(ZLag/ZSS)**rho_Z # exogenous technology
+    ~ vphi = vphiSS # actually a parameter
+
+parameters:
+    eis: 0.5
+    frisch: 0.5
+    theta: 6.
+    psi: 96
+    phi_pi: 2
+    phi_y: .25
+    rho: .8
+    rho_beta: .9
+    rho_rstar: .9
+    rho_Z: .8
+
+steady_state:
+    fixed_values:
+        Y: 1.0
+        Z: 1.0
+        pi: 1.0
+        Rstar: 1.002
+        B: 5.6
+        L: 1.0
+
+    init_guesses:
+        beta: 0.98
+        vphi: 0.8
+        w: (theta-1)/theta
+        Div: 1 - w
+        Tax: 0.028
+        R: Rstar
+        we: wages(w, skills_grid)
+        T: transfers(skills_stationary, Div, Tax, skills_grid)
+        VaPrime: hh_init(a_grid, we, R, eis, T)

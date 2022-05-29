@@ -12,17 +12,17 @@ def get_func_stst_raw(par, func_pre_stst, func_backw, func_stst_dist, func_eqns,
     def func_backw_ext(x):
 
         def cond_func(cont):
-            vf, _, _, vf_old, cnt = cont
+            (vf, _, _), vf_old, cnt = cont
             cond0 = jnp.abs(vf - vf_old).max() > tol_backw
             cond1 = cnt < maxit_backw
             return cond0 & cond1
 
         def body_func(cont):
-            vf, _, _, _, cnt = cont
-            return *func_backw(x, x, x, x, vf, [], par), vf, cnt + 1
+            (vf, _, _), _, cnt = cont
+            return func_backw(x, x, x, x, vf, [], par), vf, cnt + 1
 
-        vf, decisions_output, exog_grid_vars, _, cnt = jax.lax.while_loop(
-            cond_func, body_func, (init_vf, decisions_output_init, exog_grid_vars_init, init_vf+1, 0))
+        (vf, decisions_output, exog_grid_vars), _, cnt = jax.lax.while_loop(
+            cond_func, body_func, ((init_vf, decisions_output_init, exog_grid_vars_init), init_vf+1, 0))
 
         return vf, decisions_output, exog_grid_vars, cnt
 

@@ -12,6 +12,9 @@ econpizza
     :target: https://github.com/gboehl/econpizza
 .. image:: https://readthedocs.org/projects/econpizza/badge/?version=latest
     :target: http://econpizza.readthedocs.io/en/latest/?badge=latest
+.. image:: https://github.com/gboehl/econpizza/actions/workflows/continuous-integration.yml/badge.svg
+
+![example workflow](
 
 ![example workflow](https://github.com/gboehl/econpizza/actions/workflows/continuous-integration.yml/badge.svg)
 

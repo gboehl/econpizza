@@ -2,7 +2,6 @@
 #
 # Description: the chaotic example from Boehl & Hommes (2021)
 # Author: Gregor Boehl [mail@gregorboehl.com]
-# Last-Updated: 04/06/21
 
 name: 'bh'
 variables: [x, xm1, xm2, n]

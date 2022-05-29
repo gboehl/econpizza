@@ -25,7 +25,7 @@ distributions:
       type: endogenous
       grid_variables: a_grid # a variable named a_grid will be made available during decisions calls and distributions calls
       min: 0.0
-      max: 100
+      max: 50
       n: 40
 
 decisions: # stage one
@@ -62,9 +62,9 @@ aux_equations:
 
 equations: # final stage
     # definitions
-    ~ C = aggr_c 
-    ~ Top10C = top10c 
-    ~ Top10A = top10a 
+    ~ C = aggr_c
+    ~ Top10C = top10c
+    ~ Top10A = top10a
 
     # firms
     ~ n = Yprod / Z # production function
@@ -83,7 +83,7 @@ equations: # final stage
     ~ B = A # bond market clearing
     ~ w**frisch = n # labor market clearing
 
-    # exogenous 
+    # exogenous
     ~ beta = betaSS*(betaLag/betaSS)**rho_beta # exogenous beta
     ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_rstar # exogenous rstar
     ~ Z = ZSS*(ZLag/ZSS)**rho_Z # exogenous technology

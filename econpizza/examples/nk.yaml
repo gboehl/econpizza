@@ -2,7 +2,6 @@
 #
 # Description: a small example NK model
 # Author: Gregor Boehl [mail@gregorboehl.com]
-# Last-Updated: 06/04/21
 
 name: "nk"
 variables: [y, c, pi, r, rn, beta, w, chi]

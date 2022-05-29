@@ -3,7 +3,6 @@
 # Description: a medium scale NK model with capital, capital adjustement costs, and habits
 # The model is inspired by "The zero lower bound, the dual mandate, and unconventional dynamics" (Gavin, Keen, Richter, Throckmorton, 2015 JEDC)
 # Author: Gregor Boehl [mail@gregorboehl.com]
-# Last-Updated: 02/13/22
 
 name: 'med_scale_nk'
 variables: [y, y_prod, c, pi, r, rn, beta, w, q, mc, k, i, n, z, rk, hhdf, g, b, qb, t, dd, ds, bprof]

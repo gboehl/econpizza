@@ -50,7 +50,7 @@ which works for GitHub Actions (but seems to cause problems later).
 Documentation
 -------------
 
-The documentation can be found `here <https://econpizza.readthedocs.io/en/latest/tutorial.html>`_.
+The documentation can be found `here <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
 
 Citation
 --------

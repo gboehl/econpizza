@@ -66,6 +66,11 @@ autodoc_mock_imports = ["numba", "numpy", "scipy", "jax", "jaxlib", "grgrlib"]
 autoclass_content = "both"
 autodoc_member_order = "groupwise"
 
+def setup(app):
+    app.add_stylesheet('css/custom.css')
+
+master_doc = 'index'
+
 html_theme_options = {
     "description": " Solve nonlinear heterogeneous agents models",
     "github_button": True,

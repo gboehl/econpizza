@@ -37,8 +37,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install pytest
-        #python -m pip install git+https://github.com/gboehl/grgrlib
-        #if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        python -m pip install -r requirements.txt
     - name: Test with pytest
       run: |
         pytest

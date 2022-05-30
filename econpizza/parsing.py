@@ -188,7 +188,6 @@ def load(
     # check if model is already cached
     if model in cached_mdicts:
         model = cached_models[cached_mdicts.index(model)]
-        model['context'] = globals().copy()
         load_external_functions_file(model, model['context'])
         print("(parse:) Loading cached model.")
         return model

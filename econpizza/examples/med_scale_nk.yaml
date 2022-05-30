@@ -8,11 +8,11 @@ name: 'med_scale_nk'
 variables: [y, y_prod, c, pi, r, rn, beta, w, q, mc, k, i, n, z, rk, hhdf, g, b, qb, t, dd, ds, bprof]
 shocks: [e_beta]
 
-definitions:
-    - from numpy import log, maximum
+definitions: |
+    from jax.numpy import log, maximum
 
-aux_equations:
-    - chi = wSS/(1-h)/cSS*nSS**-eta
+aux_equations: |
+    chi = wSS/(1-h)/cSS*nSS**-eta
 
 equations:
       # households

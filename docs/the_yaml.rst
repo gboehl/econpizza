@@ -22,8 +22,8 @@ The file for the small scale NK model can be found `here <https://github.com/gbo
     variables: [y, c, pi, r, rn, beta, w, chi]
     shocks: [e_beta]
 
-    definitions:
-        - from jax.numpy import log, maximum
+    definitions: |
+        from jax.numpy import log, maximum
 
 The second block defines general definitions and imports, which are available at all times.
 
@@ -41,7 +41,8 @@ The second block defines general definitions and imports, which are available at
         # chi is actually a parameter. Define it as a variables to include it into root finding to target nSS = ySS = 0.33
         ~ chi = chiSS
 
-The `equations` block defines the core model. Each of these equations must hold at any point in time. Note that you need one equation for each variable defined in `variables`.
+Equations. The central part of the yaml. Here you define the model equations, which will then be parsed such that each equation prefixed by a `~` must hold. Use ``xPrime`` for variable `x` in `t+1` and ``xLag`` for `t-1`. Access steady-state values with ``xSS``. You could specify a representative agent model with just stating the equations block (additional to variables). Importantly, ``equations`` are *not* executed subsequently but simultaneously!
+Note that you need one equation for each variable defined in ``variables``.
 
 .. code-block::
 
@@ -58,7 +59,7 @@ The `equations` block defines the core model. Each of these equations must hold 
         # chi is actually a parameter. Define it as a variables to include it into root finding to target nSS = ySS = 0.33
         ~ chi = chiSS
 
-Use the `parameters` block to define any parameters that are time invariant.
+Use the ``parameters`` block to define any parameters that are time invariant.
 
 .. code-block::
 
@@ -72,7 +73,7 @@ Use the `parameters` block to define any parameters that are time invariant.
         init_guesses: # the default init. guess is always 1.1
             chi: 6 # just for demonstrative purposes
 
-Finally, the `steady_state` block allows to fix some steady state values, and provide initial guesses for others. Note that the default initial guess for any variable not specified here will be `1.1`.
+Finally, the ``steady_state`` block allows to fix some steady state values, and provide initial guesses for others. Note that the default initial guess for any variable not specified here will be ``1.1``.
 
 
 Heterogeneous agent models
@@ -89,11 +90,11 @@ The relative path to a functions-file, which may provide additional functions. I
 .. code-block::
 
     # these are available during all three stages (decisions, distributions, equations)
-    definitions:
-        - from numpy import log, maximum
-        - from jax.experimental.host_callback import id_print as jax_print
+    definitions: |
+        from jax.numpy import log, maximum
+        from jax.experimental.host_callback import id_print as jax_print
 
-General definitions and imports. These are available during all three stages (decisions, distributions, equations).
+General definitions and imports (as above). These are available during all three stages (decisions, distributions, equations).
 
 .. code-block::
 
@@ -104,21 +105,20 @@ All the *aggregate* variables that are being tracked on a global level. If a var
 .. code-block::
 
     distributions:
-      dist: # a distribution named 'dist'
-        # ordering matters. The ordering here is corresponds to the ordering of the axis of the distribution
-        skills: # dim0
+      dist: # the name of the first distribution
+        # ordering matters. The ordering here is corresponds to the shape of the axis of the distribution
+        skills: # first dimension
           type: exogenous
           grid_variables: [skills_grid, skills_stationary, skills_transition] # returns skills_grid, skills_stationary, skills_transition
           rho: 0.966
           sigma: 0.5
           n: 4
-        a: # dim1
+        a: # second dimension
           type: endogenous
           grid_variables: a_grid # a variable named a_grid will be made available during decisions calls and distributions calls
           min: 0.0
-          max: 100
+          max: 50
           n: 40
-
 
 The distributions block. Defines a distribution (here ``dist``) and all its dimensions. The information provided here will later be used to construct the distribution-forward-functions. If this is not supplied, Pizza assumes that you are providing a representative agent model.
 
@@ -126,11 +126,11 @@ The distributions block. Defines a distribution (here ``dist``) and all its dime
 
     decisions: # stage one
       inputs: [VaPrime] # additional to all aggregated variables defined in 'variables'
-      calls:
+      calls: |
         # these are executed subsequently, starting with the latest in time T. Each call takes the previous outputs as given
-        ~ T = transfers(skills_stationary, Div, Tax, skills_grid)
-        ~ VaPrimeExp = skills_transition @ VaPrime
-        ~ Va, a, c = hh(VaPrimeExp, a_grid, skills_grid, w, n, T, R, beta, eis, frisch)
+        T = transfers(skills_stationary, Div, Tax, skills_grid)
+        VaPrimeExp = skills_transition @ VaPrime
+        Va, a, c = hh(VaPrimeExp, a_grid, skills_grid, w, n, T, R, beta, eis, frisch)
       outputs: [a,c] # those are the ones stored for the following stages
 
 
@@ -139,21 +139,21 @@ The decisions block. Only relevant for heterogeneous agents models. It is import
 .. code-block::
 
     # stage three (optional): aux_equations
-    aux_equations:
-        ~ A = jnp.sum(dist*a, axis=(0,1)) # note that we are summing over the first two dimensions e and a, but not the time dimension (dimension 2)
-        ~ aggr_c = jnp.sum(dist*c, axis=(0,1))
+    aux_equations: |
+        A = jnp.sum(dist*a, axis=(0,1)) # note that we are summing over the first two dimensions e and a, but not the time dimension (dimension 2)
+        aggr_c = jnp.sum(dist*c, axis=(0,1))
 
         # calculate consumption share of top-10% cumsumers
-        ~ c_flat = c.reshape(-1,c.shape[-1]) # consumption flattend for each t
-        ~ dist_sorted_c = jnp.take_along_axis(dist.reshape(-1,c.shape[-1]), jnp.argsort(c_flat, axis=0), axis=0) # distribution sorted after consumption level, flattend for each t
-        ~ top10c = jnp.where(jnp.cumsum(dist_sorted_c, axis=0) > .9, c_flat, 0.).sum(0)/c_flat.sum(axis=0) # must use `where` for jax. All sums must be taken over the non-time axis
+        c_flat = c.reshape(-1,c.shape[-1]) # consumption flattend for each t
+        dist_sorted_c = jnp.take_along_axis(dist.reshape(-1,c.shape[-1]), jnp.argsort(c_flat, axis=0), axis=0) # distribution sorted after consumption level, flattend for each t
+        top10c = jnp.where(jnp.cumsum(dist_sorted_c, axis=0) > .9, c_flat, 0.).sum(0)/c_flat.sum(axis=0) # must use `where` for jax. All sums must be taken over the non-time axis
 
         # calculate wealth share of top-10% wealth holders
-        ~ a_flat = a.reshape(-1,a.shape[-1]) # assets flattend for each t
-        ~ dist_sorted_a = jnp.take_along_axis(dist.reshape(-1,a.shape[-1]), jnp.argsort(a_flat, axis=0), axis=0) # as above
-        ~ top10a = jnp.where(jnp.cumsum(dist_sorted_a, axis=0) > .9, a_flat, 0.).sum(0)/a_flat.sum(axis=0)
+        a_flat = a.reshape(-1,a.shape[-1]) # assets flattend for each t
+        dist_sorted_a = jnp.take_along_axis(dist.reshape(-1,a.shape[-1]), jnp.argsort(a_flat, axis=0), axis=0) # as above
+        top10a = jnp.where(jnp.cumsum(dist_sorted_a, axis=0) > .9, a_flat, 0.).sum(0)/a_flat.sum(axis=0)
 
-Auxiliary equations. These are executed before the ``equations`` block, and can be used for all sorts of definitions that you may not want to keep track of. For heterogeneous agents models, this is a good place to do aggregation. Auxiliary equations are also executed subsequently.
+Auxiliary equations. This again works exactly as for the representative agent model. These are executed before the ``equations`` block, and can be used for all sorts of definitions that you may not want to keep track of. For heterogeneous agents models, this is a good place to do aggregation. Auxiliary equations are also executed subsequently.
 
 .. code-block::
 
@@ -185,7 +185,7 @@ Auxiliary equations. These are executed before the ``equations`` block, and can 
         ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_rstar # exogenous rstar
         ~ Z = ZSS*(ZLag/ZSS)**rho_Z # exogenous technology
 
-Equations. The central part of the yaml. Here you define the model equations, which will then be parsed such that each row must hold. Use ``xPrime`` for variable `x` in `t+1` and ``xLag`` for `t-1`. Access steady-state values with ``xSS``. You could specify a representative agent model with just stating the equations block (additional to variables). Importantly, ``equations`` are *not* executed subsequently but simultaneously!
+Equations. This also works exactly as for representative agents models.
 
 .. code-block::
 
@@ -201,7 +201,7 @@ Equations. The central part of the yaml. Here you define the model equations, wh
         rho_rstar: .9
         rho_Z: .8
 
-Define the model parameters. Note that for parameters that need to be fitted, it is better to define a variable instead (such as ``vphi`` above).
+Define the model parameters, as above. Note that for parameters that need to be fitted during steady state search, it is better to define a variable instead (such as ``vphi`` above).
 
 .. code-block::
 

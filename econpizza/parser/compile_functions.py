@@ -19,6 +19,9 @@ def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls, exog_grid
     """Compile all information to a string that defines the backward function for 'decisions'.
     """
 
+    if isinstance(calls, str):
+        calls = calls.splitlines()
+
     func_str = f"""def func_backw(XLag, X, XPrime, XSS, VFPrime, shocks, pars):
             {compile_func_basics_str(evars, par, shocks)}
             \n ({"".join(v + ", " for v in inputs)}) = VFPrime
@@ -120,6 +123,9 @@ def compile_eqn_func_str(evars, eqns, par, eqns_aux, shocks, distributions, deci
             eqns[i] = f"root_container{i} = {lhs} - ({rhs})"
         else:
             eqns[i] = f"root_container{i} = {eqn}"
+
+    if isinstance(eqns_aux, str):
+        eqns_aux = eqns_aux.splitlines()
 
     eqns_aux_stack = "\n ".join(eqns_aux) if eqns_aux else ""
     eqns_stack = "\n ".join(eqns)

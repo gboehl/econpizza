@@ -3,6 +3,7 @@
 """Functions for model parsing yaml -> working model instance. Involves a lot of dynamic function definition...
 """
 
+from copy import copy
 import yaml
 import re
 import os
@@ -48,7 +49,7 @@ def parse(mfile):
     return model
 
 
-def eval_strs(vdict, pars=None, context=globals()):
+def eval_strs(vdict, pars=None, context={}):
 
     if vdict is None:
         return None
@@ -59,7 +60,7 @@ def eval_strs(vdict, pars=None, context=globals()):
 
     for v in vdict:
         if isinstance(vdict[v], str):
-            context[v] = eval(vdict[v])
+            context[v] = eval(vdict[v], context)
             vdict[v] = eval(v, context)
         else:
             context[v] = vdict[v]
@@ -95,12 +96,12 @@ def load_external_functions_file(model, context):
 
     try:
         # load as a module
-        context['module'] = load_as_module(model["functions_file"])
+        module = load_as_module(model["functions_file"])
 
         def func_or_compiled(func): return isinstance(
             func, jaxlib.xla_extension.CompiledFunction) or isfunction(func)
         for m in getmembers(module, func_or_compiled):
-            exec(f'{m[0]} = module.{m[0]}', context)
+            context[m[0]] = m[1]
 
     except KeyError:
         pass
@@ -187,20 +188,18 @@ def load(
     # check if model is already cached
     if model in cached_mdicts:
         model = cached_models[cached_mdicts.index(model)]
-        model['context'] = globals()
+        model['context'] = globals().copy()
         load_external_functions_file(model, model['context'])
         print("(parse:) Loading cached model.")
         return model
 
-    model['context'] = globals()
+    model['context'] = globals().copy()
     load_external_functions_file(model, model['context'])
 
     defs = model.get("definitions")
-    # never ever use real numpy
-    if defs is not None:
-        for d in defs:
-            d = d.replace(" numpy ", " jax.numpy ")
-            exec(d, model['context'])
+    defs = '' if defs is None else defs
+    defs = '\n'.join(defs) if isinstance(defs, list) else defs
+    exec(defs, model['context'])
 
     eqns = model["equations"].copy()
 
@@ -213,9 +212,9 @@ def load(
     grids.create_grids(model.get('distributions'), model["context"])
 
     shocks = model.get("shocks") or ()
-    par = eval_strs(model["parameters"])
+    par = eval_strs(model["parameters"], context=model['context'])
     model["steady_state"]['fixed_evalued'] = stst = eval_strs(
-        model["steady_state"].get("fixed_values"), pars=par)
+        model["steady_state"].get("fixed_values"), pars=par, context=model['context'])
     model["root_options"] = {}
 
     # collect number of foward and backward looking variables
@@ -265,7 +264,7 @@ def load(
 
     # collect initial guesses
     model["init"] = compile_init_values(evars, decisions_inputs, eval_strs(
-        model["steady_state"].get("init_guesses")), stst)
+        model["steady_state"].get("init_guesses"), context=model['context']), stst)
 
     # get strings that contains the function definitions
     model['func_strings']["func_pre_stst"] = compile_stst_func_str(

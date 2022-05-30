@@ -7,12 +7,12 @@ name: 'bh'
 variables: [x, xm1, xm2, n]
 
 definitions:
-    - from numpy import exp
+    - from jax.numpy import exp
 
 # for stuff you don't actually want to track:
-aux_equations:
-    ~ prof_re = (xLag - R*xm1Lag)**2 - C
-    ~ prof_br = (xLag - R*xm1Lag) * (gamma*xm2Lag - R*xm1Lag)
+aux_equations: |
+    prof_re = (xLag - R*xm1Lag)**2 - C
+    prof_br = (xLag - R*xm1Lag) * (gamma*xm2Lag - R*xm1Lag)
 
 equations:
     ~ n - 1/(1 + exp(beta*(prof_br-prof_re)))

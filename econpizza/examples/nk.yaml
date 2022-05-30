@@ -8,8 +8,8 @@ name: "nk"
 variables: [y, c, pi, r, rn, beta, w, chi]
 shocks: [e_beta]
 
-definitions:
-    - from jax.numpy import log, maximum
+definitions: |
+    from jax.numpy import log, maximum
 
 equations:
     ~ w = chi*(c - h*cLag)*y**eta  # labor supply

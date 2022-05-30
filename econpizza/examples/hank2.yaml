@@ -6,12 +6,12 @@
 name: 'hank2'
 functions_file: 'hank2_functions.py'
 
-definitions:
-    - from jax.numpy import log, maximum
-    - from econpizza.utilities.grids import log_grid
-    - from econpizza.utilities.dists import expect_transition
-    - from grgrlib.jaxed import jax_print
-    - k_grid = log_grid(amax=1., n=4)[::-1]
+definitions: |
+    from jax.numpy import log, maximum
+    from econpizza.utilities.grids import log_grid
+    from econpizza.utilities.dists import expect_transition
+    from grgrlib.jaxed import jax_print
+    k_grid = log_grid(amax=1., n=4)[::-1]
 
 variables: [ C, mc, Y, pi, div, p, N, Z, w, K, Q, R, Rn, Rstar, tax, G, Rb, Ra, piw, wealth, A, B, I, vphi, chi1, beta, alpha ]
 distributions:
@@ -38,30 +38,30 @@ distributions:
 
 decisions: # backwards stage
   inputs: [VaPrime,VbPrime]
-  calls:
-    ~ z_grid = income(skills_grid, tax, w, N)
-    ~ Psi1 = marginal_cost_grid(a_grid, Ra-1, chi0, chi1, chi2)
-    ~ VaPrimeExp = expect_transition(skills_transition, VaPrime)
-    ~ VbPrimeExp = expect_transition(skills_transition, VbPrime)
-    ~ Va, Vb, a, b, c, uce = hh(VaPrimeExp, VbPrimeExp, a_grid, b_grid, z_grid, skills_grid, k_grid, beta, eis, Rb-1, Ra-1, chi0, chi1, chi2, Psi1)
+  calls: |
+    z_grid = income(skills_grid, tax, w, N)
+    Psi1 = marginal_cost_grid(a_grid, Ra-1, chi0, chi1, chi2)
+    VaPrimeExp = expect_transition(skills_transition, VaPrime)
+    VbPrimeExp = expect_transition(skills_transition, VbPrime)
+    Va, Vb, a, b, c, uce = hh(VaPrimeExp, VbPrimeExp, a_grid, b_grid, z_grid, skills_grid, k_grid, beta, eis, Rb-1, Ra-1, chi0, chi1, chi2, Psi1)
   outputs: [a,b,c,uce]
 
-aux_equations:
+aux_equations: |
     # aggregation
-    ~ aggr_a = jnp.sum(dist*a, axis=(0,1,2))
-    ~ aggr_b = jnp.sum(dist*b, axis=(0,1,2))
-    ~ aggr_c = jnp.sum(dist*c, axis=(0,1,2))
-    ~ UCE = jnp.sum(dist*uce, axis=(0,1,2))
+    aggr_a = jnp.sum(dist*a, axis=(0,1,2))
+    aggr_b = jnp.sum(dist*b, axis=(0,1,2))
+    aggr_c = jnp.sum(dist*c, axis=(0,1,2))
+    UCE = jnp.sum(dist*uce, axis=(0,1,2))
 
     # misc definitions
-    ~ dI = I/ILag
-    ~ dIPrime = IPrime/I
-    ~ p_adj_cost = psi*(pi/piSS - 1)**2/2*Y
-    ~ kap_adj_cost = 1/(2*phiss)*(dI - 1)**2
-    ~ pshareLag = pLag / ALag
+    dI = I/ILag
+    dIPrime = IPrime/I
+    p_adj_cost = psi*(pi/piSS - 1)**2/2*Y
+    kap_adj_cost = 1/(2*phiss)*(dI - 1)**2
+    pshareLag = pLag / ALag
 
     # parameters defined by steady state
-    ~ theta = 1/(1-mcSS)
+    theta = 1/(1-mcSS)
 
 equations: # main stage
   # definitions that should be tracked

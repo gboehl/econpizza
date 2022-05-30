@@ -2,26 +2,27 @@
 #
 # Description: a small example HANK model
 # Author: Gregor Boehl [mail@gregorboehl.com]
+---
 
 name: 'hank'
 functions_file: 'hank_functions.py'
 
 # these are available during all three stages (decisions, distributions, equations)
-definitions:
-    - from numpy import log, maximum
-    - from jax.experimental.host_callback import id_print as jax_print
+definitions: |
+    from jax.numpy import log, maximum
+    from jax.experimental.host_callback import id_print as jax_print
 
 variables: [Div, Y, Yprod, w, pi, Rn, Rs, R, Rstar, Tax, Z, beta, C, n, B, Top10C, Top10A]
 distributions:
   dist: # the name of the first distribution
     # ordering matters. The ordering here is corresponds to the shape of the axis of the distribution
-    skills: # dim0
+    skills: # first dimension
       type: exogenous
       grid_variables: [skills_grid, skills_stationary, skills_transition] # returns skills_grid, skills_stationary, skills_transition
       rho: 0.966
       sigma: 0.5
       n: 4
-    a: # dim1
+    a: # second dimension
       type: endogenous
       grid_variables: a_grid # a variable named a_grid will be made available during decisions calls and distributions calls
       min: 0.0
@@ -30,11 +31,11 @@ distributions:
 
 decisions: # stage one
   inputs: [VaPrime] # additional to all aggregated variables defined in 'variables'
-  calls:
+  calls: |
     # these are executed subsequently, starting with the latest in time T. Each call takes the previous outputs as given
-    ~ T = transfers(skills_stationary, Div, Tax, skills_grid)
-    ~ VaPrimeExp = skills_transition @ VaPrime
-    ~ Va, a, c = hh(VaPrimeExp, a_grid, skills_grid, w, n, T, R, beta, eis, frisch)
+    T = transfers(skills_stationary, Div, Tax, skills_grid)
+    VaPrimeExp = skills_transition @ VaPrime
+    Va, a, c = hh(VaPrimeExp, a_grid, skills_grid, w, n, T, R, beta, eis, frisch)
   outputs: [a,c] # those are the ones stored for the following stages
 
 # stage two: finding distributions via forward calls. This is done automatically using the information provided in 'distributions'
@@ -46,19 +47,19 @@ decisions: # stage one
 # outputs from decisions, the grid variables, the distributions and
 # aggregate variables from 'variables' (including those with "Prime", "Lag",...) are included by default
 # from here on the objects are _sequences_ with shapes either (1, horizon) or (n1, n2, horizon). Last dimension is always the time dimension
-aux_equations:
-    ~ A = jnp.sum(dist*a, axis=(0,1)) # note that we are summing over the first two dimensions e and a, but not the time dimension (dimension 2)
-    ~ aggr_c = jnp.sum(dist*c, axis=(0,1))
+aux_equations: |
+    A = jnp.sum(dist*a, axis=(0,1)) # note that we are summing over the first two dimensions e and a, but not the time dimension (dimension 2)
+    aggr_c = jnp.sum(dist*c, axis=(0,1))
 
     # calculate consumption share of top-10% cumsumers
-    ~ c_flat = c.reshape(-1,c.shape[-1]) # consumption flattend for each t
-    ~ dist_sorted_c = jnp.take_along_axis(dist.reshape(-1,c.shape[-1]), jnp.argsort(c_flat, axis=0), axis=0) # distribution sorted after consumption level, flattend for each t
-    ~ top10c = jnp.where(jnp.cumsum(dist_sorted_c, axis=0) > .9, c_flat, 0.).sum(0)/c_flat.sum(axis=0) # must use `where` for jax. All sums must be taken over the non-time axis
+    c_flat = c.reshape(-1,c.shape[-1]) # consumption flattend for each t
+    dist_sorted_c = jnp.take_along_axis(dist.reshape(-1,c.shape[-1]), jnp.argsort(c_flat, axis=0), axis=0) # distribution sorted after consumption level, flattend for each t
+    top10c = jnp.where(jnp.cumsum(dist_sorted_c, axis=0) > .9, c_flat, 0.).sum(0)/c_flat.sum(axis=0) # must use `where` for jax. All sums must be taken over the non-time axis
 
     # calculate wealth share of top-10% wealth holders
-    ~ a_flat = a.reshape(-1,a.shape[-1]) # assets flattend for each t
-    ~ dist_sorted_a = jnp.take_along_axis(dist.reshape(-1,a.shape[-1]), jnp.argsort(a_flat, axis=0), axis=0) # as above
-    ~ top10a = jnp.where(jnp.cumsum(dist_sorted_a, axis=0) > .9, a_flat, 0.).sum(0)/a_flat.sum(axis=0)
+    a_flat = a.reshape(-1,a.shape[-1]) # assets flattend for each t
+    dist_sorted_a = jnp.take_along_axis(dist.reshape(-1,a.shape[-1]), jnp.argsort(a_flat, axis=0), axis=0) # as above
+    top10a = jnp.where(jnp.cumsum(dist_sorted_a, axis=0) > .9, a_flat, 0.).sum(0)/a_flat.sum(axis=0)
 
 equations: # final stage
     # definitions

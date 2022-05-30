@@ -13,7 +13,8 @@ definitions: |
     from grgrlib.jaxed import jax_print
     k_grid = log_grid(amax=1., n=4)[::-1]
 
-variables: [ C, mc, Y, pi, div, p, N, Z, w, K, Q, R, Rn, Rstar, tax, G, Rb, Ra, piw, wealth, A, B, I, vphi, chi1, beta, alpha ]
+#variables: [ C, mc, Y, pi, div, p, N, Z, w, K, Q, R, Rn, Rstar, tax, G, Rb, Ra, piw, wealth, A, B, I, chi1, beta ]
+variables: [ C, mc, Y, pi, div, p, N, Z, w, K, Q, R, Rn, Rstar, tax, G, Rb, Ra, piw, wealth, A, B, I, chi1, beta, vphi ]
 distributions:
   dist: # the name of the first distribution
     # ordering matters and must be aligned with the shape of the value functions
@@ -60,9 +61,6 @@ aux_equations: |
     kap_adj_cost = 1/(2*phiss)*(dI - 1)**2
     pshareLag = pLag / ALag
 
-    # parameters defined by steady state
-    theta = 1/(1-mcSS)
-
 equations: # main stage
   # definitions that should be tracked
   ~ A = aggr_a
@@ -91,6 +89,7 @@ equations: # main stage
   # unions
   ~ piw = pi * w / wLag
   ~ psiw*(piw/piwSS - 1)*piw/piwSS = thetaw*vphi * N ** (1 + 1 / frisch) + (1-thetaw)*(1 - tax) * w * N * UCE + psi*beta*(piwPrime/piwSS - 1)*piwPrime/piwSS
+  #~ 1/N*vphi * N ** (1 + 1 / frisch) = (thetaw-1)*(1 - tax) * w * N * UCE
 
   # exogenous process
   ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_Rstar # exogenous Rstar
@@ -101,30 +100,34 @@ equations: # main stage
   # parameters that must be found during steady state (and don't have a closed form solution)
   ~ vphi = vphiSS
   ~ chi1 = chi1SS
-  ~ alpha = alphaSS
 
-parameters:
-    eis: 0.5
-    frisch: 1
-    psi: 96
-    psiw: 96
-    delta: 0.02
-    Bg: 2.8
-    chi0: 0.25
-    chi2: 2
-    phiss: 4
-    omega: 0.005
-    phi_pi: 1.5
-    phi_y: 1.5
-    rho: 0.8
-    rho_beta: 0.8
-    rho_Rstar: 0.8
-    rho_G: 0.8
-    rho_Z: 0.8
-    thetaw: 11
+#parameters: [ eis, frisch, psi, psiw, delta, Bg, chi0, chi2, phiss, omega, phi_pi, phi_y, rho, rho_beta, rho_Rstar, rho_G, rho_Z, thetaw, alpha, theta, vphi ]
+parameters: [ eis, frisch, psi, psiw, delta, Bg, chi0, chi2, phiss, omega, phi_pi, phi_y, rho, rho_beta, rho_Rstar, rho_G, rho_Z, thetaw, alpha, theta ]
 
 steady_state:
     fixed_values:
+
+      # parameters
+      eis: 0.5
+      frisch: 1
+      psi: 96
+      psiw: 96
+      delta: 0.02
+      Bg: 2.8
+      chi0: 0.25
+      chi2: 2
+      phiss: 4
+      omega: 0.005
+      phi_pi: 1.5
+      phi_y: 1.5
+      rho: 0.8
+      rho_beta: 0.8
+      rho_Rstar: 0.8
+      rho_G: 0.8
+      rho_Z: 0.8
+      thetaw: 11
+
+      # steady state
       piw: 1.
       Y: 1.
       N: 1.
@@ -144,6 +147,7 @@ steady_state:
       # 1. Solve for markup to hit total wealth
       p: wealth - Bg
       mc: 1 - (R - 1) * (p - K) / Y
+      theta: 1/(1-mc)
       # 2. Solve for capital share to hit K
       alpha: (R - 1 + delta) * K / Y / mc
       # 3. Solve for TFP to hit Y

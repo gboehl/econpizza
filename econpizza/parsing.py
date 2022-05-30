@@ -216,13 +216,6 @@ def load(
     model["no_bwd"] = sum(var + "Lag" in "".join(model["equations"])
                           for var in evars)
 
-    stst_eqns = model["steady_state"].get("equations") or []
-    # add fixed values to the steady state equations
-    if stst is not None:
-        for key in stst:
-            # setting ALL occurences of the variable should be fine since we are using pinv later
-            stst_eqns.append(f"{key} = {stst[key]}")
-
     tmpf_names = ()
     # initialize storage for all function strings
     model['func_strings'] = {}
@@ -258,15 +251,11 @@ def load(
     # collect initial guesses
     init_guesses = eval_strs(model["steady_state"].get(
         "init_guesses"), context=model['context'])
-    model["init"] = compile_init_values(evars, par, init_guesses, stst)
-    # TODO: continue here!
-    # TODO: best way would be to write stst func as a wrapper around all other funcs
-    # TODO: in the wrapper, fixed & x functions are re-allocated into pars & vars
-    # TODO: this replaces the func_pre_stst func
+    model["init"] = init = compile_init_values(evars, par, init_guesses, stst)
 
     # get strings that contains the function definitions
     model['func_strings']["func_pre_stst"] = compile_stst_func_str(
-        evars, eqns, par, stst_eqns)
+        evars, par, stst, init)
     model['func_strings']["func_eqns"] = compile_eqn_func_str(evars, deepcopy(eqns), par, eqns_aux=model.get(
         'aux_equations'), shocks=shocks, distributions=dist_names, decisions_outputs=decisions_outputs)
 

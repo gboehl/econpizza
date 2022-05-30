@@ -23,7 +23,7 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
 
     evars = model["variables"]
     func_pre_stst = model['context']["func_pre_stst"]
-    par = jnp.array(list(model["parameters"].values()))
+    par = model.get("parameters")
     shocks = model.get("shocks") or ()
 
     tol_backwards = tol_newton if tol_backwards is None else tol_backwards
@@ -31,7 +31,8 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
 
     # check if steady state was already calculated
     try:
-        cond0 = jnp.allclose(model["stst_used_pars"], par)
+        cond0 = jnp.allclose(model["stst_used_pars"], jnp.array(
+            list(model['steady_state']['fixed_evalued'].values())))
         cond1 = model["stst_used_setup"] == (
             model.get('functions_file_plain'), tol_newton, maxit_newton, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
         if cond0 and cond1 and not force:
@@ -53,22 +54,23 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
     init_vf = model.get('init_vf')
 
     # get the actual steady state function
-    func_stst_raw, func_backw_ext = get_func_stst_raw(
-        par, func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, exog_grid_vars_init, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
+    func_stst_raw, func_backw_ext = get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init,
+                                                      exog_grid_vars_init, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
 
     # define jitted stst function that returns jacobian and func. value
     func_stst = value_and_jac(jax.jit(func_stst_raw))
 
     # actual root finding
-    res = newton_jax(func_stst, model['init'], None, maxit_newton, tol_newton, sparse=False,
+    res = newton_jax(func_stst, jnp.array(list(model['init'].values())), None, maxit_newton, tol_newton, sparse=False,
                      func_returns_jac=True, solver=solver, verbose=verbose, **newton_kwargs)
 
     # exchange those values that are identified via stst_equations
-    stst_vals = func_pre_stst(res['x'][:len(evars)], par)
+    stst_vals, par_vals = func_pre_stst(res['x'][:len(evars)])
 
-    rdict = dict(zip(evars, stst_vals))
-    model["stst"] = rdict
-    model["stst_used_pars"] = par
+    model["stst"] = dict(zip(evars, stst_vals))
+    model["parameters"] = dict(zip(par, par_vals))
+    model["stst_used_pars"] = jnp.array(
+        list(model['steady_state']['fixed_evalued'].values()))
     model["stst_used_setup"] = model.get(
         'functions_file_plain'), tol_newton, maxit_newton, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
     model["stst_used_res"] = res
@@ -77,7 +79,7 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
 
     if model.get('distributions'):
         vfSS, decisions_output, exog_grid_vars, cnt_backwards = func_backw_ext(
-            stst_vals)
+            stst_vals, par_vals)
         distSS, cnt_forwards = func_stst_dist(
             decisions_output, tol_forwards, maxit_forwards)
         if jnp.isnan(jnp.array(vfSS)).any() or jnp.isnan(jnp.array(decisions_output)).any():

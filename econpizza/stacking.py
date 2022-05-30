@@ -6,7 +6,7 @@ import jax
 import time
 import jax.numpy as jnp
 import scipy.sparse as ssp
-from grgrlib.jaxed import newton_jax, jax_print, value_and_jac
+from grgrlib.jaxed import newton_jax, value_and_jac
 from .shooting import find_path_linear
 from .parser.build_functions import *
 

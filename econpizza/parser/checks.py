@@ -43,7 +43,10 @@ def check_dublicates_and_determinancy(evars, eqns):
 
 def check_initial_values(model, shocks, par):
 
-    init = model['init'][..., jnp.newaxis]
+    init_mixed = jnp.array(list(model['init'].values()))
+    init, par = model['context']['func_pre_stst'](init_mixed)
+    init = init[..., jnp.newaxis]
+
     # collect some information needed later
     model['init_run'] = {}
 
@@ -52,7 +55,7 @@ def check_initial_values(model, shocks, par):
         # make a test backward and forward run
         init_vf = model['init_vf']
         _, decisions_output_init, exog_grid_vars_init = model['context']['func_backw'](
-            init, init, init, init, init_vf, jnp.zeros(len(shocks)), jnp.array(list(par.values())))
+            init, init, init, init, init_vf, jnp.zeros(len(shocks)), par)
         dists_init, _ = model['context']['func_stst_dist'](
             decisions_output_init, 1e-8, 1)
 
@@ -72,8 +75,8 @@ def check_initial_values(model, shocks, par):
     model['init_run']['exog_grid_vars'] = exog_grid_vars_init
 
     # final test of main function
-    test = model['context']['func_eqns'](init, init, init, init, jnp.zeros(len(shocks)), jnp.array(list(
-        par.values())), jnp.array(dists_init)[..., jnp.newaxis], jnp.array(decisions_output_init)[..., jnp.newaxis])
+    test = model['context']['func_eqns'](init, init, init, init, jnp.zeros(len(shocks)), par, jnp.array(
+        dists_init)[..., jnp.newaxis], jnp.array(decisions_output_init)[..., jnp.newaxis])
 
     if mess:
         pass

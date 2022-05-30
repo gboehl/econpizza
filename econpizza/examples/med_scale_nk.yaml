@@ -53,23 +53,26 @@ equations:
     ~ beta = betaSS*(betaLag/betaSS)**rho_beta
     ~ z = zSS*(zLag/zSS)**rho_z
 
-parameters:
-    theta: 6.
-    kappa: 0.975
-    psi: 59.11
-    delta: 0.025
-    alpha: 0.33
-    Phi: 5.6
-    phi_pi: 1.5
-    phi_y: 0.1
-    h: .44
-    rho: .8
-    eta: .33
-    rho_beta: .8
-    rho_z: .9
+parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, rho_beta, rho_z ]
 
 steady_state:
     fixed_values:
+        # parameters
+        theta: 6.
+        kappa: 0.975
+        psi: 59.11
+        delta: 0.025
+        alpha: 0.33
+        Phi: 5.6
+        phi_pi: 1.5
+        phi_y: 0.1
+        h: .44
+        rho: .8
+        eta: .33
+        rho_beta: .8
+        rho_z: .9
+
+        # steady state
         beta: 0.995
         z: 1
         pi: 1.02^.25

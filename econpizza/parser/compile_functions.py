@@ -32,20 +32,19 @@ def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls, exog_grid
     return func_str
 
 
-def compile_stst_func_str(evars, eqns, par, stst_eqns):
+def compile_stst_func_str(evars, par, stst, init):
     """Compile all information from 'equations' section' to a string that defines the function.
     """
 
-    stst_eqns_stack = "\n ".join(stst_eqns)
+    stst_str = '; '.join([f'{v} = {stst[v]}' for v in stst])
 
     # compile the final function string
-    func_pre_stst_str = f"""def func_pre_stst(X, pars):
-        \n XSS = XLag = XPrime = X
-        \n shocks = []
-        {compile_func_basics_str(evars, par, [])}
-        \n {stst_eqns_stack}
+    func_pre_stst_str = f"""def func_pre_stst(Y):
+        \n ({"".join(v + ", " for v in init)}) = Y
+        \n {stst_str}
         \n X = ({"".join(v + ", " for v in evars)})
-        \n return jnp.array(X)"""
+        \n par = ({"".join(p + ", " for p in par)})
+        \n return jnp.array(X), jnp.array(par)"""
 
     return func_pre_stst_str
 

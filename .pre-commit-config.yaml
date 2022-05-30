@@ -8,8 +8,9 @@ repos:
   rev: v1.6.0
   hooks:
   - id: autopep8
-- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-  rev: v2.3.0
-  hooks:
-  - id: pretty-format-yaml
-    args: [--autofix, --indent, '2']
+# automatic yaml linting would be nice, but so far no hook accepts lines starting with ~
+#- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  #rev: v2.3.0
+  #hooks:
+  #- id: pretty-format-yaml
+    #args: [--autofix, --indent, '2']

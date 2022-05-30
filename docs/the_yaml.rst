@@ -1,6 +1,6 @@
 
 The *.yaml-file
--------------------
+---------------
 
 All relevant information is supplied via the yaml file. For general information about the YAML markup language and its syntax see `Wikipedia <https://en.wikipedia.org/wiki/YAML>`_. The yaml files follow a simple structure:
 
@@ -9,6 +9,74 @@ All relevant information is supplied via the yaml file. For general information 
 3. provide the parameters and values.
 4. optionally provide some steady state values and/or values for initial guesses
 5. optionally provide some auxilliary equations that are not directly part of the nonlinear system (see the `yaml for the BH model <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/bh.yaml>`_)
+
+I will first briefly discuss the yaml of the small scale representative agents model `above <https://econpizza.readthedocs.io/en/latest/quickstart.html#quickstart>`_ and then turn to more complex HANK model.
+
+Representative agent models
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The file for the small scale NK model can be found `here <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/NK.yaml>`_. The first block is self explanatory:
+
+.. code-block::
+
+    variables: [y, c, pi, r, rn, beta, w, chi]
+    shocks: [e_beta]
+
+    definitions:
+        - from jax.numpy import log, maximum
+
+The second block defines general definitions and imports, which are available at all times.
+
+.. code-block::
+
+    equations:
+        ~ w = chi*(c - h*cLag)*y**eta # labor supply
+        ~ 1 = r*betaPrime*(c - h*cLag)/(cPrime - h*c)/piPrime # euler equation
+        ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*betaPrime*(c-h*cLag)/(cPrime-h*c)*(piPrime/piSS - 1)*piPrime/piSS*yPrime/y # Phillips curve
+        ~ c = (1-psi*(pi/piSS - 1)**2/2)*y # market clearing
+        ~ rn = (rSS*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*rnLag**rho # monetary policy rule
+        ~ r = maximum(1, rn) # zero lower bound on nominal rates
+        ~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta # exogenous discount factor shock
+
+        # chi is actually a parameter. Define it as a variables to include it into root finding to target nSS = ySS = 0.33
+        ~ chi = chiSS
+
+The `equations` block defines the core model. Each of these equations must hold at any point in time. Note that you need one equation for each variable defined in `variables`.
+
+.. code-block::
+
+    parameters:
+        theta: 6. # demand elasticity
+        psi: 96 # price adjustment costs
+        phi_pi: 4 # monetary policy rule coefficient #1
+        phi_y: 1.5 # monetary policy rule coefficient #2
+        rho: .8 # interest rate smoothing
+        h: .44 # habit formation
+        eta: .33 # inverse Frisch elasticity
+        rho_beta: .9 # autocorrelation of discount factor shock
+
+        # chi is actually a parameter. Define it as a variables to include it into root finding to target nSS = ySS = 0.33
+        ~ chi = chiSS
+
+Use the `parameters` block to define any parameters that are time invariant.
+
+.. code-block::
+
+    steady_state:
+        fixed_values:
+            # equivalent to setting an init. guess and setting all occurences in `equations` to value
+            beta: 0.9984
+            y: .33
+            pi: 1.02^.25
+
+        init_guesses: # the default init. guess is always 1.1
+            chi: 6 # just for demonstrative purposes
+
+Finally, the `steady_state` block allows to fix some steady state values, and provide initial guesses for others. Note that the default initial guess for any variable not specified here will be `1.1`.
+
+
+Heterogeneous agent models
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Let us have a look of the yaml of a hank model we will discuss in `the tutorial <https://econpizza.readthedocs.io/en/latest/tutorial.html>`_. The file can be found `here <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/hank.yaml>`_. The first line reads:
 
@@ -60,33 +128,29 @@ The distributions block. Defines a distribution (here ``dist``) and all its dime
       inputs: [VaPrime] # additional to all aggregated variables defined in 'variables'
       calls:
         # these are executed subsequently, starting with the latest in time T. Each call takes the previous outputs as given
-        ~ T = transfers(e_stationary, Div, Tax, e_grid)
-        ~ we = wages(w, e_grid)
-        ~ VaPrimeExp = e_tmat @ VaPrime
-        ~ Va, a, c, n = hh(VaPrimeExp, a_grid, we, T, r-1, beta, eis, frisch, vphi)
-        ~ ne = labor_supply(n, e_grid)
-      outputs: [a,c,ne] # those are the ones stored for the following stages
+        ~ T = transfers(skills_stationary, Div, Tax, skills_grid)
+        ~ VaPrimeExp = skills_transition @ VaPrime
+        ~ Va, a, c = hh(VaPrimeExp, a_grid, skills_grid, w, n, T, R, beta, eis, frisch)
+      outputs: [a,c] # those are the ones stored for the following stages
+
 
 The decisions block. Only relevant for heterogeneous agents models. It is important to correctly specify the dynamic inputs (here: marginals of the value function) and outputs, i.e. those variables that are needed as inputs for the distribution stage. Note that calls are evaluated one after another.
 
 .. code-block::
 
     # stage three (optional): aux_equations
-    # these can contain misc definitions that are available during the final stage. 
-    # outputs from decisions, the grid variables, the distributions and 
-    # aggregate variables from 'variables' (including those with "Prime", "Lag",...) are included by default
-    # from here on the objects are _sequences_ with shapes either (1, horizon) or (n1, n2, horizon). Last dimension is always the time dimension
     aux_equations:
-        ~ A = np.sum(D*a, axis=(0,1)) # note that we are summing over the first two dimensions e and a, but not the time dimension (dimension 2)
-        ~ NE = np.sum(D*ne, axis=(0,1))
-        ~ aggr_c = np.sum(D*c, axis=(0,1))
+        ~ A = jnp.sum(dist*a, axis=(0,1)) # note that we are summing over the first two dimensions e and a, but not the time dimension (dimension 2)
+        ~ aggr_c = jnp.sum(dist*c, axis=(0,1))
+
         # calculate consumption share of top-10% cumsumers
         ~ c_flat = c.reshape(-1,c.shape[-1]) # consumption flattend for each t
-        ~ dist_sorted_c = jnp.take_along_axis(D.reshape(-1,c.shape[-1]), jnp.argsort(c_flat, axis=0), axis=0) # distribution sorted after consumption level, flattend for each t
+        ~ dist_sorted_c = jnp.take_along_axis(dist.reshape(-1,c.shape[-1]), jnp.argsort(c_flat, axis=0), axis=0) # distribution sorted after consumption level, flattend for each t
         ~ top10c = jnp.where(jnp.cumsum(dist_sorted_c, axis=0) > .9, c_flat, 0.).sum(0)/c_flat.sum(axis=0) # must use `where` for jax. All sums must be taken over the non-time axis
+
         # calculate wealth share of top-10% wealth holders
         ~ a_flat = a.reshape(-1,a.shape[-1]) # assets flattend for each t
-        ~ dist_sorted_a = jnp.take_along_axis(D.reshape(-1,a.shape[-1]), jnp.argsort(a_flat, axis=0), axis=0) # as above ...
+        ~ dist_sorted_a = jnp.take_along_axis(dist.reshape(-1,a.shape[-1]), jnp.argsort(a_flat, axis=0), axis=0) # as above
         ~ top10a = jnp.where(jnp.cumsum(dist_sorted_a, axis=0) > .9, a_flat, 0.).sum(0)/a_flat.sum(axis=0)
 
 Auxiliary equations. These are executed before the ``equations`` block, and can be used for all sorts of definitions that you may not want to keep track of. For heterogeneous agents models, this is a good place to do aggregation. Auxiliary equations are also executed subsequently.
@@ -94,24 +158,32 @@ Auxiliary equations. These are executed before the ``equations`` block, and can 
 .. code-block::
 
     equations: # final stage
-        ~ C = aggr_c # definition
-        ~ Top10C = top10c # definition
-        ~ Top10A = top10a # definition
-        ~ L = Yprod / Z # production function
-        ~ Div = - w * L + (1 - psi*(pi/piSS - 1)**2/2)*Yprod # dividends
+        # definitions
+        ~ C = aggr_c
+        ~ Top10C = top10c
+        ~ Top10A = top10a
+
+        # firms
+        ~ n = Yprod / Z # production function
+        ~ Div = - w * n + (1 - psi*(pi/piSS - 1)**2/2)*Yprod # dividends
         ~ Y = (1 - psi*(pi/piSS - 1)**2/2)*Yprod # "effective" output
-        ~ C = Y # market clearing
-        ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*betaPrime*C/CPrime*(piPrime/piSS - 1)*piPrime/piSS*YprodPrime/Yprod # NKPC
+        ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*piPrime/Rn*(piPrime/piSS - 1)*piPrime/piSS*YprodPrime/Yprod # NKPC
+
+        # government
         ~ R = RsLag/pi # real rate ex-post
         ~ Rs = (Rstar*((pi/piSS)**phi_pi)*((Y/YLag)**phi_y))**(1-rho)*RsLag**rho # MP rule on shadow nominal rate
         ~ Rn = maximum(1, Rs) # ZLB
-        ~ Tax = (R-1) * B # balanced budget
+        ~ Tax = (R-1) * BLag # balanced budget
+
+        # clearings
+        ~ C = Y # market clearing
         ~ B = A # bond market clearing
-        ~ NE = L # labor market clearing
+        ~ w**frisch = n # labor market clearing
+
+        # exogenous
         ~ beta = betaSS*(betaLag/betaSS)**rho_beta # exogenous beta
         ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_rstar # exogenous rstar
         ~ Z = ZSS*(ZLag/ZSS)**rho_Z # exogenous technology
-        ~ vphi = vphiSS # actually a parameter
 
 Equations. The central part of the yaml. Here you define the model equations, which will then be parsed such that each row must hold. Use ``xPrime`` for variable `x` in `t+1` and ``xLag`` for `t-1`. Access steady-state values with ``xSS``. You could specify a representative agent model with just stating the equations block (additional to variables). Importantly, ``equations`` are *not* executed subsequently but simultaneously!
 
@@ -120,16 +192,13 @@ Equations. The central part of the yaml. Here you define the model equations, wh
     parameters:
         eis: 0.5
         frisch: 0.5
-        rho_e: 0.966
-        sd_e: 0.5
-        mu: 1.2
         theta: 6.
         psi: 96
-        phi_pi: 2
-        phi_y: 1.5
+        phi_pi: 1.5
+        phi_y: .25
         rho: .8
-        rho_beta: .8
-        rho_rstar: .8
+        rho_beta: .9
+        rho_rstar: .9
         rho_Z: .8
 
 Define the model parameters. Note that for parameters that need to be fitted, it is better to define a variable instead (such as ``vphi`` above).
@@ -139,21 +208,17 @@ Define the model parameters. Note that for parameters that need to be fitted, it
     steady_state:
         fixed_values:
             Y: 1.0
-            Z: 1.0
             pi: 1.0
-            rstar: 1.005
+            beta: 0.97
             B: 5.6
-            L: 1.0
+            w: (theta-1)/theta
+            n: w**frisch
 
         init_guesses:
-            beta: 0.98
-            vphi: 0.8
-            w: 1/1.2
-            Div: 1 - 1/1.2
+            Rstar: 1.002
+            Div: 1 - w
             Tax: 0.028
-            r: 1.005
-            we: wages(w, e_grid)
-            T: transfers(e_stationary, Div, Tax, e_grid)
-            VaPrime: hh_init(a_grid, we, r, eis, T)[1]
+            R: Rstar
+            VaPrime: hh_init(a_grid, skills_stationary)
 
 The steady state block. ``fixed_values`` are those steady state values that are fixed ex-ante. ``init_guesses`` are initial guesses for steady state finding. Note that for heterogeneous agents models it is required that the initial value of inputs to the decisions-stage are given (here ``VaPrime``).

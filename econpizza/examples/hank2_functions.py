@@ -2,6 +2,8 @@
 import jax.numpy as jnp
 from econpizza.utilities.interp import interpolate_coord, apply_coord, interpolate, lhs_equals_rhs_interpolate
 
+from grgrlib.jaxed import jax_print
+
 
 def hh_init_Va(b_grid, a_grid, z_grid, eis):
     Va = (0.6 + 1.1 * b_grid[:, jnp.newaxis] +
@@ -87,6 +89,7 @@ def hh(Va_p, Vb_p, a_grid, b_grid, z_grid, e_grid, k_grid, beta, eis, rb, ra, ch
 
     # solve out budget constraint to get consumption and marginal utility
     c = addouter(z_grid, (1 + rb) * b_grid, (1 + ra) * a_grid) - Psi - a - b
+
     uc = c ** (-1 / eis)
     uce = e_grid[:, jnp.newaxis, jnp.newaxis] * uc
 

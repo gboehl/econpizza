@@ -2,6 +2,7 @@
 #
 # Description: a medium-scale HANK model with portfolio choice
 # Author: Gregor Boehl [mail@gregorboehl.com]
+---
 
 name: 'hank2'
 functions_file: 'hank2_functions.py'
@@ -13,8 +14,7 @@ definitions: |
     from grgrlib.jaxed import jax_print
     k_grid = log_grid(amax=1., n=4)[::-1]
 
-#variables: [ C, mc, Y, pi, div, p, N, Z, w, K, Q, R, Rn, Rstar, tax, G, Rb, Ra, piw, wealth, A, B, I, chi1, beta ]
-variables: [ C, mc, Y, pi, div, p, N, Z, w, K, Q, R, Rn, Rstar, tax, G, Rb, Ra, piw, wealth, A, B, I, chi1, beta, vphi ]
+variables: [ C, mc, Y, pi, div, p, N, Z, w, K, Q, R, Rn, Rstar, tax, G, Rb, Ra, piw, wealth, A, B, I, beta ]
 distributions:
   dist: # the name of the first distribution
     # ordering matters and must be aligned with the shape of the value functions
@@ -34,7 +34,7 @@ distributions:
       type: endogenous
       grid_variables: a_grid
       min: 0.0
-      max: 4000
+      max: 1000
       n: 16
 
 decisions: # backwards stage
@@ -89,7 +89,6 @@ equations: # main stage
   # unions
   ~ piw = pi * w / wLag
   ~ psiw*(piw/piwSS - 1)*piw/piwSS = thetaw*vphi * N ** (1 + 1 / frisch) + (1-thetaw)*(1 - tax) * w * N * UCE + psi*beta*(piwPrime/piwSS - 1)*piwPrime/piwSS
-  #~ 1/N*vphi * N ** (1 + 1 / frisch) = (thetaw-1)*(1 - tax) * w * N * UCE
 
   # exogenous process
   ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_Rstar # exogenous Rstar
@@ -97,12 +96,7 @@ equations: # main stage
   ~ Z = ZSS*(ZLag/ZSS)**rho_Z
   ~ beta = betaSS*(betaLag/betaSS)**rho_beta
 
-  # parameters that must be found during steady state (and don't have a closed form solution)
-  ~ vphi = vphiSS
-  ~ chi1 = chi1SS
-
-#parameters: [ eis, frisch, psi, psiw, delta, Bg, chi0, chi2, phiss, omega, phi_pi, phi_y, rho, rho_beta, rho_Rstar, rho_G, rho_Z, thetaw, alpha, theta, vphi ]
-parameters: [ eis, frisch, psi, psiw, delta, Bg, chi0, chi2, phiss, omega, phi_pi, phi_y, rho, rho_beta, rho_Rstar, rho_G, rho_Z, thetaw, alpha, theta ]
+parameters: [ eis, frisch, psi, psiw, delta, Bg, chi0, chi2, phiss, omega, phi_pi, phi_y, rho, rho_beta, rho_Rstar, rho_G, rho_Z, thetaw, alpha, theta, vphi, chi1 ]
 
 steady_state:
     fixed_values:

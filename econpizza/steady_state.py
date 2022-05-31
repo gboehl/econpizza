@@ -59,13 +59,17 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
 
     # define jitted stst function that returns jacobian and func. value
     func_stst = value_and_jac(jax.jit(func_stst_raw))
+    # store functions
+    model["context"]['func_stst_raw'] = func_stst_raw
+    model["context"]['func_stst'] = func_stst
+    model["context"]['func_backw_ext'] = func_backw_ext
 
     # actual root finding
     res = newton_jax(func_stst, jnp.array(list(model['init'].values())), None, maxit_newton, tol_newton, sparse=False,
                      func_returns_jac=True, solver=solver, verbose=verbose, **newton_kwargs)
 
     # exchange those values that are identified via stst_equations
-    stst_vals, par_vals = func_pre_stst(res['x'][:len(evars)])
+    stst_vals, par_vals = func_pre_stst(res['x'])
 
     model["stst"] = dict(zip(evars, stst_vals))
     model["parameters"] = dict(zip(par, par_vals))

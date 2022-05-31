@@ -2,6 +2,7 @@
 #
 # Description: a small example HANK model
 # Author: Gregor Boehl [mail@gregorboehl.com]
+---
 
 name: 'hank_labor'
 functions_file: 'hank_labor_functions.py'

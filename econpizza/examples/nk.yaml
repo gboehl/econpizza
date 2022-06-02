@@ -5,7 +5,7 @@
 ---
 
 name: "nk"
-variables: [y, c, pi, r, rn, beta, w, chi]
+variables: [y, c, pi, r, rn, beta, w ]
 shocks: [e_beta]
 
 definitions: |
@@ -20,21 +20,20 @@ equations:
     ~ r = maximum(1, rn)  # zero lower bound on nominal rates
     ~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta  # exogenous discount factor shock
 
-    # chi is actually a parameter. Define it as a variables to include it into root finding to target nSS = ySS = 0.33
-    ~ chi = chiSS
-
-parameters:
-    theta: 6.  # demand elasticity
-    psi: 96  # price adjustment costs
-    phi_pi: 4  # monetary policy rule coefficient #1
-    phi_y: 1.5  # monetary policy rule coefficient #2
-    rho: .8  # interest rate smoothing
-    h: .44  # habit formation
-    eta: .33  # inverse Frisch elasticity
-    rho_beta: .9  # autocorrelation of discount factor shock
+parameters: [ theta, psi, phi_pi, phi_y, rho, h, eta, rho_beta, chi ]
 
 steady_state:
     fixed_values:
+        # steady state
+        theta: 6.  # demand elasticity
+        psi: 96  # price adjustment costs
+        phi_pi: 4  # monetary policy rule coefficient #1
+        phi_y: 1.5  # monetary policy rule coefficient #2
+        rho: .8  # interest rate smoothing
+        h: .44  # habit formation
+        eta: .33  # inverse Frisch elasticity
+        rho_beta: .9  # autocorrelation of discount factor shock
+
         # equivalent to setting an init. guess and setting all occurences in `equations` to value
         beta: 0.9984
         y: .33

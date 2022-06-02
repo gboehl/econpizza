@@ -49,14 +49,10 @@ def parse(mfile):
     return model
 
 
-def eval_strs(vdict, pars=None, context={}):
+def eval_strs(vdict, context={}):
 
     if vdict is None:
         return None
-
-    if pars:
-        exec(
-            f"{', '.join(pars.keys())} = {', '.join(str(p) for p in pars.values())}", context)
 
     for v in vdict:
         if isinstance(vdict[v], str):
@@ -109,23 +105,22 @@ def load_external_functions_file(model, context):
     return False
 
 
-def compile_init_values(evars, decisions_inputs, initvals, stst):
+def compile_init_values(evars, pars, initvals, stst):
     """Combine all available information in initial guesses.
     """
 
+    ufixed_vars = {v: 1.1 for v in evars if v not in stst}
+    ufixed_pars = {v: 1.1 for v in pars if v not in stst}
+
     # get inital values to test the function
-    init = jnp.ones(len(evars)) * 1.1
+    init = ufixed_vars | ufixed_pars
 
     # structure: aggregate values first, then values of decisions functions
     if initvals is not None:
-        for v in initvals:
+        for v in init:
             # assign aggregate values
-            if v in evars:
-                init = init.at[evars.index(v)].set(initvals[v])
-
-    if stst:
-        for v in stst:
-            init = init.at[evars.index(v)].set(stst[v])
+            if v in initvals:
+                init[v] = initvals[v]
 
     return init
 
@@ -188,7 +183,6 @@ def load(
     # check if model is already cached
     if model in cached_mdicts:
         model = cached_models[cached_mdicts.index(model)]
-        load_external_functions_file(model, model['context'])
         print("(parse:) Loading cached model.")
         return model
 
@@ -211,9 +205,9 @@ def load(
     grids.create_grids(model.get('distributions'), model["context"])
 
     shocks = model.get("shocks") or ()
-    par = eval_strs(model["parameters"], context=model['context'])
+    par = model.get("parameters")
     model["steady_state"]['fixed_evalued'] = stst = eval_strs(
-        model["steady_state"].get("fixed_values"), pars=par, context=model['context'])
+        model["steady_state"].get("fixed_values"), context=model['context'])
     model["root_options"] = {}
 
     # collect number of foward and backward looking variables
@@ -221,13 +215,6 @@ def load(
         var + "Prime" in "".join(model["equations"]) for var in evars)
     model["no_bwd"] = sum(var + "Lag" in "".join(model["equations"])
                           for var in evars)
-
-    stst_eqns = model["steady_state"].get("equations") or []
-    # add fixed values to the steady state equations
-    if stst is not None:
-        for key in stst:
-            # setting ALL occurences of the variable should be fine since we are using pinv later
-            stst_eqns.append(f"{key} = {stst[key]}")
 
     tmpf_names = ()
     # initialize storage for all function strings
@@ -262,12 +249,13 @@ def load(
         dist_names = []
 
     # collect initial guesses
-    model["init"] = compile_init_values(evars, decisions_inputs, eval_strs(
-        model["steady_state"].get("init_guesses"), context=model['context']), stst)
+    init_guesses = eval_strs(model["steady_state"].get(
+        "init_guesses"), context=model['context'])
+    model["init"] = init = compile_init_values(evars, par, init_guesses, stst)
 
     # get strings that contains the function definitions
     model['func_strings']["func_pre_stst"] = compile_stst_func_str(
-        evars, eqns, par, stst_eqns)
+        evars, par, stst, init)
     model['func_strings']["func_eqns"] = compile_eqn_func_str(evars, deepcopy(eqns), par, eqns_aux=model.get(
         'aux_equations'), shocks=shocks, distributions=dist_names, decisions_outputs=decisions_outputs)
 

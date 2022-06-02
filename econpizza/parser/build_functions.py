@@ -3,13 +3,12 @@
 
 import jax
 import jax.numpy as jnp
-from jax.experimental.host_callback import id_print as jax_print
 from scipy import sparse
 
 
-def get_func_stst_raw(par, func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, exog_grid_vars_init, tol_backw, maxit_backw, tol_forw, maxit_forw):
+def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, exog_grid_vars_init, tol_backw, maxit_backw, tol_forw, maxit_forw):
 
-    def func_backw_ext(x):
+    def func_backw_ext(x, par):
 
         def cond_func(cont):
             (vf, _, _), vf_old, cnt = cont
@@ -26,14 +25,15 @@ def get_func_stst_raw(par, func_pre_stst, func_backw, func_stst_dist, func_eqns,
 
         return vf, decisions_output, exog_grid_vars, cnt
 
-    def func_stst_raw(x):
+    def func_stst_raw(y):
 
-        x = func_pre_stst(x, par)[..., jnp.newaxis]
+        x, par = func_pre_stst(y)
+        x = x[..., jnp.newaxis]
 
         if not func_stst_dist:
             return func_eqns(x, x, x, x, jax.numpy.zeros(len(shocks)), par)
 
-        vf, decisions_output, exog_grid_vars, _ = func_backw_ext(x)
+        vf, decisions_output, exog_grid_vars, _ = func_backw_ext(x, par)
         dist, cnt = func_stst_dist(decisions_output, tol_forw, maxit_forw)
 
         # TODO: for more than one dist this should be a loop...

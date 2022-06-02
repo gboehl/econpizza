@@ -89,20 +89,23 @@ equations: # final stage
     ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_rstar # exogenous rstar
     ~ Z = ZSS*(ZLag/ZSS)**rho_Z # exogenous technology
 
-parameters:
-    eis: 0.5
-    frisch: 0.5
-    theta: 6.
-    psi: 96
-    phi_pi: 1.5
-    phi_y: .25
-    rho: .8
-    rho_beta: .9
-    rho_rstar: .9
-    rho_Z: .8
+parameters: [ eis, frisch, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_Z ]
 
 steady_state:
     fixed_values:
+        # parameters:
+        eis: 0.5
+        frisch: 0.5
+        theta: 6.
+        psi: 96
+        phi_pi: 1.5
+        phi_y: .25
+        rho: .8
+        rho_beta: .9
+        rho_rstar: .9
+        rho_Z: .8
+
+        # steady state
         Y: 1.0
         pi: 1.0
         beta: 0.97

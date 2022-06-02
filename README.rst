@@ -21,6 +21,8 @@ The package makes heavy use of `automatic differentiation <https://en.wikipedia.
 
 The package allows to solve nonlinear HANK models. The approach to deal with the distribution is inspired by the `Sequence-Space Jacobian <https://github.com/shade-econ/sequence-jacobian>`_ method (`Auclert et al., 2022, ECMA <https://doi.org/10.3982/ECTA17434>`_). Steady state and nonlinear impulse responses (including, e.g., the ELB) can typically be found within a few seconds.
 
+There is a `model parser <https://econpizza.readthedocs.io/en/latest/quickstart.html#the-yaml-file>`_ to allow for the simple and generic specification of models (with or without heterogeneity).
+
 Installation
 -------------
 

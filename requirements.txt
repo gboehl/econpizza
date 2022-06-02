@@ -7,4 +7,4 @@ numba
 scipy
 jax
 jaxlib
-grgrlib>=0.1.7
+grgrlib>=0.1.8

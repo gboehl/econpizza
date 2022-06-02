@@ -5,10 +5,11 @@ The *.yaml-file
 All relevant information is supplied via the yaml file. For general information about the YAML markup language and its syntax see `Wikipedia <https://en.wikipedia.org/wiki/YAML>`_. The yaml files follow a simple structure:
 
 1. define all variables and shocks
-2. provide the nonlinear equations. Note that each line starts with a `~`.
-3. provide the parameters and values.
-4. optionally provide some steady state values and/or values for initial guesses
-5. optionally provide some auxilliary equations that are not directly part of the nonlinear system (see the `yaml for the BH model <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/bh.yaml>`_)
+2. provide the nonlinear equations. Note that each equation starts with a `~`.
+3. define the parameters
+4. define the values of the parameters in the `steady_state` section
+5. optionally provide some steady state values and/or values for initial guesses
+6. optionally provide auxilliary equations that are not directly part of the nonlinear system (see the `yaml for the BH model <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/bh.yaml>`_)
 
 I will first briefly discuss the yaml of the small scale representative agents model `above <https://econpizza.readthedocs.io/en/latest/quickstart.html#quickstart>`_ and then turn to more complex HANK model.
 
@@ -46,34 +47,33 @@ Note that you need one equation for each variable defined in ``variables``.
 
 .. code-block::
 
-    parameters:
-        theta: 6. # demand elasticity
-        psi: 96 # price adjustment costs
-        phi_pi: 4 # monetary policy rule coefficient #1
-        phi_y: 1.5 # monetary policy rule coefficient #2
-        rho: .8 # interest rate smoothing
-        h: .44 # habit formation
-        eta: .33 # inverse Frisch elasticity
-        rho_beta: .9 # autocorrelation of discount factor shock
+    parameters: [ theta, psi, phi_pi, phi_y, rho, h, eta, rho_beta, chi ]
 
-        # chi is actually a parameter. Define it as a variables to include it into root finding to target nSS = ySS = 0.33
-        ~ chi = chiSS
-
-Use the ``parameters`` block to define any parameters that are time invariant.
+Use the ``parameters`` block to define any parameters. Parameters are treated the same as variables, but they are time invariant. During steady state search they are treated exactly equally. For this reason their values are provided in the `steady_state` block.
 
 .. code-block::
 
     steady_state:
         fixed_values:
-            # equivalent to setting an init. guess and setting all occurences in `equations` to value
+            # parameters
+            theta: 6.  # demand elasticity
+            psi: 96  # price adjustment costs
+            phi_pi: 4  # monetary policy rule coefficient #1
+            phi_y: 1.5  # monetary policy rule coefficient #2
+            rho: .8  # interest rate smoothing
+            h: .44  # habit formation
+            eta: .33  # inverse Frisch elasticity
+            rho_beta: .9  # autocorrelation of discount factor shock
+
+            # steady state values
             beta: 0.9984
             y: .33
             pi: 1.02^.25
 
-        init_guesses: # the default init. guess is always 1.1
-            chi: 6 # just for demonstrative purposes
+        init_guesses: # the default initial guess is always 1.1
+            chi: 6
 
-Finally, the ``steady_state`` block allows to fix some steady state values, and provide initial guesses for others. Note that the default initial guess for any variable not specified here will be ``1.1``.
+Finally, the ``steady_state`` block allows to fix parameters and, if desired, some steady state values, and provide initial guesses for others. Note that the default initial guess for any variable/parameter not specified here will be ``1.1``.
 
 
 Heterogeneous agent models
@@ -189,24 +189,27 @@ Equations. This also works exactly as for representative agents models.
 
 .. code-block::
 
-    parameters:
-        eis: 0.5
-        frisch: 0.5
-        theta: 6.
-        psi: 96
-        phi_pi: 1.5
-        phi_y: .25
-        rho: .8
-        rho_beta: .9
-        rho_rstar: .9
-        rho_Z: .8
+    parameters: [ eis, frisch, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_Z ]
 
-Define the model parameters, as above. Note that for parameters that need to be fitted during steady state search, it is better to define a variable instead (such as ``vphi`` above).
+Define the model parameters, as above.
 
 .. code-block::
 
     steady_state:
         fixed_values:
+            # parameters:
+            eis: 0.5
+            frisch: 0.5
+            theta: 6.
+            psi: 96
+            phi_pi: 1.5
+            phi_y: .25
+            rho: .8
+            rho_beta: .9
+            rho_rstar: .9
+            rho_Z: .8
+
+            # steady state
             Y: 1.0
             pi: 1.0
             beta: 0.97
@@ -221,4 +224,6 @@ Define the model parameters, as above. Note that for parameters that need to be 
             R: Rstar
             VaPrime: hh_init(a_grid, skills_stationary)
 
-The steady state block. ``fixed_values`` are those steady state values that are fixed ex-ante. ``init_guesses`` are initial guesses for steady state finding. Note that for heterogeneous agents models it is required that the initial value of inputs to the decisions-stage are given (here ``VaPrime``).
+The steady state block. ``fixed_values`` are those steady state values that are fixed ex-ante. ``init_guesses`` are initial guesses for steady state finding. Values are defined from the top to the bottom, so it is possible to use recursive definitions, such as `n: w**frisch`.
+
+Note that for heterogeneous agents models it is required that the initial value of inputs to the decisions-stage are given (here ``VaPrime``).

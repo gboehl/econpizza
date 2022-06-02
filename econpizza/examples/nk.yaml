@@ -24,7 +24,7 @@ parameters: [ theta, psi, phi_pi, phi_y, rho, h, eta, rho_beta, chi ]
 
 steady_state:
     fixed_values:
-        # steady state
+        # parameters
         theta: 6.  # demand elasticity
         psi: 96  # price adjustment costs
         phi_pi: 4  # monetary policy rule coefficient #1
@@ -34,10 +34,10 @@ steady_state:
         eta: .33  # inverse Frisch elasticity
         rho_beta: .9  # autocorrelation of discount factor shock
 
-        # equivalent to setting an init. guess and setting all occurences in `equations` to value
+        # steady state values
         beta: 0.9984
         y: .33
         pi: 1.02^.25
 
-    init_guesses:  # the default init. guess is always 1.1
-        chi: 6  # just for demonstrative purposes
+    init_guesses: # the default initial guess is always 1.1
+        chi: 6

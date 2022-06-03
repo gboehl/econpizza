@@ -15,7 +15,7 @@ econpizza
 .. image:: https://badge.fury.io/py/econpizza.svg
     :target: https://badge.fury.io/py/econpizza
 
-A toolbox to express, solve and simulate nonlinear perfect foresight models, with or without heterogeneous agents.
+A toolbox to express, solve and simulate nonlinear perfect foresight models, with or without heterogeneous agents, including an easy-to-use parser for model specification.
 The baseline mechanism is a Newton-based stacking method in the spirit of Boucekkine (1995), Juillard (1996) and others. Hence, the method is similar to the solver in dynare, but faster and more robust due to the use of automatic differentiation and sparse jacobians. Even perfect-foresight IRFs for large-scale nonlinear models with, e.g., occassionally binding constraints can be computed in less than a second.
 
 The package makes heavy use of `automatic differentiation <https://en.wikipedia.org/wiki/Automatic_differentiation>`_ via `Jax <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_.

@@ -64,7 +64,7 @@ def get_stacked_func(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, dis
 
         return (dist, decisions_output_storage), dist
 
-    def stacked_func(x):
+    def stacked_func(x, full_output=False):
 
         X = jax.numpy.vstack((x0, x.reshape((horizon - 1, nvars)), endpoint)).T
 
@@ -81,6 +81,9 @@ def get_stacked_func(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, dis
             dists_storage = jnp.moveaxis(dists_storage, 0, -1)
         else:
             decisions_output_storage, dists_storage = [], []
+
+        if full_output:
+            return decisions_output_storage, dists_storage
 
         out = func_eqns(X[:, :-2].reshape(nshpe), X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(
             nshpe), stst, zshock, pars, dists_storage, decisions_output_storage)

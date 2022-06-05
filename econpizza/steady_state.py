@@ -82,6 +82,7 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
     mess = ''
 
     if model.get('distributions'):
+        # TODO: loosing some time here
         vfSS, decisions_output, exog_grid_vars, cnt_backwards = func_backw_ext(
             stst_vals, par_vals)
         distSS, cnt_forwards = func_stst_dist(

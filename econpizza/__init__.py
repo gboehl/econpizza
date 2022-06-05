@@ -21,6 +21,20 @@ class PizzaModel(dict):
         super(PizzaModel, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
+    def get_het_vars(self, xst):
+
+        stacked_func = self['context']['stacked_func']
+        decisions_outputs = self['decisions']['outputs']
+        dist_names = list(self['distributions'].keys())
+
+        het_vars = stacked_func(xst[1:-1], True)
+
+        rdict = {oput: het_vars[0][i]
+                 for i, oput in enumerate(decisions_outputs)}
+        rdict |= {oput: het_vars[1][i] for i, oput in enumerate(dist_names)}
+
+        return rdict
+
 
 PizzaModel.find_stack = find_stack
 PizzaModel.find_path = find_pizza

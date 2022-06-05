@@ -89,3 +89,18 @@ def check_initial_values(model, shocks, par):
         raise Exception(mess + ' for initial values.')
 
     return
+
+
+def check_shapes(distributions, init_decisions, dist_names):
+
+    decisions_shape = init_decisions.shape
+    dist_shape = tuple([d.get('n')
+                       for d in distributions[dist_names[0]].values()])
+    check = [(ds == decisions_shape[-len(dist_shape):][i] or ds is None)
+             for i, ds in enumerate(dist_shape)]
+
+    if not all(check):
+        raise Exception(
+            f"Initial decisions and the distribution have different shapes in last dimensions: {decisions_shape}, {dist_shape}")
+
+    return

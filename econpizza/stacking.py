@@ -72,7 +72,7 @@ def find_stack(
 
     stacked_func_raw = get_stacked_func(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS,
                                         distSS, zshock, tshock, horizon, nvars, endpoint, model.get('distributions'), shock)
-    stacked_func = jax.jit(stacked_func_raw)
+    stacked_func = jax.jit(stacked_func_raw, static_argnames='full_output')
     model['context']['stacked_func'] = stacked_func
 
     if verbose:

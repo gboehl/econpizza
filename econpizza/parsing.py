@@ -139,8 +139,8 @@ def define_function(func_str, context):
 
 
 def get_exog_grid_var_names(distributions):
-    # TODO: this will be important when implementing that grid parameters are endogenous variables
-    # TODO: when activated, backward calls already return exogenous grid vars (exog_grid_var). They are not yet stacked, and not yet an input to forward calls
+    # NOTE: this will be important when implementing that grid parameters are endogenous variables
+    # NOTE: when activated, backward calls already return exogenous grid vars (exog_grid_var). They are not yet stacked, and not yet an input to forward calls
 
     exog_grid_var_names = ()
 
@@ -220,7 +220,7 @@ def load(
     # initialize storage for all function strings
     model['func_strings'] = {}
 
-    # TODO: currently disabled
+    # NOTE: currently disabled
     exog_grid_var_names = get_exog_grid_var_names(model.get('distributions'))
 
     # get function strings for decisions and distributions, if they exist
@@ -272,12 +272,7 @@ def load(
         model['init_vf'] = jnp.array(init_vf_list)
 
         # check if initial decision functions and the distribution have same shapes
-        dist_shape = tuple(
-            [d['n'] for d in model['distributions'][dist_names[0]].values()])
-        decisions_shape = model['init_vf'].shape
-        if decisions_shape[-len(dist_shape):] != dist_shape:
-            raise Exception(
-                f"Initial decision and the distribution have different shapes: {decisions_shape}, {dist_shape}")
+        check_shapes(model['distributions'], model['init_vf'], dist_names)
 
     # try if function works on initvals
     model['init_run'] = {}

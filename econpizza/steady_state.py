@@ -104,7 +104,9 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
         jac = res['jac']
         rank = jnp.linalg.matrix_rank(jac)
         if rank:
-            mess += f"Jacobian has rank {rank} for {jac.shape[0]} variables ({len(model['steady_state']['fixed_evalued'])} fixed). "
+            nvars = len(evars)+len(par)
+            nfixed = len(model['steady_state']['fixed_evalued'])
+            mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of freedom ({nvars} variables/parameters, {nfixed} fixed). "
         if not res["success"]:
             mess = f"Steady state not found (error is {err:1.2e}). {res['message']} {mess}"
         else:

@@ -144,9 +144,4 @@ def test_hank2(create=False):
         assert np.allclose(x, test_x)
 
 
-test_bh()
 test_nk()
-test_stacked()
-test_hank()
-test_hank_labor()
-test_hank2()

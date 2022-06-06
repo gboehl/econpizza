@@ -73,20 +73,18 @@ def compile_func_dist_str(distributions, decisions_outputs):
             raise NotImplementedError(
                 'Exogenous distributions with more than one dimension are not yet implemented.')
 
-        func_stst_dist_str_tpl += f"\n endog_inds0, endog_probs0 = interp.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})",
-        func_dist_str_tpl += f"\n endog_inds0, endog_probs0 = interp.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})",
+        func_dist_str_tpl = f"\n endog_inds0, endog_probs0 = interp.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})",
 
         if len(endo) == 1:
-            func_stst_dist_str_tpl += f"\n {dist_name}, {dist_name}_cnt = dists.stationary_distribution_forward_policy_1d(endog_inds0, endog_probs0, {dist[exog[0]]['grid_variables'][2]}, tol, maxit)",
+            func_stst_dist_str_tpl = func_dist_str_tpl + \
+                (f"\n {dist_name}, {dist_name}_cnt = dists.stationary_distribution_forward_policy_1d(endog_inds0, endog_probs0, {dist[exog[0]]['grid_variables'][2]}, tol, maxit)",)
             func_dist_str_tpl += f"\n {dist_name} = {dist[exog[0]]['grid_variables'][2]}.T @ dists.forward_policy_1d({dist_name}, endog_inds0, endog_probs0)",
 
         elif len(endo) == 2:
-            func_stst_dist_str_tpl += f"""
-                \n endog_inds1, endog_probs1 = interp.interpolate_coord_robust({dist[endo[1]]['grid_variables']}, {endo[1]})
-                \n {dist_name}, {dist_name}_cnt = dists.stationary_distribution_forward_policy_2d(endog_inds0, endog_inds1, endog_probs0, endog_probs1, {dist[exog[0]]['grid_variables'][2]}, tol, maxit)
-                """,
+            func_dist_str_tpl += f"\n endog_inds1, endog_probs1 = interp.interpolate_coord_robust({dist[endo[1]]['grid_variables']}, {endo[1]})",
+            func_stst_dist_str_tpl = func_dist_str_tpl + \
+                (f"\n {dist_name}, {dist_name}_cnt = dists.stationary_distribution_forward_policy_2d(endog_inds0, endog_inds1, endog_probs0, endog_probs1, {dist[exog[0]]['grid_variables'][2]}, tol, maxit)",)
             func_dist_str_tpl += f"""
-                \n endog_inds1, endog_probs1 = interp.interpolate_coord_robust({dist[endo[1]]['grid_variables']}, {endo[1]})
                 \n forwarded_dist = dists.forward_policy_2d({dist_name}, endog_inds0, endog_inds1, endog_probs0, endog_probs1)
                 \n {dist_name} = expect_transition({dist[exog[0]]['grid_variables'][2]}.T, forwarded_dist)
                 """,

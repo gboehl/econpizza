@@ -50,6 +50,7 @@ decisions: # stage one
 aux_equations: |
     A = jnp.sum(dist*a, axis=(0,1)) # note that we are summing over the first two dimensions e and a, but not the time dimension (dimension 2)
     aggr_c = jnp.sum(dist*c, axis=(0,1))
+    # `dist` here corresponds to the dist from the *previous* period.
 
     # calculate consumption share of top-10% cumsumers
     c_flat = c.reshape(-1,c.shape[-1]) # consumption flattend for each t

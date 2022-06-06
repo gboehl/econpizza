@@ -54,15 +54,14 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
     init_vf = model.get('init_vf')
 
     # get the actual steady state function
-    func_stst_raw, func_backw_ext = get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init,
-                                                      exog_grid_vars_init, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
+    func_stst_raw = get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init,
+                                      exog_grid_vars_init, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
 
     # define jitted stst function that returns jacobian and func. value
     func_stst = value_and_jac(jax.jit(func_stst_raw))
     # store functions
     model["context"]['func_stst_raw'] = func_stst_raw
     model["context"]['func_stst'] = func_stst
-    model["context"]['func_backw_ext'] = func_backw_ext
 
     # actual root finding
     res = newton_jax(func_stst, jnp.array(list(model['init'].values())), None, maxit_newton, tol_newton, sparse=False,
@@ -83,10 +82,9 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
 
     if model.get('distributions'):
         # TODO: loosing some time here
-        vfSS, decisions_output, exog_grid_vars, cnt_backwards = func_backw_ext(
-            stst_vals, par_vals)
-        distSS, cnt_forwards = func_stst_dist(
-            decisions_output, tol_forwards, maxit_forwards)
+        res_backw, res_forw = func_stst_raw(res['x'], True)
+        vfSS, decisions_output, exog_grid_vars, cnt_backwards = res_backw
+        distSS, cnt_forwards = res_forw
         if jnp.isnan(jnp.array(vfSS)).any() or jnp.isnan(jnp.array(decisions_output)).any():
             mess += f"Backward iteration returns 'NaN's. "
         elif jnp.isnan(distSS).any():

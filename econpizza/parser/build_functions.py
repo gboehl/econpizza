@@ -8,41 +8,47 @@ from scipy import sparse
 
 def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, exog_grid_vars_init, tol_backw, maxit_backw, tol_forw, maxit_forw):
 
+    def cond_func(cont):
+        (vf, _, _), vf_old, cnt = cont
+        cond0 = jnp.abs(vf - vf_old).max() > tol_backw
+        cond1 = cnt < maxit_backw
+        return cond0 & cond1
+
+    def body_func_raw(cont, x, par):
+        (vf, _, _), _, cnt = cont
+        return func_backw(x, x, x, x, vf, [], par), vf, cnt + 1
+
     def func_backw_ext(x, par):
 
-        def cond_func(cont):
-            (vf, _, _), vf_old, cnt = cont
-            cond0 = jnp.abs(vf - vf_old).max() > tol_backw
-            cond1 = cnt < maxit_backw
-            return cond0 & cond1
-
-        def body_func(cont):
-            (vf, _, _), _, cnt = cont
-            return func_backw(x, x, x, x, vf, [], par), vf, cnt + 1
+        def body_func(cont): return body_func_raw(cont, x, par)
 
         (vf, decisions_output, exog_grid_vars), _, cnt = jax.lax.while_loop(
             cond_func, body_func, ((init_vf, decisions_output_init, exog_grid_vars_init), init_vf+1, 0))
 
         return vf, decisions_output, exog_grid_vars, cnt
 
-    def func_stst_raw(y):
+    def func_stst_raw(y, full_output=False):
 
         x, par = func_pre_stst(y)
         x = x[..., jnp.newaxis]
 
         if not func_stst_dist:
-            return func_eqns(x, x, x, x, jax.numpy.zeros(len(shocks)), par)
+            return func_eqns(x, x, x, x, jnp.zeros(len(shocks)), par)
 
-        vf, decisions_output, exog_grid_vars, _ = func_backw_ext(x, par)
-        dist, cnt = func_stst_dist(decisions_output, tol_forw, maxit_forw)
+        vf, decisions_output, exog_grid_vars, cnt_backw = func_backw_ext(
+            x, par)
+        dist, cnt_forw = func_stst_dist(decisions_output, tol_forw, maxit_forw)
 
         # TODO: for more than one dist this should be a loop...
         decisions_output_array = decisions_output[..., jnp.newaxis]
         dist_array = dist[..., jnp.newaxis]
 
+        if full_output:
+            return (vf, decisions_output, exog_grid_vars, cnt_backw), (dist, cnt_forw)
+
         return func_eqns(x, x, x, x, [], par, dist_array, decisions_output_array)
 
-    return func_stst_raw, func_backw_ext
+    return func_stst_raw
 
 
 def get_stacked_func(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, distSS, zshock, tshock, horizon, nvars, endpoint, has_distributions, shock):
@@ -63,10 +69,11 @@ def get_stacked_func(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, dis
         dist = func_dist(dist_old, decisions_output_storage[..., i])
 
         return (dist, decisions_output_storage), dist
+    from grgrlib.jaxed import jax_print
 
     def stacked_func(x, full_output=False):
 
-        X = jax.numpy.vstack((x0, x.reshape((horizon - 1, nvars)), endpoint)).T
+        X = jnp.vstack((x0, x.reshape((horizon - 1, nvars)), endpoint)).T
 
         if has_distributions:
             # backwards step
@@ -78,12 +85,17 @@ def get_stacked_func(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, dis
             # forwards step
             _, dists_storage = jax.lax.scan(
                 forwards_step, (distSS, decisions_output_storage), jnp.arange(horizon-1))
+            dists_storage = jnp.vstack((distSS[jnp.newaxis], dists_storage))
             dists_storage = jnp.moveaxis(dists_storage, 0, -1)
         else:
             decisions_output_storage, dists_storage = [], []
 
         if full_output:
             return decisions_output_storage, dists_storage
+
+        elif has_distributions:
+            # important: use the time-{t-1} distribution in time t. This is correct because the output from EGM corresponds to the time-(t-1) distribution
+            dists_storage = dists_storage[..., :-1]
 
         out = func_eqns(X[:, :-2].reshape(nshpe), X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(
             nshpe), stst, zshock, pars, dists_storage, decisions_output_storage)
@@ -111,8 +123,8 @@ def get_jac(pars, func_eqns, stst, x0, horizon, nvars, endpoint, zshock, tshock,
     # TODO: also, this function can be sourced out
     def jac(x):
 
-        X = jax.numpy.vstack((x0, x.reshape((horizon - 1, nvars)), endpoint))
-        Y = jax.numpy.hstack((X[:-2], X[1:-1], X[2:]))
+        X = jnp.vstack((x0, x.reshape((horizon - 1, nvars)), endpoint))
+        Y = jnp.hstack((X[:-2], X[1:-1], X[2:]))
         jac_parts = jac_vmap(Y)
 
         J = sparse.lil_array(((horizon-1)*nvars, (horizon-1)*nvars))

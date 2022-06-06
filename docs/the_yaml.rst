@@ -142,6 +142,8 @@ The decisions block. Only relevant for heterogeneous agents models. It is import
     aux_equations: |
         A = jnp.sum(dist*a, axis=(0,1)) # note that we are summing over the first two dimensions e and a, but not the time dimension (dimension 2)
         aggr_c = jnp.sum(dist*c, axis=(0,1))
+        # `dist` here corresponds to the dist from the *previous* period.
+
 
         # calculate consumption share of top-10% cumsumers
         c_flat = c.reshape(-1,c.shape[-1]) # consumption flattend for each t
@@ -154,6 +156,8 @@ The decisions block. Only relevant for heterogeneous agents models. It is import
         top10a = jnp.where(jnp.cumsum(dist_sorted_a, axis=0) > .9, a_flat, 0.).sum(0)/a_flat.sum(axis=0)
 
 Auxiliary equations. This again works exactly as for the representative agent model. These are executed before the ``equations`` block, and can be used for all sorts of definitions that you may not want to keep track of. For heterogeneous agents models, this is a good place to do aggregation. Auxiliary equations are also executed subsequently.
+
+The distribution (``dist``) corresponds to the distribution **at the beginning of the period**, i.e. the distribution from last period. This is because the outputs of the decisions stage correspond to the asset holdings (on grid) at the beginning of the period, while the distribution calculated *from* the decision outputs holds for the next period.
 
 .. code-block::
 

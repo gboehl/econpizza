@@ -37,7 +37,8 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
             model.get('functions_file_plain'), tol_newton, maxit_newton, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
         if cond0 and cond1 and not force:
             if verbose:
-                print("(solve_stst:) Steady state already known.")
+                print("(solve_stst:) Steady state already %." %
+                      ('known' if model['stst_used_success'] else 'failed'))
 
             return model['stst_used_res']
     except KeyError:
@@ -77,6 +78,7 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
     model["stst_used_setup"] = model.get(
         'functions_file_plain'), tol_newton, maxit_newton, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
     model["stst_used_res"] = res
+    model["stst_used_success"] = res['success']
 
     mess = ''
 

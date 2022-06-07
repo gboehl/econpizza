@@ -26,6 +26,10 @@ Econpizza can solve nonlinear HANK models. The approach to deal with the distrib
 
 There is a `model parser <https://econpizza.readthedocs.io/en/latest/quickstart.html#the-yaml-file>`_ to allow for the simple and generic specification of models (with or without heterogeneity).
 
+
+**Tutorials** and **documentation** can be found on `Read the Docs <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
+
+
 Installation
 ------------
 
@@ -52,11 +56,6 @@ Econpizza needs **Jax** to be installed. This is not a problem for MacOS and Lin
 
 which works for GitHub Actions (but seems to cause problems later).
 
-Documentation
--------------
-
-The documentation can be found `here <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
-
 Citation
 --------
 
@@ -71,7 +70,8 @@ Citation
     year = {2022}
     }
 
-For the Boehl-Hommes method:
+For the Boehl-Hommes method: Boehl, Gregor and Hommes, Cars (2021). `Rational vs. Irrational Beliefs in a Complex World <https://gregorboehl.com/live/rational_chaos_bh.pdf>`_. *IMFS Working papers*
+
 
 .. code-block::
 
@@ -85,8 +85,3 @@ For the Boehl-Hommes method:
 
 I appreciate citations for **econpizza** because it helps me to find out how people have been using the package and it motivates further work.
 
-
-References
-----------
-
-Boehl, Gregor and Hommes, Cars (2021). `Rational vs. Irrational Beliefs in a Complex World <https://gregorboehl.com/live/rational_chaos_bh.pdf>`_. *IMFS Working papers*

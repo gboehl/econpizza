@@ -56,8 +56,8 @@ Econpizza needs **Jax** to be installed. This is not a problem for MacOS and Lin
 
 which works for GitHub Actions (but seems to cause problems later).
 
-Citation
---------
+References
+----------
 
 **econpizza** is developed by Gregor Boehl to simulate nonlinear perfect foresight models. Please cite it with
 

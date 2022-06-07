@@ -17,6 +17,32 @@ def solver(jval, fval):
 
 def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, verbose=True, **newton_kwargs):
     """Solves for the steady state.
+
+    Parameters
+    ----------
+    tol_newton : float, optional
+        tolerance of the Newton method, defaults to 1e-8
+    maxit_newton : int, optional
+        maximum of iterations for the Newton method, defaults to 30
+    tol_backwards : float, optional
+        tolerance required for backward iteration. Defaults to tol_newton
+    maxit_backwards : int, optional
+        maximum of iterations for the backward iteration. Defaults to maxit_newton
+    tol_forwards : float, optional
+        tolerance required for forward iteration. Defaults to tol_newton
+    maxit_forwards : int, optional
+        maximum of iterations for the forward iteration. Defaults to maxit_newton
+    force : bool, optional
+        force recalculation of steady state, even if it is already evaluated. Defaults to False
+    verbose : bool, optional
+        level of verbosity. Defaults to True
+    newton_kwargs : keyword arguments
+        keyword arguments passed on to the Newton method
+
+    Returns
+    -------
+    res : dict
+        results dictionary from the Newton method
     """
 
     st = time.time()

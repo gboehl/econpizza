@@ -4,6 +4,9 @@
 
 .. include:: ../README.rst
 
+Details
+-------
+
 .. toctree::
    :maxdepth: 2
 

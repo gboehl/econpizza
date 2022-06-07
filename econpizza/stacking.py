@@ -44,7 +44,7 @@ def find_stack(
         number of iterations. Default is 30.
     use_linear_guess : bool, optional
         whether to use the linear impulse responses as an initial guess. Defaults to True if the linear LOM is known
-    use_linear_endpoint=None,
+    use_linear_endpoint : bool, optional
         whether to use the linear impulse responses as the final state. Defaults to True if the linear LOM is known
     verbose : bool, optional
         degree of verbosity. 0/`False` is silent

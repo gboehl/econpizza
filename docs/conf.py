@@ -65,9 +65,12 @@ autodoc_mock_imports = ["numba", "numpy", "scipy", "jax", "jaxlib", "grgrlib"]
 
 autoclass_content = "both"
 autodoc_member_order = "groupwise"
+latex_use_parts = False
+
 
 def setup(app):
     app.add_stylesheet('css/custom.css')
+
 
 master_doc = 'index'
 

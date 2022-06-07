@@ -1,6 +1,6 @@
 #!/bin/python
 # -*- coding: utf-8 -*-
-"""Functions for model parsing yaml -> working model instance. Involves a lot of dynamic function definition...
+"""Functions for model parsing yaml into a working model instance. Involves a lot of dynamic function definition...
 """
 
 from copy import copy
@@ -50,6 +50,8 @@ def parse(mfile):
 
 
 def eval_strs(vdict, context={}):
+    """Evaluate a dictionary of strings into a given context
+    """
 
     if vdict is None:
         return None
@@ -126,6 +128,8 @@ def compile_init_values(evars, pars, initvals, stst):
 
 
 def define_function(func_str, context):
+    """Define functions from string. Writes the function into a temporary file in order to get meaningful debug traces.
+    """
 
     # use a termporary file to get nice debug traces if things go wrong
     tmpf = tempfile.NamedTemporaryFile(mode="w", delete=False)
@@ -139,6 +143,8 @@ def define_function(func_str, context):
 
 
 def get_exog_grid_var_names(distributions):
+    """WIP. So far unused.
+    """
     # NOTE: this will be important when implementing that grid parameters are endogenous variables
     # NOTE: when activated, backward calls already return exogenous grid vars (exog_grid_var). They are not yet stacked, and not yet an input to forward calls
 

@@ -27,9 +27,6 @@ Econpizza can solve nonlinear HANK models. The approach to deal with the distrib
 There is a `model parser <https://econpizza.readthedocs.io/en/latest/quickstart.html#the-yaml-file>`_ to allow for the simple and generic specification of models (with or without heterogeneity).
 
 
-**Tutorials** and **documentation** can be found on `Read the Docs <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
-
-
 Installation
 ------------
 
@@ -55,6 +52,13 @@ Econpizza needs **Jax** to be installed. This is not a problem for MacOS and Lin
     pip install jax[cpu]==0.3.7 -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
 
 which works for GitHub Actions (but seems to cause problems later).
+
+
+Documentation
+-------------
+
+The Documentation and **tutorials** can be found on `Read the Docs <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
+
 
 References
 ----------
@@ -84,4 +88,3 @@ For the Boehl-Hommes method: Boehl, Gregor and Hommes, Cars (2021). `Rational vs
 
 
 I appreciate citations for **econpizza** because it helps me to find out how people have been using the package and it motivates further work.
-

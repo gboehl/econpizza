@@ -2,7 +2,7 @@
 econpizza
 =========
 
-**Simulate nonlinear perfect foresight models, with or without heterogeneous agents**
+**Solve nonlinear heterogeneous agent models using tools from machine learning**
 
 .. image:: https://github.com/dfm/emcee/workflows/Tests/badge.svg
     :target: https://github.com/gboehl/econpizza/actions?query=workflow%3ATests

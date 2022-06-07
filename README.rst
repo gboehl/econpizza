@@ -1,6 +1,5 @@
-#########
 econpizza
-#########
+=========
 
 **Solve nonlinear heterogeneous agent models using tools from machine learning**
 

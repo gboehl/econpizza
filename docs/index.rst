@@ -1,3 +1,7 @@
+econpizza
+=========
+
+**Solve nonlinear heterogeneous agent models using tools from machine learning**
 
 Econpizza is a framework to solve and simulate nonlinear perfect foresight models, with or without heterogeneous agents.
 A parser allows to express economic models in a simple, high-level fashion as yaml-files.

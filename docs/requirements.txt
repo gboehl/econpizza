@@ -1,0 +1,3 @@
+ipykernel
+ipython_genutils
+nbsphinx

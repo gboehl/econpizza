@@ -10,6 +10,8 @@ import scipy.optimize as so
 
 
 def solve_current(model, shock, XLag, XLastGuess, XPrime, tol):
+    """Solves for one period.
+    """
 
     func = jax.jit(model['context']["func_eqns"])
     pars = jnp.array(list(model["parameters"].values()))
@@ -24,6 +26,8 @@ def solve_current(model, shock, XLag, XLastGuess, XPrime, tol):
 
 
 def find_path_linear(model, shock, T, x, use_linear_guess):
+    """Solves the expected trajectory given the linear model.
+    """
 
     if model.get("lin_pol") is not None:
 

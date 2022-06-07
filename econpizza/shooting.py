@@ -103,8 +103,8 @@ def find_pizza(
         array of the trajectory
     x_lin : array or None
         array of the trajectory based on the linear model. Will return None if the linear model is unknown
-    fin_flag
-        integer of error code
+    fin_flag : int
+        error code
     """
 
     st = time.time()

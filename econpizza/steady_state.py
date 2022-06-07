@@ -12,6 +12,8 @@ from .parser.build_functions import get_func_stst_raw
 
 # use a solver that can deal with ill-conditioned jacobians
 def solver(jval, fval):
+    """A default solver to solve indetermined problems.
+    """
     return jnp.linalg.pinv(jval) @ fval
 
 

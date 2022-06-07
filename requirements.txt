@@ -1,6 +1,3 @@
-ipykernel
-ipython_genutils
-nbsphinx
 pre-commit
 numpy
 numba

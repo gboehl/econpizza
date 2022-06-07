@@ -1,6 +1,6 @@
-
+#########
 econpizza
-=========
+#########
 
 **Solve nonlinear heterogeneous agent models using tools from machine learning**
 
@@ -27,8 +27,9 @@ Econpizza can solve nonlinear HANK models. The approach to deal with the distrib
 
 There is a `model parser <https://econpizza.readthedocs.io/en/latest/quickstart.html#the-yaml-file>`_ to allow for the simple and generic specification of models (with or without heterogeneity).
 
+************
 Installation
--------------
+************
 
 Installing the `repository version <https://pypi.org/project/econpizza/>`_ from PyPi is as simple as:
 
@@ -53,13 +54,15 @@ Econpizza needs **Jax** to be installed. This is not a problem for MacOS and Lin
 
 which works for GitHub Actions (but seems to cause problems later).
 
+*************
 Documentation
--------------
+*************
 
 The documentation can be found `here <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
 
+********
 Citation
---------
+********
 
 **econpizza** is developed by Gregor Boehl to simulate nonlinear perfect foresight models. Please cite it with
 

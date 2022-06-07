@@ -7,8 +7,10 @@ import jax.numpy as jnp
 def check_if_defined(evars, eqns, skipped_vars):
     """Check if all variables are defined in period t.
     """
+    skipped_vars = [] if skipped_vars is None else skipped_vars
 
     for v in evars:
+        # print(eqns[0].replace(v + "SS", ""))
         v_in_eqns = [
             v in e.replace(v + "SS", "").replace(v + "Lag",
                                                  "").replace(v + "Prime", "")

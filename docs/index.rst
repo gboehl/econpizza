@@ -2,16 +2,13 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. include:: ../README.rst
-
-Details
--------
+.. include::
+   ../README.rst
+   quickstart.rst
+   tutorial.ipynb
+   method.ipynb
+   modules.rst
+   indices.rst
 
 .. toctree::
    :maxdepth: 2
-
-   quickstart
-   tutorial.ipynb
-   method.ipynb
-   modules
-   indices

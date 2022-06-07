@@ -68,9 +68,9 @@ References
 .. code-block::
 
     @Misc{boehl2022pizza,
-    title         = {Econpizza: Solve nonlinear heterogeneous agents models},
+    title         = {Econpizza: Solve nonlinear heterogeneous agents models using machine learning techniques},
     author        = {Boehl, Gregor},
-    howpublished  = {\url{https://github.com/gboehl/econpizza}},
+    howpublished  = {\url{https://econpizza.readthedocs.io/_/downloads/en/latest/pdf/}},
     year = {2022}
     }
 

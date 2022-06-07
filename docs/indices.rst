@@ -5,5 +5,9 @@ Package index
 
     * :ref:`genindex`
     * :ref:`modindex`
+    * :ref:`search`
 
-* :ref:`search`
+
+ .. only:: pdflatex
+
+    * :ref:`search`

@@ -1,7 +1,7 @@
 econpizza
 =========
 
-**Solve nonlinear heterogeneous agent models using tools from machine learning**
+**Solve nonlinear heterogeneous agent models using machine learning techniques**
 
 .. image:: https://github.com/dfm/emcee/workflows/Tests/badge.svg
     :target: https://github.com/gboehl/econpizza/actions?query=workflow%3ATests

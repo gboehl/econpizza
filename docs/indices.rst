@@ -1,6 +1,9 @@
 Package index
 ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
+ .. only:: html
+
+    * :ref:`genindex`
+    * :ref:`modindex`
+
 * :ref:`search`

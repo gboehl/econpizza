@@ -159,11 +159,24 @@ def get_exog_grid_var_names(distributions):
 def load(
     model,
     raise_errors=True,
-    lti_max_iter=500,
-    verbose=True,
-    testing=False,
+    verbose=True
 ):
-    """load model from dict or yaml file. Warning: contains filthy code (eg. globals, exec, ...)"""
+    """Load model from dict or yaml file.
+
+    Parameters
+    ----------
+    model : dict or string
+        either a dictionary or the path to a yaml file to be parsed
+    raise_errors : bool, optional
+        whether to raise errors while checking. False will let the model fail siliently for debugging. Defaults to True
+    verbose : bool, optional
+        inform that parsing is done. Defaults to True
+
+    Returns
+    -------
+    model : PizzaModel instance
+        The parsed model
+    """
 
     from .__init__ import PizzaModel
 

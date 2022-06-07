@@ -22,6 +22,21 @@ class PizzaModel(dict):
         self.__dict__ = self
 
     def get_het_vars(self, xst):
+        """Get all disaggregated variables for a given trajectory of aggregate variables.
+
+        Parameters
+        ----------
+
+        self : PizzaModel
+            the model instance
+        xst : array
+            a trajectory of aggregate variables
+
+        Returns
+        -------
+        rdict : dict
+            a dictionary of the outputs of the decision and distributions stage
+        """
 
         stacked_func = self['context']['stacked_func']
         decisions_outputs = self['decisions']['outputs']

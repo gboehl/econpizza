@@ -24,6 +24,42 @@ def find_stack(
     verbose=True,
     **solver_kwargs,
 ):
+    """Find the expected trajectory given an initial state.
+
+    Parameters
+    ----------
+    model : dict
+        model dict or PizzaModel instance
+    x0 : array
+        initial state
+    shock : tuple, optional
+        shock in period 0 as in `(shock_name_as_str, shock_size)`
+    init_path : array, optional
+        a first guess on the trajectory. Should not be necessary
+    horizon : int, optional
+        number of periods until the system is assumed to be back in the steady state. A good idea to set this corresponding to the respective problem. A too large value may be computationally expensive. A too small value may generate inaccurate results
+    tol : float, optional
+        convergence criterion. Defaults to 1e-8
+    maxit : int, optional
+        number of iterations. Default is 30.
+    use_linear_guess : bool, optional
+        whether to use the linear impulse responses as an initial guess. Defaults to True if the linear LOM is known
+    use_linear_endpoint=None,
+        whether to use the linear impulse responses as the final state. Defaults to True if the linear LOM is known
+    verbose : bool, optional
+        degree of verbosity. 0/`False` is silent
+    solver_kwargs : optional
+        any additional keyword arguments will be passed on to the solver
+
+    Returns
+    -------
+    x : array
+        array of the trajectory
+    x_lin : array or None
+        array of the trajectory based on the linear model. Will return None if the linear model is unknown
+    flag : bool
+        returns True if the solver was successful, else False
+    """
 
     st = time.time()
 

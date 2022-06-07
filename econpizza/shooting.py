@@ -75,10 +75,10 @@ def find_pizza(
     Parameters
     ----------
     model : dict
-        model dict as defined/parsed above
+        model dict or PizzaModel instance
     x0 : array
         initial state
-    shock : tuple
+    shock : tuple, optional
         shock in period 0 as in `(shock_name_as_str, shock_size)`
     T : int, optional
         number of periods to simulate
@@ -99,10 +99,12 @@ def find_pizza(
 
     Returns
     -------
-    array
+    x_fin : array
         array of the trajectory
-    flag
-        integer of error flag
+    x_lin : array or None
+        array of the trajectory based on the linear model. Will return None if the linear model is unknown
+    fin_flag
+        integer of error code
     """
 
     st = time.time()

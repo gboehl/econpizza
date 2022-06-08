@@ -1,3 +1,6 @@
 ipykernel
 ipython_genutils
 nbsphinx
+numpy
+jax
+jaxlib

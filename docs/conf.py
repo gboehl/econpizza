@@ -16,7 +16,6 @@ sys.path.insert(0, os.path.abspath('..'))
 
 from econpizza import __version__
 
-
 # -- Project information -----------------------------------------------------
 
 project = 'econpizza'

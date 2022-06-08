@@ -10,6 +10,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+from econpizza import __version__
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
@@ -22,7 +23,8 @@ copyright = '2022, Gregor Boehl'
 author = 'Gregor Boehl'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1.7'
+version = __version__
+release = version
 
 
 # -- General configuration ---------------------------------------------------

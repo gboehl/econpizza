@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 from os import path
+from econpizza import __version__
 
 # read the contents of the README file
 this_directory = path.abspath(path.dirname(__file__))
@@ -10,8 +11,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/x-rst",
     url="https://github.com/gboehl/econpizza",
-    name="econpizza",
-    version="0.1.7",
+    name=__version__,
+    version="0.1.8",
     author="Gregor Boehl",
     author_email="admin@gregorboehl.com",
     description="Solve nonlinear perfect foresight models",

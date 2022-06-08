@@ -16,7 +16,7 @@ I will first briefly discuss the yaml of the small scale representative agents m
 Representative agent models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The file for the small scale NK model can be found `here <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/NK.yaml>`_. The first block is self explanatory:
+The file for the small scale NK model can be found `here <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_. The first block is self explanatory:
 
 .. code-block::
 
@@ -31,16 +31,13 @@ The second block defines general definitions and imports, which are available at
 .. code-block::
 
     equations:
-        ~ w = chi*(c - h*cLag)*y**eta # labor supply
-        ~ 1 = r*betaPrime*(c - h*cLag)/(cPrime - h*c)/piPrime # euler equation
-        ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*betaPrime*(c-h*cLag)/(cPrime-h*c)*(piPrime/piSS - 1)*piPrime/piSS*yPrime/y # Phillips curve
-        ~ c = (1-psi*(pi/piSS - 1)**2/2)*y # market clearing
-        ~ rn = (rSS*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*rnLag**rho # monetary policy rule
-        ~ r = maximum(1, rn) # zero lower bound on nominal rates
-        ~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta # exogenous discount factor shock
-
-        # chi is actually a parameter. Define it as a variables to include it into root finding to target nSS = ySS = 0.33
-        ~ chi = chiSS
+        ~ w = chi*(c - h*cLag)*y**eta  # labor supply
+        ~ 1 = r*betaPrime*(c - h*cLag)/(cPrime - h*c)/piPrime  # euler equation
+        ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*betaPrime*(c-h*cLag)/(cPrime-h*c)*(piPrime/piSS - 1)*piPrime/piSS*yPrime/y  # Phillips curve
+        ~ c = (1-psi*(pi/piSS - 1)**2/2)*y  # market clearing
+        ~ rn = (rSS*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*rnLag**rho  # monetary policy rule
+        ~ r = maximum(1, rn)  # zero lower bound on nominal rates
+        ~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta  # exogenous discount factor shock
 
 Equations. The central part of the yaml. Here you define the model equations, which will then be parsed such that each equation prefixed by a `~` must hold. Use ``xPrime`` for variable `x` in `t+1` and ``xLag`` for `t-1`. Access steady-state values with ``xSS``. You could specify a representative agent model with just stating the equations block (additional to variables). Importantly, ``equations`` are *not* executed subsequently but simultaneously!
 Note that you need one equation for each variable defined in ``variables``.

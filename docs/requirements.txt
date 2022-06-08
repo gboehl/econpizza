@@ -7,3 +7,4 @@ scipy
 jax
 jaxlib
 grgrlib>=0.1.8
+yaml

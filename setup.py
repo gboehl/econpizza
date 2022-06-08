@@ -32,5 +32,6 @@ setup(
         "jax",
         "jaxlib",
         "grgrlib>=0.1.8",
+        "pyyaml",
     ],
 )

@@ -2,5 +2,8 @@ ipykernel
 ipython_genutils
 nbsphinx
 numpy
+numba
+scipy
 jax
 jaxlib
+grgrlib>=0.1.8

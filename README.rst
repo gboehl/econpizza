@@ -57,7 +57,7 @@ which works for GitHub Actions (but seems to cause problems later).
 Documentation
 -------------
 
-The Documentation and **tutorials** can be found on `Read the Docs <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
+The Documentation and **tutorials** can be found `here <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
 
 
 References

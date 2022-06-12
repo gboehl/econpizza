@@ -6,7 +6,7 @@ import time
 import jax.numpy as jnp
 from scipy.linalg import block_diag
 from grgrlib import klein, speed_kills
-from grgrlib.jaxed import newton_jax, value_and_jac
+from grgrlib.jaxed import newton_jax, jacfwd_and_val
 from .parser.build_functions import get_func_stst_raw
 
 
@@ -87,7 +87,7 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
                                       exog_grid_vars_init, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
 
     # define jitted stst function that returns jacobian and func. value
-    func_stst = value_and_jac(jax.jit(func_stst_raw))
+    func_stst = jacfwd_and_val(jax.jit(func_stst_raw))
     # store functions
     model["context"]['func_stst_raw'] = func_stst_raw
     model["context"]['func_stst'] = func_stst

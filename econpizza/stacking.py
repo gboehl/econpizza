@@ -6,9 +6,22 @@ import jax
 import time
 import jax.numpy as jnp
 import scipy.sparse as ssp
-from grgrlib.jaxed import newton_jax, value_and_jac
+from grgrlib.jaxed import newton_jax, jacfwd_and_val
 from .shooting import find_path_linear
 from .parser.build_functions import *
+
+
+def jacfwd_and_val_sparse(func):
+    """Like jacfwd_and_val but the jacobian is a sparse csr_array
+    """
+
+    jav_func = jacfwd_and_val(func)
+
+    def inner(x):
+        val, jac = jav_func(x)
+        return val, ssp.csr_array(jac)
+
+    return inner
 
 
 def find_stack(
@@ -116,7 +129,7 @@ def find_stack(
               (horizon*nvars))
 
     if model.get('distributions'):
-        stacked_func = value_and_jac(stacked_func, sparse=True)
+        stacked_func = jacfwd_and_val_sparse(stacked_func)
         res = newton_jax(stacked_func, x_init[1:-1].flatten(
         ), None, maxit, tol, sparse=True, func_returns_jac=True, verbose=verbose, **solver_kwargs)
     else:

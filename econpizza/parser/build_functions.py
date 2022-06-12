@@ -69,7 +69,6 @@ def get_stacked_func(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, dis
         dist = func_dist(dist_old, decisions_output_storage[..., i])
 
         return (dist, decisions_output_storage), dist
-    from grgrlib.jaxed import jax_print
 
     def stacked_func(x, full_output=False):
 

@@ -26,7 +26,6 @@ setup(
     packages=find_packages(),
     package_data={"pydsge": ["examples/*"]},
     install_requires=[
-        "numba",
         "numpy",
         "scipy",
         "jax",

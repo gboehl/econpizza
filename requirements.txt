@@ -1,6 +1,5 @@
 pre-commit
 numpy
-numba
 scipy
 jax
 jaxlib

@@ -45,7 +45,7 @@ Alternatively, the most recent version from GitHub with some experimental featur
 
 Note that the latter requires `git <https://www.activestate.com/resources/quick-reads/pip-install-git/#:~:text=To%20install%20Git%20for%20Windows,installer%20and%20follow%20the%20steps.>`_ to be installed.
 
-Econpizza needs **Jax** to be installed. This is not a problem for MacOS and Linux, but the time for Jax to fully support Windows has not yet come. Following the (somewhat cryptic) guide `here <https://github.com/cloudhan/jax-windows-builder>`_, one could try
+Econpizza needs **Jax** to be installed. This is not a problem for MacOS and Linux, but the time for Jax to fully support Windows has not yet come. Following the (somewhat cryptic) `guide <https://github.com/cloudhan/jax-windows-builder>`_, one could try
 
 .. code-block:: bash
 

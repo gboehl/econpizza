@@ -30,7 +30,7 @@ setup(
         "scipy",
         "jax",
         "jaxlib",
-        "grgrlib>=0.1.8",
+        "grgrlib>=0.1.9",
         "pyyaml",
     ],
 )

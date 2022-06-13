@@ -115,7 +115,7 @@ def compile_init_values(evars, pars, initvals, stst):
     ufixed_pars = {v: 1.1 for v in pars if v not in stst}
 
     # get inital values to test the function
-    init = ufixed_vars | ufixed_pars
+    init = {**ufixed_vars, **ufixed_pars}
 
     # structure: aggregate values first, then values of decisions functions
     if initvals is not None:

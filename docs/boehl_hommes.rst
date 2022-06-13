@@ -2,9 +2,9 @@
 Boehl-Hommes method
 -------------------
 
-The package also contains an alternative method similar to the one introduced in Boehl & Hommes (2021). In the original paper we use this method to solve for chaotic asset price dynamics. The method can be understood as a policy function iteration where the initial state is the only fixed grid point and all other grid points are chosen endogenously (as in a "reverse" EGM) to map the expected trajectory.
+The package also contains an alternative "shooting" method much aligned to the one introduced in Boehl & Hommes (2021). In the original paper we use this method to solve for chaotic asset price dynamics. The method can be understood as a policy function iteration where the initial state is the only fixed grid point and all other grid points are chosen endogenously (as in a "reverse" EGM) to map the expected trajectory.
 
-The main advantage (in terms of robustness) over Fair-Taylor comes from exploiting the property that most determined perfect forsight models be a contraction mapping both, forward and backwards. The model is given by
+The main advantage (in terms of robustness) over the stacking method comes from exploiting the property that most determined perfect foresight models are a contraction mapping both, forward and backwards. The model is given by
 
 .. code-block::
 
@@ -17,7 +17,9 @@ We iterate on the expected trajectory itself instead of the policy function. We 
    d f(x_{t-1}, x_t, x_{t+1} ) < d x_{t-1},
    d f(x_{t-1}, x_t, x_{t+1} ) < d x_{t+1}.
 
-This is also the weakness of the method: not every DSGE model (that is Blanchard-Kahn determined) sense is such backward-and-forward contraction. In most cases the algorithm converges anyways, but convergence is not guaranteed.
+This is also the weakness of the method: not every DSGE model (that is determined in the Blanchard-Kahn sense) is such backward-and-forward contraction. In most cases the algorithm converges anyways, but convergence is not guaranteed.
+
+The following example shows how to use the shooting method on the simple New Keynesian model.
 
 .. code-block:: python
 
@@ -74,7 +76,7 @@ Lets go for a second, numerically more challenging example: the chaotic rational
         plt.plot(x[:,i])
         plt.title(v)
 
-This will give you:
+This will give you boom-bust cycles in asset pricing dynamics:
 
 .. image:: https://github.com/gboehl/econpizza/blob/master/docs/p_and_n.png?raw=true
   :width: 800

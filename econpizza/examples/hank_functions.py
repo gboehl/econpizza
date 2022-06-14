@@ -16,11 +16,11 @@ def hh(Va_p, a_grid, skills_grid, w, n, T, R, beta, eis, frisch):
     """
 
     # MUC as implied by next periods value function
-    uc_nextgrid = beta * Va_p
+    ux_nextgrid = beta * Va_p
 
     # consumption can be readily obtained from MUC and MU of labor
     labor_inc = skills_grid[:, jnp.newaxis]*n*w
-    c_nextgrid = uc_nextgrid**-eis + labor_inc/(1 + 1/frisch)
+    c_nextgrid = ux_nextgrid**-eis + labor_inc/(1 + 1/frisch)
 
     # get consumption in grid space
     lhs = c_nextgrid - labor_inc + a_grid[jnp.newaxis, :] - T[:, jnp.newaxis]

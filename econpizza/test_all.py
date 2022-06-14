@@ -142,6 +142,3 @@ def test_hank2(create=False):
 
         assert flag == 0
         assert np.allclose(x, test_x)
-
-
-test_nk()

@@ -108,7 +108,7 @@ All the *aggregate* variables that are being tracked on a global level. If a var
           type: exogenous
           grid_variables: [skills_grid, skills_stationary, skills_transition] # returns skills_grid, skills_stationary, skills_transition
           rho: 0.966
-          sigma: 0.5
+          sigma: 0.6
           n: 4
         a: # second dimension
           type: endogenous

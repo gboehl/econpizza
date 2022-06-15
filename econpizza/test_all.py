@@ -79,12 +79,12 @@ def test_hank(create=False):
 
     mod_dict = ep.parse(example_hank)
     mod = ep.load(mod_dict)
-    _ = mod.solve_stst()
+    _ = mod.solve_stst(tol_newton=1e-4)
 
     x0 = mod['stst'].copy()
-    x0['beta'] = 0.99  # setting a shock on the discount factor
+    x0['beta'] *= 1.01  # setting a shock on the discount factor
 
-    x, _, flag = mod.find_stack(x0.values(), horizon=100)
+    x, _, flag = mod.find_stack(x0.values(), horizon=10)
 
     path = os.path.join(filepath, "test_storage", "hank.npy")
 
@@ -102,12 +102,12 @@ def test_hank_labor(create=False):
 
     mod_dict = ep.parse(example_hank_labor)
     mod = ep.load(mod_dict)
-    _ = mod.solve_stst()
+    _ = mod.solve_stst(tol_newton=1e-6)
 
     x0 = mod['stst'].copy()
-    x0['beta'] = 0.99  # setting a shock on the discount factor
+    x0['beta'] *= 1.01  # setting a shock on the discount factor
 
-    x, _, flag = mod.find_stack(x0.values(), horizon=100)
+    x, _, flag = mod.find_stack(x0.values(), horizon=10)
 
     path = os.path.join(filepath, "test_storage", "hank_labor.npy")
 
@@ -125,12 +125,12 @@ def test_hank2(create=False):
 
     mod_dict = ep.parse(example_hank2)
     mod = ep.load(mod_dict)
-    _ = mod.solve_stst()
+    _ = mod.solve_stst(tol_newton=1e-6)
 
     x0 = mod['stst'].copy()
-    x0['beta'] = 0.99  # setting a shock on the discount factor
+    x0['beta'] *= 1.01  # setting a shock on the discount factor
 
-    x, _, flag = mod.find_stack(x0.values(), horizon=100)
+    x, _, flag = mod.find_stack(x0.values(), horizon=10)
 
     path = os.path.join(filepath, "test_storage", "hank2.npy")
 

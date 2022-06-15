@@ -20,7 +20,7 @@ Additionally, generic and robust routines for steady state search are provided.
 
 The baseline solver is a Newton-based stacking method in the spirit of Boucekkine (1995), Juillard (1996) and others. Hence, the method is similar to the solver in dynare, but faster and more robust due to the use of automatic differentiation and sparse jacobians. Even perfect-foresight IRFs for large-scale nonlinear models with, e.g., occassionally binding constraints can be computed in less than a second.
 
-The package makes heavy use of `automatic differentiation <https://en.wikipedia.org/wiki/Automatic_differentiation>`_ via `Jax <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_.
+The package makes heavy use of `automatic differentiation <https://en.wikipedia.org/wiki/Automatic_differentiation>`_ via `JAX <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_.
 
 Econpizza can solve nonlinear HANK models. The approach to deal with the distribution is inspired by the `Sequence-Space Jacobian <https://github.com/shade-econ/sequence-jacobian>`_ method (`Auclert et al., 2022, ECMA <https://doi.org/10.3982/ECTA17434>`_). Steady state and nonlinear impulse responses (including, e.g., the ELB) can typically be found within a few seconds.
 
@@ -45,13 +45,13 @@ Alternatively, the most recent version from GitHub with some experimental featur
 
 Note that the latter requires `git <https://www.activestate.com/resources/quick-reads/pip-install-git/#:~:text=To%20install%20Git%20for%20Windows,installer%20and%20follow%20the%20steps.>`_ to be installed.
 
-Econpizza needs **Jax** to be installed. This is not a problem for MacOS and Linux, but the time for Jax to fully support Windows has not yet come. Following the (somewhat cryptic) `guide <https://github.com/cloudhan/jax-windows-builder>`_, one could try
+Econpizza needs **JAX** to be installed. This is not a problem for MacOS and Linux, but the time for Jax to fully support Windows has not yet come. Adventurers could follow this (somewhat cryptic) `guide <https://github.com/cloudhan/jax-windows-builder>`_ and try
 
 .. code-block:: bash
 
     pip install jax[cpu]==0.3.7 -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
 
-which works for GitHub Actions (but seems to cause problems later).
+which seems to successfully install JAX (at least for GitHub Actions), but then causes problems further down the line.
 
 
 Documentation

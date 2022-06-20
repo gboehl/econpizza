@@ -83,7 +83,7 @@ def get_stacked_func(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, dis
                 decisions_output_storage, 0, -1)
             # forwards step
             _, dists_storage = jax.lax.scan(
-                forwards_step, (distSS, decisions_output_storage), jnp.arange(horizon-1))
+                forwards_step, (distSS, decisions_output_storage), jnp.arange(horizon-2))
             dists_storage = jnp.vstack((distSS[jnp.newaxis], dists_storage))
             dists_storage = jnp.moveaxis(dists_storage, 0, -1)
         else:
@@ -91,10 +91,6 @@ def get_stacked_func(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, dis
 
         if full_output:
             return decisions_output_storage, dists_storage
-
-        elif has_distributions:
-            # important: use the time-{t-1} distribution in time t. This is correct because the output from EGM corresponds to the time-(t-1) distribution
-            dists_storage = dists_storage[..., :-1]
 
         out = func_eqns(X[:, :-2].reshape(nshpe), X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(
             nshpe), stst, zshock, pars, dists_storage, decisions_output_storage)

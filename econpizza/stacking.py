@@ -150,7 +150,7 @@ def find_stack(
 
     if verbose:
         duration = time.time() - st
-        sucess = 'done' if res['success'] else 'failed'
+        sucess = 'done' if res['success'] else 'FAILED'
         print(
             f"(find_path_stacked:) Stacking {sucess} after {duration:1.3f} seconds. " + mess)
 

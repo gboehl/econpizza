@@ -119,6 +119,8 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
             mess += f"Backward iteration returns 'NaN's. "
         elif jnp.isnan(distSS).any():
             mess += f"Forward iteration returns 'NaN's. "
+        elif distSS.min() < 0:
+            mess += f"Distribution contains negative values. "
         if cnt_backwards == maxit_backwards:
             mess += f'Maximum of {maxit_backwards} backwards calls reached. '
         if cnt_forwards == maxit_forwards:
@@ -143,7 +145,8 @@ def solve_stst(model, tol_newton=1e-8, maxit_newton=30, tol_backwards=None, maxi
             mess = f"Steady state error is {err:1.2e}. {res['message']} {mess}"
     elif verbose:
         duration = time.time() - st
-        mess += f"Steady state found in {duration:1.5g} seconds. {res['message']}"
+        mess = f"Steady state found in {duration:1.5g} seconds. {res['message']}" + (
+            ' WARNING: ' + mess if mess else '')
 
     if mess:
         print(f"(solve_stst:) {mess}")

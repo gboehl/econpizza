@@ -4,8 +4,6 @@
 import jax
 import time
 import jax.numpy as jnp
-from scipy.linalg import block_diag
-from grgrlib import klein, speed_kills
 from grgrlib.jaxed import newton_jax, jacfwd_and_val
 from .parser.build_functions import get_func_stst_raw
 

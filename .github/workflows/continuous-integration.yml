@@ -34,7 +34,7 @@ jobs:
       name: Install jax
       run: |
         python -m pip install jaxlib===0.3.11 -f https://whls.blob.core.windows.net/unstable/index.html
-        python -m pip install jax[cpu]
+        python -m pip install jax[cpu]===0.3.11
 
     - name: Install dependencies
       run: |

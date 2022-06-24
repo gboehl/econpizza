@@ -7,7 +7,7 @@ from functools import partial
 
 
 @partial(jnp.vectorize, signature='(n),(nq),(n)->(nq)')
-def interpolate_from_ssj(x, xq, y):
+def interpolate(x, xq, y):
     """Efficient linear interpolation exploiting monotonicity.
 
     Complexity O(n+nq), so most efficient when x and xq have comparable number of points.
@@ -33,11 +33,10 @@ def interpolate_from_ssj(x, xq, y):
     return yq
 
 
-"""The vmap'ed version is much faster. Note: does not extrapolate linearly!"""
-
-
-def interpolate(xp, x, fp): return jax.vmap(
-    jnp.interp)(x.broadcast((xp.shape[0],)), xp, fp)
+def interpolate_fast(xp, x, fp):
+    """The vmap'ed version is much faster. Note: does not extrapolate linearly!"""
+    return jax.vmap(
+        jnp.interp)(x.broadcast((xp.shape[0],)), xp, fp)
 
 
 def interpolate_coord_robust_vector(x, xq):

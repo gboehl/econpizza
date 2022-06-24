@@ -27,6 +27,12 @@ Econpizza can solve nonlinear HANK models. The approach to deal with the distrib
 There is a `model parser <https://econpizza.readthedocs.io/en/latest/quickstart.html#the-yaml-file>`_ to allow for the simple and generic specification of models (with or without heterogeneity).
 
 
+Documentation
+-------------
+
+The Documentation and **tutorials** can be found `here <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
+
+
 Installation
 ------------
 
@@ -52,12 +58,6 @@ Econpizza needs **JAX** to be installed. This is not a problem for MacOS and Lin
     pip install jax[cpu]==0.3.7 -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
 
 which seems to successfully install JAX (at least for GitHub Actions), but then causes problems further down the line.
-
-
-Documentation
--------------
-
-The Documentation and **tutorials** can be found `here <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
 
 
 References

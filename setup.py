@@ -24,7 +24,7 @@ setup(
     ],
     include_package_data=True,
     packages=find_packages(),
-    package_data={"pydsge": ["examples/*"]},
+    package_data={"econpizza": ["examples/*"]},
     install_requires=[
         "numpy",
         "scipy",

@@ -32,7 +32,7 @@ jobs:
     - if: matrix.os == 'windows-latest'
       name: Install jax
       run: |
-        python -m pip pip install "jax[cpu]===0.3.14" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
+        python -m pip install "jax[cpu]===0.3.14" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
 
     - name: Install dependencies
       run: |

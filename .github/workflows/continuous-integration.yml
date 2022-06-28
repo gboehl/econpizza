@@ -19,9 +19,9 @@ jobs:
       fail-fast: false
       matrix:
         #os: [ubuntu-latest, macos-latest, windows-latest]
-        #os: [windows-latest]
+        os: [windows-latest]
         # for now, jax installation works but pytest gives cryptic errors
-        os: [ubuntu-latest, macos-latest]
+        #os: [ubuntu-latest, macos-latest]
         python-version: ['3.8', '3.10']
 
     steps:
@@ -34,8 +34,10 @@ jobs:
       name: Install jax
       run: |
         # it seems as if not all jaxlib version have cpu support. But not all jaxlib versions are provided for win. So this requires manual matching
-        python -m pip install jaxlib===0.3.7 -f https://whls.blob.core.windows.net/unstable/index.html
-        python -m pip install jax[cpu]===0.3.9
+        #python -m pip install jaxlib===0.3.7 -f https://whls.blob.core.windows.net/unstable/index.html
+        #python -m pip install jax[cpu]===0.3.9
+        python -m pip install jaxlib===0.3.14 -f https://whls.blob.core.windows.net/unstable/index.html
+        python -m pip install jax[cpu]===0.3.14
 
     - name: Install dependencies
       run: |

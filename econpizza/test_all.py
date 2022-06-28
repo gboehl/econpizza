@@ -107,7 +107,7 @@ def test_hank_labor(create=False):
     x0 = mod['stst'].copy()
     x0['beta'] *= 1.01  # setting a shock on the discount factor
 
-    x, _, flag = mod.find_stack(x0.values(), horizon=10)
+    x, _, flag = mod.find_stack(x0.values(), horizon=10, use_jacrev=False)
 
     path = os.path.join(filepath, "test_storage", "hank_labor.npy")
 

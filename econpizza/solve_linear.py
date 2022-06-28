@@ -108,6 +108,6 @@ def solve_linear(
             )
 
     if mess and verbose:
-        print(f"(solve_linear:) {mess} {'' if mess[-1] in '.?!' else '.'}")
+        print(f"(solve_linear:) {mess}{'' if mess[-1] in '.?!' else '.'}")
 
     return model["ABC"]

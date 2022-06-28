@@ -11,7 +11,6 @@ An small-scale nonlinear New Keynesian model with ZLB is provided `as an example
 
 .. code-block:: python
 
-    import numpy as np
     import matplotlib.pyplot as plt
     import econpizza as ep
     from econpizza import example_nk

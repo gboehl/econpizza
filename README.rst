@@ -51,13 +51,13 @@ Alternatively, the most recent version from GitHub with some experimental featur
 
 Note that the latter requires `git <https://www.activestate.com/resources/quick-reads/pip-install-git/#:~:text=To%20install%20Git%20for%20Windows,installer%20and%20follow%20the%20steps.>`_ to be installed.
 
-Econpizza needs **JAX** to be installed. This is not a problem for MacOS and Linux, but the time for Jax to fully support Windows has not yet come. Fortunately, there is (somewhat cryptic) `help out there <https://github.com/cloudhan/jax-windows-builder>`_ and you can run
+Econpizza needs **JAX** to be installed. This is not a problem for MacOS and Linux, but the time for Jax to fully support Windows has not yet come. Fortunately, there is help out there (see `here <https://github.com/cloudhan/jax-windows-builder>`_ for the somewhat cryptic original reference) and you can run
 
 .. code-block:: bash
 
     pip install "jax[cpu]===0.3.14" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
 
-which successfully installs JAX on windows.
+which successfully installs JAX on windows. Econpizza then runs `just fine <https://github.com/gboehl/econpizza/actions/runs/2579662335>`_.
 
 
 References

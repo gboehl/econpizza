@@ -11,7 +11,7 @@ from .parsing import parse, load
 from .steady_state import solve_stst
 from .solve_linear import solve_linear
 
-__version__ = '0.1.11'
+__version__ = '0.1.12'
 
 jax.config.update("jax_enable_x64", True)
 # set number of cores for XLA

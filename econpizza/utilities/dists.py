@@ -97,7 +97,7 @@ def forward_policy_2d(D, x_i, y_i, x_pi, y_pi):
 def stationary_distribution_forward_policy_2d(endog_inds0, endog_inds1, endog_probs0, endog_probs1, exog_probs, tol=1e-10, maxit=1000):
     # TODO: can be merged with stationary_distribution_forward_policy_1d
 
-    dist = jnp.ones_like(endog_inds, dtype=jnp.float64)
+    dist = jnp.ones_like(endog_inds0, dtype=jnp.float64)
     dist /= dist.sum()
 
     def cond_func(cont):

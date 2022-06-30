@@ -43,7 +43,7 @@ def parse(mfile):
     model = yaml.safe_load(mtxt)
     # create nice shortcuts
     model['path'] = mfile
-    model["pars"] = model["parameters"]
+    model["pars"] = model.get("parameters")
     model["vars"] = model["variables"]
 
     return model
@@ -88,6 +88,18 @@ def parse_external_functions_file(model):
     return
 
 
+def initialize_context():
+    context = globals().copy()
+    default_funcs = {'log': jnp.log,
+                     'exp': jnp.exp,
+                     'sqrt': jnp.sqrt,
+                     'max': jnp.maximum,
+                     'min': jnp.minimum}
+
+    context.update(default_funcs)
+    return context
+
+
 def load_external_functions_file(model, context):
     """Load the functions file as a module.
     """
@@ -125,6 +137,14 @@ def compile_init_values(evars, pars, initvals, stst):
                 init[v] = initvals[v]
 
     return init
+
+
+def define_subdict_if_absent(parent, sub):
+    try:
+        return parent[sub]
+    except KeyError:
+        parent[sub] = {}
+        return parent[sub]
 
 
 def define_function(func_str, context):
@@ -205,7 +225,7 @@ def load(
         print("(parse:) Loading cached model.")
         return model
 
-    model['context'] = globals().copy()
+    model['context'] = initialize_context()
     load_external_functions_file(model, model['context'])
 
     defs = model.get("definitions")
@@ -224,9 +244,14 @@ def load(
     grids.create_grids(model.get('distributions'), model["context"])
 
     shocks = model.get("shocks") or ()
-    par = model.get("parameters")
-    model["steady_state"]['fixed_evalued'] = stst = eval_strs(
-        model["steady_state"].get("fixed_values"), context=model['context'])
+    _ = define_subdict_if_absent(model, "steady_state")
+    fixed_values = define_subdict_if_absent(
+        model["steady_state"], "fixed_values")
+    stst = eval_strs(fixed_values, context=model['context'])
+    model["steady_state"]['fixed_evalued'] = stst
+
+    par = define_subdict_if_absent(model, "parameters")
+    model["parameters"] = par
     model["root_options"] = {}
 
     # collect number of foward and backward looking variables

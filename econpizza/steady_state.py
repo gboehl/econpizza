@@ -49,7 +49,7 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
 
     evars = model["variables"]
     func_pre_stst = model['context']["func_pre_stst"]
-    par = model.get("parameters")
+    par = model["parameters"]
     shocks = model.get("shocks") or ()
 
     tol_newton = tol if tol_newton is None else tol_newton
@@ -139,9 +139,9 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
             nfixed = len(model['steady_state']['fixed_evalued'])
             mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of freedom ({nvars} variables/parameters, {nfixed} fixed). "
         if not res["success"]:
-            mess = f"Steady state not found (error is {err:1.2e}). {res['message']} {mess}"
+            mess = f"Steady state FAILED (error is {err:1.2e}). {res['message']} {mess}"
         else:
-            mess = f"Steady state error is {err:1.2e}. {res['message']} {mess}"
+            mess = f"{res['message']} WARNING: Steady state error is {err:1.2e}. {mess}"
     elif verbose:
         duration = time.time() - st
         mess = f"Steady state found in {duration:1.5g} seconds. {res['message']}" + (

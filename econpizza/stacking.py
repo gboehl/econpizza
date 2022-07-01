@@ -116,7 +116,7 @@ def find_stack(
 
         _, mask_out_jvp = jax.jvp(func_eqns_from_dist, (distSS, decisions_output_init), (
             jnp.ones_like(distSS), jnp.ones_like(decisions_output_init)))
-        mask_out = jnp.repeat(mask_out_jvp.astype(bool), horizon-1)
+        mask_out = jnp.tile(mask_out_jvp.astype(bool), horizon-1)
 
         # compile dist-specific functions
         stacked_func_dist_raw = get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, x0, stst,

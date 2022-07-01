@@ -71,10 +71,11 @@ def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS
 
         return (dist, decisions_output_storage), dist_old
 
+    from grgrlib.jaxed import jax_print
+
     def stacked_func_dist(x, full_output=False):
 
-        # TODO: if reshaping is expensive, is there a better way to do this?
-        X = jnp.vstack((x0, x.reshape((horizon - 1, nvars)), endpoint)).T
+        X = jnp.hstack((x0, x, endpoint)).reshape(horizon+1, -1).T
 
         if has_distributions:
             # backwards step
@@ -106,32 +107,29 @@ def get_stacked_func(pars, func_eqns, stst, x0, horizon, nvars, endpoint, zshock
         x[:nvars, jnp.newaxis], x[nvars:-nvars, jnp.newaxis], x[-nvars:, jnp.newaxis], stst, zshock, pars, dist_dummy, decisions_dummy)))
     jac_shock = jacfwd_and_val(lambda x: func_eqns(
         x[:nvars], x[nvars:-nvars], x[-nvars:], stst, tshock, pars, dist_dummy, decisions_dummy))
-    hrange = jnp.arange(nvars)*(horizon-1)
 
-    # the ordering is ((equation1(t=1,...,T), ..., equationsN(t=1,...,T)) x (period1(var=1,...,N), ..., periodT(var=1,...,N)))
-    # TODO: an ordering ((equation1(t=1,...,T), ..., equationsN(t=1,...,T)) x (variable1(t=1,...,T), ..., variableN(t=1,...,T))) would actually be clearer
-    # this is simply done by adjusting the way the funcition output is flattened
     def stacked_func(x):
 
         X = jnp.vstack((x0, x.reshape((horizon - 1, nvars)), endpoint))
         Y = jnp.hstack((X[:-2], X[1:-1], X[2:]))
         out, jac_parts = jac_vmap(Y)
 
+        # the ordering is ((period1(f=1,...,N), ..., periodT(f=1,...,N)) x (period1(var=1,...,N), ..., periodT(var=1,...,N)))
         J = sparse.lil_array(((horizon-1)*nvars, (horizon-1)*nvars))
 
         if shock is None:
-            J[hrange, :nvars * 2] = jac_parts[0, :, nvars:]
+            J[:nvars, :nvars * 2] = jac_parts[0, :, nvars:]
         else:
             out_shocked, jac_part_shocked = jac_shock(X[:3].ravel())
-            J[hrange, :nvars * 2] = jac_part_shocked[:, nvars:]
+            J[:nvars, :nvars * 2] = jac_part_shocked[:, nvars:]
             out = out.at[0].set(out_shocked)
-        J[hrange+horizon-2, (horizon-3) * nvars:horizon *
+        J[-nvars:, (horizon-3) * nvars:horizon *
           nvars] = jac_parts[horizon-2, :, :-nvars]
 
         for t in range(1, horizon-2):
-            J[hrange+t, (t-1)*nvars:(t+2)*nvars] = jac_parts[t]
+            J[nvars*t:nvars*(t+1), (t-1)*nvars:(t+2)*nvars] = jac_parts[t]
 
-        return out.T.ravel(), J
+        return out.ravel(), J
 
     return stacked_func
 
@@ -147,13 +145,13 @@ def combine_stacked_funcs(stacked_func_dist, stacked_func, mask_out, use_jacrev)
         jav_stacked_func_dist = jacfwd_and_val(
             jax.jit(lambda x: stacked_func_dist(x)[mask_out]))
 
-    def inner(x):
+    def combined_funcs(x):
 
-        fval_dists, jacval_dists = jav_stacked_func_dist(x)
         fval, jacval = stacked_func(x)
+        fval_dists, jacval_dists = jav_stacked_func_dist(x)
         fval = fval.at[mask_out].set(fval_dists)
         jacval[mask_out] = jacval_dists
 
         return fval, jacval
 
-    return inner
+    return combined_funcs

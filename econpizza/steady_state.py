@@ -127,6 +127,7 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
         # TODO: this should loop over the objects in distSS/vfSS and store under the name of the distribution/decisions (i.e. 'D' or 'Va')
         model['steady_state']["distributions"] = distSS
         model['steady_state']['decisions'] = vfSS
+        model['steady_state']['decisions_output'] = decisions_output
 
     # calculate error
     err = jnp.abs(res['fun']).max()

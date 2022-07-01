@@ -120,18 +120,16 @@ def get_stacked_func(pars, func_eqns, stst, x0, horizon, nvars, endpoint, zshock
         J = sparse.lil_array(((horizon-1)*nvars, (horizon-1)*nvars))
 
         if shock is None:
-            J[jnp.arange(nvars)*(horizon-1), :nvars *
-              2] = jac_parts[0, :, nvars:]
+            J[hrange, :nvars * 2] = jac_parts[0, :, nvars:]
         else:
             out_shocked, jac_part_shocked = jac_shock(X[:3].ravel())
-            J[jnp.arange(nvars)*(horizon-1), :nvars *
-              2] = jac_part_shocked[:, nvars:]
+            J[hrange, :nvars * 2] = jac_part_shocked[:, nvars:]
             out = out.at[0].set(out_shocked)
-        J[jnp.arange(nvars)*(horizon-1)+horizon-2, (horizon-3) *
-          nvars:horizon*nvars] = jac_parts[horizon-2, :, :-nvars]
+        J[hrange+horizon-2, (horizon-3) * nvars:horizon *
+          nvars] = jac_parts[horizon-2, :, :-nvars]
 
         for t in range(1, horizon-2):
-            J[hrange+t, (t-1)*nvars:(t-1+3)*nvars] = jac_parts[t]
+            J[hrange+t, (t-1)*nvars:(t+2)*nvars] = jac_parts[t]
 
         return out.T.ravel(), J
 

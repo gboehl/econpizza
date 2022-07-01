@@ -76,7 +76,7 @@ References
     year = {2022}
     }
 
-For the Boehl-Hommes method: Boehl, Gregor and Hommes, Cars (2021). `Rational vs. Irrational Beliefs in a Complex World <https://gregorboehl.com/live/rational_chaos_bh.pdf>`_. *IMFS Working papers*
+For the Boehl-Hommes method: Boehl and Hommes (2021). `Rational vs. Irrational Beliefs in a Complex World <https://gregorboehl.com/live/rational_chaos_bh.pdf>`_. *IMFS Working papers*
 
 
 .. code-block::

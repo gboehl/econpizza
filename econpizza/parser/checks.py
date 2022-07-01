@@ -1,6 +1,7 @@
 """Checking functions for parsing.py.
 """
 
+import sys
 import jax.numpy as jnp
 
 
@@ -56,8 +57,16 @@ def check_initial_values(model, shocks, par):
     if model.get('decisions'):
         # make a test backward and forward run
         init_vf = model['init_vf']
-        _, decisions_output_init, exog_grid_vars_init = model['context']['func_backw'](
-            init, init, init, init, init_vf, jnp.zeros(len(shocks)), par)
+        try:
+            _, decisions_output_init, exog_grid_vars_init = model['context']['func_backw'](
+                init, init, init, init, init_vf, jnp.zeros(len(shocks)), par)
+        except ValueError as e:
+            if str(e) == "All input arrays must have the same shape.":
+                raise type(e)("Each output of the decisions stage must have the same shape as the distribution.").with_traceback(
+                    sys.exc_info()[2])
+            else:
+                raise
+
         dists_init, _ = model['context']['func_stst_dist'](
             decisions_output_init, 1e-8, 1)
 

@@ -24,22 +24,28 @@ distributions:
       n: 4
     a: # second dimension
       type: endogenous
+      # endogenous variables require inputs from the decisions stage. This assumes that the decisions stage returns a variable named 'a'
       grid_variables: a_grid # a variable named a_grid will be made available during decisions calls and distributions calls
       min: 0.0
       max: 50
       n: 40
 
-decisions: # stage one
+decisions: # stage one: iterating the decisions function backwards
   inputs: [VaPrime] # additional to all aggregated variables defined in 'variables'
   calls: |
-    # these are executed subsequently, starting with the latest in time T. Each call takes the previous outputs as given
+    # these are executed subsequently, starting with the last in time T and then iterating forwards
+    # Each call takes the previous outputs as given
     T = transfers(skills_stationary, Div, Tax, skills_grid)
     VaPrimeExp = skills_transition @ VaPrime
     Va, a, c = hh(VaPrimeExp, a_grid, skills_grid, w, n, T, R, beta, eis, frisch)
-  outputs: [a,c] # those are the ones stored for the following stages
+  # the 'outputs' values are stored for the following stages
+  # NOTE: each output must have the same shape as the distribution (4,40)
+  outputs: [a,c]
 
-# stage two: finding distributions via forward calls. This is done automatically using the information provided in 'distributions'
-# inputs are all grid_variables and, for endogenous distribution variables, variables named like the members of 'distributions' (e.g. 'a')
+# stage two: iterating the distribution fowards
+# This is done automatically using the information provided in 'distributions'
+# inputs are all grid_variables and, for endogenous distribution variables, the outputs from the decisions stage.
+# NOTE: for endogenous distributions, the output variables must be named appropiately, i.e. like the members of 'distributions' (e.g. 'a')
 # outputs are the distribution(s) named as define in 'distributions' (e.g. here 'dist')
 
 # stage three (optional): aux_equations

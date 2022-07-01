@@ -121,14 +121,17 @@ The distributions block. Defines a distribution (here ``dist``) and all its dime
 
 .. code-block::
 
-    decisions: # stage one
+    decisions: # stage one: iterating the decisions function backwards
       inputs: [VaPrime] # additional to all aggregated variables defined in 'variables'
       calls: |
-        # these are executed subsequently, starting with the latest in time T. Each call takes the previous outputs as given
+        # these are executed subsequently, starting with the last in time T and then iterating forwards
+        # Each call takes the previous outputs as given
         T = transfers(skills_stationary, Div, Tax, skills_grid)
         VaPrimeExp = skills_transition @ VaPrime
         Va, a, c = hh(VaPrimeExp, a_grid, skills_grid, w, n, T, R, beta, eis, frisch)
-      outputs: [a,c] # those are the ones stored for the following stages
+      # the 'outputs' values are stored for the following stages
+      # NOTE: each output must have the same shape as the distribution (4,40)
+      outputs: [a,c]
 
 
 The decisions block. Only relevant for heterogeneous agents models. It is important to correctly specify the dynamic inputs (here: marginals of the value function) and outputs, i.e. those variables that are needed as inputs for the distribution stage. Note that calls are evaluated one after another.

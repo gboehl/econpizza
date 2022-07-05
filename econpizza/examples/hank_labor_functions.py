@@ -11,8 +11,8 @@ def hh_init(a_grid, we, R, eis, T):
     """The initialization for the value function
     """
 
-    coh = R * a_grid[jnp.newaxis, :] + \
-        we[:, jnp.newaxis] + T[:, jnp.newaxis]
+    coh = R * a_grid[None, :] + \
+        we[:, None] + T[:, None]
     Va = R * (0.1 * coh) ** (-1 / eis)
     return Va
 
@@ -25,21 +25,21 @@ def hh(Va_p, a_grid, we, T, R, beta, eis, frisch, vphi):
     uc_nextgrid = beta * Va_p
     # back out consumption and labor supply from MUC
     c_nextgrid, n_nextgrid = cn(
-        uc_nextgrid, we[:, jnp.newaxis], eis, frisch, vphi)
+        uc_nextgrid, we[:, None], eis, frisch, vphi)
 
     # get consumption and labor supply in grid space
-    lhs = c_nextgrid - we[:, jnp.newaxis] * n_nextgrid + \
-        a_grid[jnp.newaxis, :] - T[:, jnp.newaxis]
+    lhs = c_nextgrid - we[:, None] * n_nextgrid + \
+        a_grid[None, :] - T[:, None]
     rhs = R * a_grid
 
     c = interpolate(lhs, rhs, c_nextgrid)
     n = interpolate(lhs, rhs, n_nextgrid)
 
     # get todays distribution of assets
-    a = rhs + we[:, jnp.newaxis] * n + T[:, jnp.newaxis] - c
+    a = rhs + we[:, None] * n + T[:, None] - c
     # fix consumption and labor for constrained households
     c, n = jnp.where(a < a_grid[0], solve_cn(
-        we[:, jnp.newaxis], rhs + T[:, jnp.newaxis] - a_grid[0], eis, frisch, vphi, Va_p), jnp.array((c, n)))
+        we[:, None], rhs + T[:, None] - a_grid[0], eis, frisch, vphi, Va_p), jnp.array((c, n)))
     a = jnp.where(a > a_grid[0], a, a_grid[0])
 
     # calculate new MUC
@@ -111,5 +111,5 @@ def wages(w, e_grid):
 
 
 def labor_supply(n, e_grid):
-    ne = e_grid[:, jnp.newaxis] * n
+    ne = e_grid[:, None] * n
     return ne

@@ -8,6 +8,8 @@ from grgrlib.jaxed import jacfwd_and_val, jacrev_and_val
 
 
 def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, exog_grid_vars_init, tol_backw, maxit_backw, tol_forw, maxit_forw):
+    """Get a function that evaluates the steady state
+    """
 
     def cond_func(cont):
         (vf, _, _), vf_old, cnt = cont
@@ -31,7 +33,7 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shoc
     def func_stst_raw(y, full_output=False):
 
         x, par = func_pre_stst(y)
-        x = x[..., jnp.newaxis]
+        x = x[..., None]
 
         if not func_stst_dist:
             return func_eqns(x, x, x, x, jnp.zeros(len(shocks)), par)
@@ -41,8 +43,8 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shoc
         dist, cnt_forw = func_stst_dist(decisions_output, tol_forw, maxit_forw)
 
         # TODO: for more than one dist this should be a loop...
-        decisions_output_array = decisions_output[..., jnp.newaxis]
-        dist_array = dist[..., jnp.newaxis]
+        decisions_output_array = decisions_output[..., None]
+        dist_array = dist[..., None]
 
         if full_output:
             return (vf, decisions_output, exog_grid_vars, cnt_backw), (dist, cnt_forw)
@@ -53,6 +55,8 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shoc
 
 
 def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, distSS, zshock, tshock, horizon, nvars, endpoint, has_distributions, shock):
+    """Get a function that returns the (flattend) value and Jacobian of the stacked aggregate model equations.
+    """
 
     nshpe = (nvars, horizon-1)
 
@@ -102,9 +106,11 @@ def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS
 
 
 def get_stacked_func(pars, func_eqns, stst, x0, horizon, nvars, endpoint, zshock, tshock, shock, dist_dummy=[], decisions_dummy=[]):
+    """Get a function that returns the (flattend) value and Jacobian of the stacked aggregate model equations IGNORING the effects of distributions.
+    """
 
     jac_vmap = jax.vmap(jacfwd_and_val(lambda x: func_eqns(
-        x[:nvars, jnp.newaxis], x[nvars:-nvars, jnp.newaxis], x[-nvars:, jnp.newaxis], stst, zshock, pars, dist_dummy, decisions_dummy)))
+        x[:nvars, None], x[nvars:-nvars, None], x[-nvars:, None], stst, zshock, pars, dist_dummy, decisions_dummy)))
     jac_shock = jacfwd_and_val(lambda x: func_eqns(
         x[:nvars], x[nvars:-nvars], x[-nvars:], stst, tshock, pars, dist_dummy, decisions_dummy))
 
@@ -134,8 +140,8 @@ def get_stacked_func(pars, func_eqns, stst, x0, horizon, nvars, endpoint, zshock
     return stacked_func
 
 
-def combine_stacked_funcs(stacked_func_dist, stacked_func, mask_out, use_jacrev):
-    """Like jacfwd_and_val but the jacobian is a sparse csr_array
+def get_combined_funcs(stacked_func_dist, stacked_func, mask_out, use_jacrev):
+    """Combine Jacobians and values from stacked_func and stacked_func_dist
     """
 
     if use_jacrev:

@@ -47,7 +47,7 @@ def check_initial_values(model, shocks, par):
 
     init_mixed = jnp.array(list(model['init'].values()))
     init, par = model['context']['func_pre_stst'](init_mixed)
-    init = init[..., jnp.newaxis]
+    init = init[..., None]
 
     # collect some information needed later
     model['init_run'] = {}
@@ -86,7 +86,7 @@ def check_initial_values(model, shocks, par):
 
     # final test of main function
     test = model['context']['func_eqns'](init, init, init, init, jnp.zeros(len(shocks)), par, jnp.array(
-        dists_init)[..., jnp.newaxis], jnp.array(decisions_output_init)[..., jnp.newaxis])
+        dists_init)[..., None], jnp.array(decisions_output_init)[..., None])
 
     if mess:
         pass

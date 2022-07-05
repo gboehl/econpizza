@@ -19,21 +19,21 @@ def hh(Va_p, a_grid, skills_grid, w, n, T, R, beta, eis, frisch):
     ux_nextgrid = beta * Va_p
 
     # consumption can be readily obtained from MUC and MU of labor
-    labor_inc = skills_grid[:, jnp.newaxis]*n*w
+    labor_inc = skills_grid[:, None]*n*w
     c_nextgrid = ux_nextgrid**-eis + labor_inc/(1 + 1/frisch)
 
     # get consumption in grid space
-    lhs = c_nextgrid - labor_inc + a_grid[jnp.newaxis, :] - T[:, jnp.newaxis]
+    lhs = c_nextgrid - labor_inc + a_grid[None, :] - T[:, None]
     rhs = R * a_grid
 
     c = interpolate(lhs, rhs, c_nextgrid)
 
     # get todays distribution of assets
-    a = rhs + labor_inc + T[:, jnp.newaxis] - c
+    a = rhs + labor_inc + T[:, None] - c
 
     # fix consumption and labor for constrained households
     c = jnp.where(a < a_grid[0], labor_inc + rhs +
-                  T[:, jnp.newaxis] - a_grid[0], c)
+                  T[:, None] - a_grid[0], c)
     a = jnp.where(a < a_grid[0], a_grid[0], a)
 
     # calculate new MUC

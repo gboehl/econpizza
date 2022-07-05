@@ -11,8 +11,8 @@ def tmat_from_exog(probs, D):
     tmat = jnp.zeros((nX*nZ, nX*nZ))
 
     i = jnp.arange(nZ)*nX
-    xi = jnp.arange(nX)[:, jnp.newaxis]
-    zi = jnp.arange(nZ)[:, jnp.newaxis, jnp.newaxis]
+    xi = jnp.arange(nX)[:, None]
+    zi = jnp.arange(nZ)[:, None, None]
     tmat = tmat.at[xi+zi*nX, xi +
                    i].set(probs.broadcast_in_dim((nZ, nX, nZ), (0, 2)))
 
@@ -52,7 +52,7 @@ def forward_policy_1d(D, x_i, x_pi):
     nZ, _ = D.shape
     Dnew = jnp.zeros_like(D)
 
-    j = jnp.arange(nZ)[:, jnp.newaxis]
+    j = jnp.arange(nZ)[:, None]
 
     Dnew = Dnew.at[j, x_i].add(D * x_pi)
     Dnew = Dnew.at[j, x_i+1].add(D * (1 - x_pi))
@@ -84,7 +84,7 @@ def forward_policy_2d(D, x_i, y_i, x_pi, y_pi):
     nZ, _, _ = D.shape
     Dnew = jnp.zeros_like(D)
 
-    j = jnp.arange(nZ)[:, jnp.newaxis, jnp.newaxis]
+    j = jnp.arange(nZ)[:, None, None]
 
     Dnew = Dnew.at[j, x_i, y_i].add(y_pi * x_pi * D)
     Dnew = Dnew.at[j, x_i+1, y_i].add(y_pi * (1 - x_pi) * D)

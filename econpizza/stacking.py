@@ -106,16 +106,17 @@ def find_stack(
     if model.get('distributions'):
         vfSS = model['steady_state']['decisions']
         distSS = jnp.array(model['steady_state']['distributions'])
-        decisions_output_init = model['init_run'].get('decisions_output')
+        decisions_outputSS = jnp.array(
+            model['steady_state']['decisions_output'])
 
         # get values of func_eqns that are independent of the distribution
-        stst_in_t = stst[:, jnp.newaxis]
+        stst_in_t = stst[:, None]
 
         def func_eqns_from_dist(dist, decisions_output): return func_eqns(
-            stst_in_t, stst_in_t, stst_in_t, stst, zshock, pars, dist[..., jnp.newaxis], decisions_output[..., jnp.newaxis])
+            stst_in_t, stst_in_t, stst_in_t, stst, zshock, pars, dist[..., None], decisions_output[..., None])
 
-        _, mask_out_jvp = jax.jvp(func_eqns_from_dist, (distSS, decisions_output_init), (
-            jnp.ones_like(distSS), jnp.ones_like(decisions_output_init)))
+        _, mask_out_jvp = jax.jvp(func_eqns_from_dist, (distSS, decisions_outputSS), (
+            jnp.ones_like(distSS), jnp.ones_like(decisions_outputSS)))
         mask_out = jnp.tile(mask_out_jvp.astype(bool), horizon-1)
 
         # compile dist-specific functions
@@ -124,8 +125,8 @@ def find_stack(
         stacked_func_dist = jax.jit(
             stacked_func_dist_raw, static_argnames='full_output')
         model['context']['stacked_func_dist'] = stacked_func_dist
-        dist_dummy = distSS[..., jnp.newaxis]
-        decisions_output_dummy = decisions_output_init[..., jnp.newaxis]
+        dist_dummy = distSS[..., None]
+        decisions_output_dummy = decisions_outputSS[..., None]
     else:
         dist_dummy = decisions_output_dummy = []
 
@@ -137,7 +138,7 @@ def find_stack(
               (horizon*nvars))
 
     if model.get('distributions'):
-        stacked_func = combine_stacked_funcs(
+        stacked_func = get_combined_funcs(
             stacked_func_dist, stacked_func, mask_out, use_jacrev)
     res = newton_jax(stacked_func, x_init[1:-1].flatten(), None, maxit, tol,
                      sparse=True, func_returns_jac=True, verbose=verbose, **solver_kwargs)

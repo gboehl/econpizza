@@ -6,13 +6,13 @@ from grgrlib.jaxed import jax_print
 
 
 def hh_init_Va(b_grid, a_grid, z_grid, eis):
-    Va = (0.6 + 1.1 * b_grid[:, jnp.newaxis] +
+    Va = (0.6 + 1.1 * b_grid[:, None] +
           a_grid) ** (-1 / eis) * jnp.ones((z_grid.shape[0], 1, 1))
     return Va
 
 
 def hh_init_Vb(b_grid, a_grid, z_grid, eis):
-    Vb = (0.5 + b_grid[:, jnp.newaxis] + 1.2 *
+    Vb = (0.5 + b_grid[:, None] + 1.2 *
           a_grid) ** (-1 / eis) * jnp.ones((z_grid.shape[0], 1, 1))
     return Vb
 
@@ -53,12 +53,12 @@ def hh(Va_p, Vb_p, a_grid, b_grid, z_grid, e_grid, k_grid, beta, eis, rb, ra, ch
 
     # for each (z, kappa, a), linearly interpolate to find a' between gridpoints
     # satisfying optimality condition W_ratio/(1+kappa) == 1+Psi1, assuming b'=0
-    lhs_con = W_ratio[:, 0:1, :] / (1 + k_grid[jnp.newaxis, :, jnp.newaxis])
+    lhs_con = W_ratio[:, 0:1, :] / (1 + k_grid[None, :, None])
     i, pi = lhs_equals_rhs_interpolate(lhs_con, 1 + Psi1)
 
     # use same interpolation to get Wb and then c
     a_endo_con = apply_coord(i, pi, a_grid)
-    c_endo_con = ((1 + k_grid[jnp.newaxis, :, jnp.newaxis]) ** (-eis)
+    c_endo_con = ((1 + k_grid[None, :, None]) ** (-eis)
                   * apply_coord(i, pi, Wb[:, 0:1, :]) ** (-eis))
 
     # === STEP 6: a'(z, b, a) for CONSTRAINED ===
@@ -91,7 +91,7 @@ def hh(Va_p, Vb_p, a_grid, b_grid, z_grid, e_grid, k_grid, beta, eis, rb, ra, ch
     c = addouter(z_grid, (1 + rb) * b_grid, (1 + ra) * a_grid) - Psi - a - b
 
     uc = c ** (-1 / eis)
-    uce = e_grid[:, jnp.newaxis, jnp.newaxis] * uc
+    uce = e_grid[:, None, None] * uc
 
     # update derivatives of value function using envelope conditions
     Va = (1 + ra - Psi2) * uc
@@ -107,8 +107,8 @@ def adjustment_costs(a, a_grid, ra, chi0, chi1, chi2):
 
 def marginal_cost_grid(a_grid, ra, chi0, chi1, chi2):
     # precompute Psi1(a', a) on grid of (a', a) for steps 3 and 5
-    Psi1 = get_Psi_and_deriv(a_grid[:, jnp.newaxis],
-                             a_grid[jnp.newaxis, :], ra, chi0, chi1, chi2)[1]
+    Psi1 = get_Psi_and_deriv(a_grid[:, None],
+                             a_grid[None, :], ra, chi0, chi1, chi2)[1]
     return Psi1
 
 
@@ -138,7 +138,7 @@ def matrix_times_first_dim(A, X):
 
 def addouter(z, b, a):
     """Take outer sum of three arguments: result[i, j, k] = z[i] + b[j] + a[k]"""
-    return z[:, jnp.newaxis, jnp.newaxis] + b[:, jnp.newaxis] + a
+    return z[:, None, None] + b[:, None] + a
 
 
 def income(e_grid, tax, w, N):

@@ -5,11 +5,12 @@ import logging
 import jax
 import os
 import numpy as np
-from .shooting import find_pizza
-from .stacking import find_stack
 from .parsing import parse, load
 from .steady_state import solve_stst
-from .solve_linear import solve_linear
+from .solvers.shooting import find_pizza
+from .solvers.stacking import find_stack
+from .solvers.solve_linear import find_path_linear
+from .solvers.solve_linear_state_space import solve_linear_state_space
 
 __version__ = '0.1.12'
 
@@ -57,7 +58,7 @@ class PizzaModel(dict):
 PizzaModel.find_stack = find_stack
 PizzaModel.find_path = find_pizza
 PizzaModel.solve_stst = solve_stst
-PizzaModel.solve_linear = solve_linear
+PizzaModel.solve_linear_state_space = solve_linear_state_space
 
 find_path_stacked = find_stack
 find_path = find_pizza

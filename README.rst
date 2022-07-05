@@ -59,7 +59,7 @@ Econpizza needs **JAX** to be installed. This is not a problem for MacOS and Lin
 
     pip install "jax[cpu]===0.3.14" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
 
-*prior* to installing Econpizza. Econpizza then runs `just fine <https://github.com/gboehl/econpizza/actions/runs/2579662335>`_.
+*prior* to installing Econpizza. Econpizza then runs just fine (`proof <https://github.com/gboehl/econpizza/actions/runs/2579662335>`_).
 
 
 References

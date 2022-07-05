@@ -16,7 +16,7 @@ def test_bh(create=False):
     state = np.zeros(len(mod["variables"]))
     state[:-1] = [0.1, 0.2, 0.0]
 
-    x, _, flag = find_path(
+    x, flag = find_path_shooting(
         mod, state, T=50, max_horizon=500, tol=1e-8, verbose=2)
 
     path = os.path.join(filepath, "test_storage", "bh.npy")
@@ -39,8 +39,8 @@ def test_nk(create=False):
     state = mod["stst"].copy()
     state["beta"] *= 1.02
 
-    x, _, flag = find_path(mod, state.values(), T=10,
-                           max_horizon=10, verbose=2)
+    x, flag = find_path_shooting(mod, state.values(), T=10,
+                                 max_horizon=10, verbose=2)
 
     path = os.path.join(filepath, "test_storage", "nk.npy")
 
@@ -61,7 +61,7 @@ def test_stacked(create=False):
 
     shk = ("e_beta", 0.02)
 
-    x, _, flag = find_path_stacked(mod, shock=shk)
+    x, flag = find_path(mod, shock=shk)
 
     path = os.path.join(filepath, "test_storage", "stacked.npy")
 
@@ -84,18 +84,29 @@ def test_hank(create=False):
     x0 = mod['stst'].copy()
     x0['beta'] *= 1.01  # setting a shock on the discount factor
 
-    x, _, flag = mod.find_stack(x0.values(), horizon=10)
+    x, flag = mod.find_path(x0.values(), horizon=10)
+    x_lin, _ = mod.find_path_linear(x0.values(), horizon=10)
+    het_vars = mod.get_het_vars(x)
+    dist = het_vars['dist']
 
-    path = os.path.join(filepath, "test_storage", "hank.npy")
+    path_x = os.path.join(filepath, "test_storage", "hank.npy")
+    path_x_lin = os.path.join(filepath, "test_storage", "hank_lin.npy")
+    path_dist = os.path.join(filepath, "test_storage", "hank_dist.npy")
 
     if create:
-        np.save(path, x)
-        print(f'Test file updated at {path}')
+        np.save(path_x, x)
+        np.save(path_x_lin, x_lin)
+        np.save(path_dist, dist)
+        print(f'Test file updated at {path_x},{path_x_lin} and {path_dist}')
     else:
-        test_x = np.load(path)
+        test_x = np.load(path_x)
+        test_x_lin = np.load(path_x_lin)
+        test_dist = np.load(path_dist)
 
         assert flag == 0
         assert np.allclose(x, test_x)
+        assert np.allclose(x_lin, test_x_lin)
+        assert np.allclose(dist, test_dist)
 
 
 def test_hank_labor(create=False):
@@ -107,7 +118,7 @@ def test_hank_labor(create=False):
     x0 = mod['stst'].copy()
     x0['beta'] *= 1.01  # setting a shock on the discount factor
 
-    x, _, flag = mod.find_stack(x0.values(), horizon=10, use_jacrev=False)
+    x, flag = mod.find_path(x0.values(), horizon=10, use_jacrev=False)
 
     path = os.path.join(filepath, "test_storage", "hank_labor.npy")
 
@@ -130,7 +141,7 @@ def test_hank2(create=False):
     x0 = mod['stst'].copy()
     x0['beta'] *= 1.01  # setting a shock on the discount factor
 
-    x, _, flag = mod.find_stack(x0.values(), horizon=10)
+    x, flag = mod.find_path(x0.values(), horizon=10)
 
     path = os.path.join(filepath, "test_storage", "hank2.npy")
 

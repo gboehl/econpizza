@@ -7,10 +7,9 @@ import os
 import numpy as np
 from .parsing import parse, load
 from .steady_state import solve_stst
-from .solvers.shooting import find_pizza
-from .solvers.stacking import find_stack
+from .solvers.shooting import find_path_shooting
+from .solvers.stacking import find_path
 from .solvers.solve_linear import find_path_linear
-from .solvers.solve_linear_state_space import solve_linear_state_space
 
 __version__ = '0.1.12'
 
@@ -41,11 +40,11 @@ class PizzaModel(dict):
             a dictionary of the outputs of the decision and distributions stage
         """
 
-        stacked_func = self['context']['stacked_func']
+        stacked_func = self['context']['stacked_func_dist']
         decisions_outputs = self['decisions']['outputs']
         dist_names = list(self['distributions'].keys())
 
-        het_vars = stacked_func(xst[1:-1], True)
+        het_vars = stacked_func(xst[1:-1].ravel(), True)
 
         rdict = {oput: het_vars[0][i]
                  for i, oput in enumerate(decisions_outputs)}
@@ -55,15 +54,11 @@ class PizzaModel(dict):
         return rdict
 
 
-PizzaModel.find_stack = find_stack
-PizzaModel.find_path = find_pizza
+PizzaModel.find_path = find_path
+PizzaModel.find_path_linear = find_path_linear
+PizzaModel.find_path_shooting = find_path_shooting
 PizzaModel.solve_stst = solve_stst
-PizzaModel.solve_linear_state_space = solve_linear_state_space
 
-find_path_stacked = find_stack
-find_path = find_pizza
-
-np.set_printoptions(threshold=np.inf)
 logging.basicConfig(level=logging.INFO)
 
 pth = os.path.dirname(__file__)

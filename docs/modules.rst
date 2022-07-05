@@ -8,16 +8,23 @@ Module Documentation
    :undoc-members:
    :show-inheritance:
 
-``econpizza.find_stack``
+``econpizza.find_path``
 ------------------------
-.. automodule:: econpizza.stacking
+.. automodule:: econpizza.solvers.stacking
    :members:
    :undoc-members:
    :show-inheritance:
 
-``econpizza.find_pizza``
+``econpizza.find_path_shooting``
 ------------------------
-.. automodule:: econpizza.shooting
+.. automodule:: econpizza.solvers.shooting
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+``econpizza.find_path_linear``
+------------------------
+.. automodule:: econpizza.solvers.solve_linear
    :members:
    :undoc-members:
    :show-inheritance:

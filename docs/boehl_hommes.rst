@@ -40,7 +40,7 @@ The following example shows how to use the shooting method on the simple New Key
     state['beta'] *= 1.02
 
     # simulate the model
-    x, _, flag = mod.find_path(state.values())
+    x, _, flag = mod.find_path_shooting(state.values())
 
     # plotting
     for i,v in enumerate(mod['variables']):
@@ -67,7 +67,7 @@ Lets go for a second, numerically more challenging example: the chaotic rational
     state[:-1] = [.1, .2, 0.]
 
     # solve and simulate. The lower eps is not actually necessary
-    x, _, flag = ep.find_path(mod, state, T=500, max_horizon=1000, tol=1e-8)
+    x, _, flag = ep.find_path_shooting(mod, state, T=500, max_horizon=1000, tol=1e-8)
 
     # plotting
     for i,v in enumerate(mod['variables']):

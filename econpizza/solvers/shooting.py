@@ -7,7 +7,6 @@ import jax
 import numpy as np
 import jax.numpy as jnp
 import scipy.optimize as so
-from .solve_linear import find_path_linear
 
 
 def solve_current(model, shock, XLag, XLastGuess, XPrime, tol):
@@ -26,7 +25,7 @@ def solve_current(model, shock, XLag, XLastGuess, XPrime, tol):
     return res["x"], not res["success"], err > tol
 
 
-def find_pizza(
+def find_path_shooting(
     model,
     x0=None,
     shock=None,
@@ -36,7 +35,6 @@ def find_pizza(
     max_loops=100,
     max_iter=None,
     tol=1e-5,
-    use_linear_guess=False,
     root_options={},
     raise_error=False,
     verbose=True,
@@ -104,10 +102,6 @@ def find_pizza(
 
     x = np.ones((T + max_horizon + 1, nvars)) * stst
     x[0] = x_fin[0]
-
-    x, x_lin = find_path_linear(
-        model, shock, T + max_horizon, x, use_linear_guess)
-    x_lin = x_lin[: T + 1] if x_lin is not None else None
 
     if init_path is not None:
         x[1: len(init_path)] = init_path[1:]
@@ -203,4 +197,4 @@ def find_pizza(
         print("(find_path:) Pizza done after %s seconds%s." %
               (duration, "".join(mess)))
 
-    return x_fin, x_lin, fin_flag
+    return x_fin, fin_flag

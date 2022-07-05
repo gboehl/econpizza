@@ -71,6 +71,9 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
     except KeyError:
         pass
 
+    # reset for recalculation
+    model['stst_jacobian'] = None
+
     # get all necessary functions
     func_eqns = model['context']['func_eqns']
     func_backw = model['context'].get('func_backw')

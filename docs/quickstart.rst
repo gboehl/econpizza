@@ -25,7 +25,7 @@ An small-scale nonlinear New Keynesian model with ZLB is provided `as an example
     shk = ('e_beta', .02)
 
     # use the stacking method. As above, you could also feed in the initial state instead
-    x, x_lin, flag = mod.find_stack(shock=shk)
+    x, x_lin, flag = mod.find_path(shock=shk)
 
     # plotting. x_lin is the linearized first-order solution
     for i,v in enumerate(mod['variables']):

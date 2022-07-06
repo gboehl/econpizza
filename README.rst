@@ -3,14 +3,12 @@ econpizza
 
 **Solve nonlinear heterogeneous agent models using machine learning techniques**
 
-.. image:: https://github.com/dfm/emcee/workflows/Tests/badge.svg
-    :target: https://github.com/gboehl/econpizza/actions?query=workflow%3ATests
 .. image:: https://img.shields.io/badge/GitHub-gboehl%2Feconpizza-blue.svg?style=flat
     :target: https://github.com/gboehl/econpizza
+.. image:: https://github.com/dfm/emcee/workflows/Tests/badge.svg
+    :target: https://github.com/gboehl/econpizza/actions
 .. image:: https://readthedocs.org/projects/econpizza/badge/?version=latest
     :target: http://econpizza.readthedocs.io/en/latest/?badge=latest
-.. image:: https://github.com/gboehl/pydsge/workflows/Continuous%20Integration%20Workflow/badge.svg?branch=master
-    :target: https://github.com/gboehl/econpizza/actions
 .. image:: https://badge.fury.io/py/econpizza.svg
     :target: https://badge.fury.io/py/econpizza
 
@@ -30,7 +28,7 @@ There is a `model parser <https://econpizza.readthedocs.io/en/latest/quickstart.
 Documentation
 -------------
 
-The Documentation and **tutorials** can be found `here <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
+The documentation and a **tutorial** can be found `here <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
 
 
 Installation
@@ -53,7 +51,7 @@ Note that the latter requires `git <https://www.activestate.com/resources/quick-
 
 Installation on Windows
 ^^^^^^^^^^^^^^^^^^^^^^^
-Econpizza needs **JAX** to be installed. This is not a problem for MacOS and Linux, but the time for Jax to fully support Windows has not yet come. Fortunately, there is help out there (see `here <https://github.com/cloudhan/jax-windows-builder>`_ for the somewhat cryptic original reference). To install JAX, run
+Econpizza needs **JAX** to be installed. This is not a problem for MacOS and Linux, but the time for JAX to fully support Windows has not yet come. Fortunately, there is help out there (see `here <https://github.com/cloudhan/jax-windows-builder>`_ for the somewhat cryptic original reference). To install JAX, run
 
 .. code-block:: bash
 

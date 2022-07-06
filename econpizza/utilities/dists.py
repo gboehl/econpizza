@@ -119,7 +119,7 @@ def stationary_distribution_forward_policy_2d(endog_inds0, endog_inds1, endog_pr
 
 def stationary_distribution(T):
     """Find invariant distribution of a Markov chain by unit eigenvector.
-    NOTE: jax has no autodiff support for eig.
+    NOTE: jax has no autodiff support for eig. (there is a version with custom_jvp in grgrwip)
     """
 
     v, w = jnp.linalg.eig(T)

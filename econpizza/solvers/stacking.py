@@ -10,7 +10,7 @@ from grgrlib.jaxed import newton_jax, jacfwd_and_val, jacrev_and_val
 from ..parser.build_functions import *
 
 
-def find_path(
+def find_path_stacking(
     model,
     x0=None,
     shock=None,

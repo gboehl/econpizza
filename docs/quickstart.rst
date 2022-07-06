@@ -71,8 +71,10 @@ You can also have a look at the linearized solution. This is pretty much shat th
         plt.plot(x_lin[:30,i])
         plt.title(v)
 
+The resulting plots will look somewhat similar to this:
+
 .. image:: https://github.com/gboehl/econpizza/blob/master/docs/lin_and_nlin.png?raw=true
-  :width: 800
+  :width: 600
   :alt: Linear vs. nonlinear IRFs
 
 The folder `yaml files <https://github.com/gboehl/econpizza/tree/master/econpizza/examples>`_ also contains a medium scale New Keynesian DSGE model as an example file (``med_scale_nk.yaml``, see `here <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/med_scale_nk.yaml>`_). It can be imported with:

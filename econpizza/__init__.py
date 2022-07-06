@@ -11,7 +11,7 @@ from .solvers.shooting import find_path_shooting
 from .solvers.stacking import find_path_stacking
 from .solvers.solve_linear import find_path_linear
 
-__version__ = '0.1.12'
+__version__ = '0.2.00'
 
 jax.config.update("jax_enable_x64", True)
 # set number of cores for XLA

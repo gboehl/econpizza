@@ -61,7 +61,7 @@ def test_stacked(create=False):
 
     shk = ("e_beta", 0.02)
 
-    x, flag = find_path(mod, shock=shk)
+    x, flag = find_path_stacking(mod, shock=shk)
 
     path = os.path.join(filepath, "test_storage", "stacked.npy")
 

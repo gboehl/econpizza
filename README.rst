@@ -51,7 +51,7 @@ Note that the latter requires `git <https://www.activestate.com/resources/quick-
 
 Installation on Windows
 ^^^^^^^^^^^^^^^^^^^^^^^
-Econpizza needs **JAX** to be installed. This is not a problem for MacOS and Linux, but the time for JAX to fully support Windows has not yet come. Fortunately, there is help out there (see `here <https://github.com/cloudhan/jax-windows-builder>`_ for the somewhat cryptic original reference). To install JAX, run
+Econpizza needs **JAX** to be installed. This is not a problem for MacOS and Linux, but the time for JAX to fully support Windows has not yet come. Fortunately, there is help out there (see `this link <https://github.com/cloudhan/jax-windows-builder>`_ for the somewhat cryptic original reference). To install JAX, run
 
 .. code-block:: bash
 

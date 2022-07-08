@@ -1,8 +1,6 @@
 ipykernel
 ipython_genutils
 nbsphinx
-numpy
-numba
 scipy
 jax
 jaxlib

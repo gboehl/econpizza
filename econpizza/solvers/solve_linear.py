@@ -153,7 +153,7 @@ def find_path_linear(model, x0=None, shocks=None, horizon=30, verbose=True):
     stst = jnp.array(list(model['stst'].values()))
     nvars = len(model["variables"])
 
-    x0 = np.array(list(x0)) if x0 is not None else stst
+    x0 = jnp.array(list(x0)) if x0 is not None else stst
 
     if model['stst_jacobian'] is None:
         stst_jacobian = get_stst_jacobian(model, horizon)
@@ -163,7 +163,7 @@ def find_path_linear(model, x0=None, shocks=None, horizon=30, verbose=True):
         stst_jacobian = model['stst_jacobian']
         mess = 'Steady state Jacobian loaded.'
 
-    x0 = jnp.array(list(x0)) - stst
+    x0 -= stst
     x = - \
         ssp.linalg.spsolve(
             stst_jacobian[:, nvars:-nvars], stst_jacobian[:, :nvars] @ x0)

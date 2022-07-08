@@ -13,8 +13,8 @@ def test_bh(create=False):
     mod = load(example_bh, raise_errors=False)
     _ = mod.solve_stst()
 
-    state = np.zeros(len(mod["variables"]))
-    state[:-1] = [0.1, 0.2, 0.0]
+    state = jnp.zeros(len(mod["variables"]))
+    state = state.at[:-1].set([0.1, 0.2, 0.0])
 
     x, flag = find_path_shooting(
         mod, state, T=50, max_horizon=500, tol=1e-8, verbose=2)
@@ -22,13 +22,13 @@ def test_bh(create=False):
     path = os.path.join(filepath, "test_storage", "bh.npy")
 
     if create:
-        np.save(path, x)
+        jnp.save(path, x)
         print(f'Test file updated at {path}')
     else:
-        test_x = np.load(path)
+        test_x = jnp.load(path)
 
         assert flag == 0
-        assert np.allclose(x, test_x)
+        assert jnp.allclose(x, test_x)
 
 
 def test_nk(create=False):
@@ -45,13 +45,13 @@ def test_nk(create=False):
     path = os.path.join(filepath, "test_storage", "nk.npy")
 
     if create:
-        np.save(path, x)
+        jnp.save(path, x)
         print(f'Test file updated at {path}')
     else:
-        test_x = np.load(path)
+        test_x = jnp.load(path)
 
         assert flag == 0
-        assert np.allclose(x, test_x)
+        assert jnp.allclose(x, test_x)
 
 
 def test_stacked(create=False):
@@ -66,13 +66,13 @@ def test_stacked(create=False):
     path = os.path.join(filepath, "test_storage", "stacked.npy")
 
     if create:
-        np.save(path, x)
+        jnp.save(path, x)
         print(f'Test file updated at {path}')
     else:
-        test_x = np.load(path)
+        test_x = jnp.load(path)
 
         assert flag == 0
-        assert np.allclose(x, test_x)
+        assert jnp.allclose(x, test_x)
 
 
 def test_hank(create=False):
@@ -94,19 +94,19 @@ def test_hank(create=False):
     path_dist = os.path.join(filepath, "test_storage", "hank_dist.npy")
 
     if create:
-        np.save(path_x, x)
-        np.save(path_x_lin, x_lin)
-        np.save(path_dist, dist)
+        jnp.save(path_x, x)
+        jnp.save(path_x_lin, x_lin)
+        jnp.save(path_dist, dist)
         print(f'Test file updated at {path_x},{path_x_lin} and {path_dist}')
     else:
-        test_x = np.load(path_x)
-        test_x_lin = np.load(path_x_lin)
-        test_dist = np.load(path_dist)
+        test_x = jnp.load(path_x)
+        test_x_lin = jnp.load(path_x_lin)
+        test_dist = jnp.load(path_dist)
 
         assert flag == 0
-        assert np.allclose(x, test_x)
-        assert np.allclose(x_lin, test_x_lin)
-        assert np.allclose(dist, test_dist)
+        assert jnp.allclose(x, test_x)
+        assert jnp.allclose(x_lin, test_x_lin)
+        assert jnp.allclose(dist, test_dist)
 
 
 def test_hank_labor(create=False):
@@ -123,13 +123,13 @@ def test_hank_labor(create=False):
     path = os.path.join(filepath, "test_storage", "hank_labor.npy")
 
     if create:
-        np.save(path, x)
+        jnp.save(path, x)
         print(f'Test file updated at {path}')
     else:
-        test_x = np.load(path)
+        test_x = jnp.load(path)
 
         assert flag == 0
-        assert np.allclose(x, test_x)
+        assert jnp.allclose(x, test_x)
 
 
 def test_hank2(create=False):
@@ -146,10 +146,10 @@ def test_hank2(create=False):
     path = os.path.join(filepath, "test_storage", "hank2.npy")
 
     if create:
-        np.save(path, x)
+        jnp.save(path, x)
         print(f'Test file updated at {path}')
     else:
-        test_x = np.load(path)
+        test_x = jnp.load(path)
 
         assert flag == 0
-        assert np.allclose(x, test_x)
+        assert jnp.allclose(x, test_x)

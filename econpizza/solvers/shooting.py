@@ -4,25 +4,8 @@
 import sys
 import time
 import jax
-import numpy as np
 import jax.numpy as jnp
-import scipy.optimize as so
-
-
-def solve_current(model, shock, XLag, XLastGuess, XPrime, tol):
-    """Solves for one period.
-    """
-
-    func = jax.jit(model['context']["func_eqns"])
-    pars = jnp.array(list(model["parameters"].values()))
-    stst = jnp.array(list(model["stst"].values()))
-
-    def func_current(x): return func(XLag, x, XPrime, stst, shock, pars)
-
-    res = so.root(func_current, XLastGuess, options=model["root_options"])
-    err = jnp.max(jnp.abs(func_current(res["x"])))
-
-    return res["x"], not res["success"], err > tol
+from grgrlib.jaxed import newton_jax_jit, newton_jax_jittable
 
 
 def find_path_shooting(
@@ -40,6 +23,8 @@ def find_path_shooting(
     verbose=True,
 ):
     """Find the expected trajectory given an initial state. A good strategy is to first set `tol` to a low value (e.g. 1e-3) and check for a good max_horizon. Then, set max_horizon to a reasonable value and let max_loops be high.
+
+    NOTE: this is painfully slow since the migration to JAX.
 
     Parameters
     ----------
@@ -86,9 +71,11 @@ def find_path_shooting(
             % (max_iter, max_horizon)
         )
 
-    stst = np.array(list(model["stst"].values()))
+    stst = jnp.array(list(model["stst"].values()))
     nvars = len(model["variables"])
     shocks = model.get("shocks") or ()
+    pars = jnp.array(list(model["parameters"].values()))
+    func = jax.jit(model['context']["func_eqns"])
 
     if root_options:
         model["root_options"] = root_options
@@ -97,18 +84,18 @@ def find_path_shooting(
     if "xtol" not in model["root_options"]:
         model["root_options"]["xtol"] = min(tol / max_horizon, 1e-8)
 
-    x_fin = np.empty((T + 1, nvars))
-    x_fin[0] = list(x0) if x0 is not None else stst
+    x_fin = jnp.empty((T + 1, nvars))
+    x_fin = x_fin.at[0].set(list(x0) if x0 is not None else stst)
 
-    x = np.ones((T + max_horizon + 1, nvars)) * stst
-    x[0] = x_fin[0]
+    x = jnp.ones((T + max_horizon + 1, nvars)) * stst
+    x = x.at[0].set(x_fin[0])
 
     if init_path is not None:
-        x[1: len(init_path)] = init_path[1:]
+        x = x.at[1: len(init_path)].set(init_path[1:])
 
-    tshock = np.zeros(len(shocks))
+    tshock = jnp.zeros(len(shocks))
 
-    fin_flag = np.zeros(5, dtype=bool)
+    fin_flag = jnp.zeros(5, dtype=bool)
     old_clock = time.time()
 
     msgs = (
@@ -119,57 +106,69 @@ def find_path_shooting(
         ", max_iter reached",
     )
 
+    @jax.jit
+    def solve_current(pars, shock, XLag, XLastGuess, XPrime):
+        """Solves for one period.
+        """
+
+        res = newton_jax_jittable(lambda x: func(
+            XLag, x, XPrime, stst, shock, pars), XLastGuess)
+
+        return res[0], res[2], res[3]
+
     try:
         for i in range(T):
 
             loop = 1
             cnt = 2
-            flag = np.zeros_like(fin_flag)
+            flag = jnp.zeros_like(fin_flag)
 
             while True:
 
                 x_old = x[1].copy()
                 imax = min(cnt, max_horizon)
 
-                flag_loc = np.zeros(2, dtype=bool)
+                flag_loc = jnp.zeros(2, dtype=bool)
 
                 for t in range(imax):
 
                     if not t and not i and shock is not None:
-                        tshock[shocks.index(shock[0])] = shock[1]
+                        tshock.at[shocks.index(shock[0])].set(shock[1])
                     else:
-                        tshock[:] = 0
+                        tshock.at[:].set(0)
 
-                    x[t + 1], flag_root, flag_ftol = solve_current(
-                        model, tshock, x[t], x[t + 1], x[t + 2], tol
-                    )
+                    x_new, flag_root, flag_ftol = solve_current(
+                        pars, tshock, x[t], x[t + 1], x[t + 2])
 
-                    flag_loc[0] |= flag_root
-                    flag_loc[1] |= flag_ftol and not flag_root
+                    x = x.at[t + 1].set(x_new)
 
-                flag[2] |= np.any(np.isnan(x))
-                flag[3] |= np.any(np.isinf(x))
+                    flag_loc = flag_loc.at[0].set(flag_loc[0] or not flag_root)
+                    flag_loc = flag_loc.at[1].set(
+                        flag_loc[2] or (not flag_ftol and flag_root))
+
+                flag = flag.at[2].set(flag[2] or jnp.any(jnp.isnan(x)))
+                flag = flag.at[3].set(flag[3] or jnp.any(jnp.isinf(x)))
 
                 if cnt == max_iter:
                     if loop < max_loops:
                         loop += 1
                         cnt = 2
                     else:
-                        flag[4] |= True
+                        flag = flag.at[4].set(flag[4] or True)
 
-                err = np.abs(x_old - x[1]).max()
+                err = jnp.abs(x_old - x[1]).max()
 
                 clock = time.time()
                 if verbose and clock - old_clock > 0.5:
                     old_clock = clock
                     print(
                         "   Period{:>4d} | loop{:>5d} | iter.{:>5d} | flag{:>3d} | error: {:>1.8e}".format(
-                            i, loop, cnt, 2 ** np.arange(5) @ fin_flag, err
+                            i, loop, cnt, 2 ** jnp.arange(5) @ fin_flag, err
                         )
                     )
 
                 if (err < tol and cnt > 2) or flag.any():
-                    flag[:2] |= flag_loc
+                    flag = flag.at[:2].set(flag[2] or flag_loc)
                     if raise_error and flag.any():
                         mess = [i * bool(j) for i, j in zip(msgs, flag)]
                         raise Exception("Aborting%s" % "".join(mess))
@@ -178,22 +177,25 @@ def find_path_shooting(
 
                 cnt += 1
 
-            x_fin[i + 1] = x[1].copy()
+            x_fin = x_fin.at[i + 1].set(x[1])
             x = x[1:].copy()
 
     except Exception as error:
-        raise type(error)(
-            str(error)
-            + " (raised in period %s during loop %s for forecast %s steps ahead)"
-            % (i, loop, t)
-        ).with_traceback(sys.exc_info()[2])
+        try:
+            raise type(error)(
+                str(error)
+                + " (raised in period %s during loop %s for forecast %s steps ahead)"
+                % (i, loop, t)
+            ).with_traceback(sys.exc_info()[2])
+        except AttributeError:
+            raise error
 
-    fin_flag[1] &= not fin_flag[0]
+    fin_flag = fin_flag.at[1].set(fin_flag[1] and not fin_flag[0])
     mess = [i * bool(j) for i, j in zip(msgs, fin_flag)]
-    fin_flag = 2 ** np.arange(5) @ fin_flag
+    fin_flag = 2 ** jnp.arange(5) @ fin_flag
 
     if verbose:
-        duration = np.round(time.time() - st, 3)
+        duration = jnp.round(time.time() - st, 3)
         print("(find_path:) Pizza done after %s seconds%s." %
               (duration, "".join(mess)))
 

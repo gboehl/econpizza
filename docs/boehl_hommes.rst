@@ -66,8 +66,8 @@ Lets go for a second, numerically more challenging example: the chaotic rational
     state = np.zeros(len(mod['variables']))
     state[:-1] = [.1, .2, 0.]
 
-    # solve and simulate. The lower eps is not actually necessary
-    x, _, flag = ep.find_path_shooting(mod, state, T=500, max_horizon=1000, tol=1e-8)
+    # solve and simulate
+    x, _, flag = ep.find_path_shooting(mod, state, T=500, max_horizon=1000, tol=1e-5)
 
     # plotting
     for i,v in enumerate(mod['variables']):

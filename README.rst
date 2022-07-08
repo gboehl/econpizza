@@ -14,7 +14,7 @@ econpizza
 
 Econpizza is a framework to solve and simulate nonlinear perfect foresight models, with or without heterogeneous agents.
 A parser allows to express economic models in a simple, high-level fashion as yaml-files.
-Additionally, generic and robust routines for steady state search are provided.
+Generic and robust routines for steady state search are provided.
 
 The baseline solver is a Newton-based stacking method in the spirit of Boucekkine (1995), Juillard (1996) and others. Hence, the method is similar to the solver in dynare, but faster and more robust due to the use of automatic differentiation and sparse jacobians. Even perfect-foresight IRFs for large-scale nonlinear models with, e.g., occassionally binding constraints can be computed in less than a second.
 

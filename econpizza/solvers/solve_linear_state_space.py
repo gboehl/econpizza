@@ -2,15 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import jax
-import numpy as np
-from scipy.linalg import block_diag
+import jax.numpy as jnp
 from grgrlib import klein, speed_kills
 
 
 def solve_linear_state_space(
     model,
-    x=None,
-    eps=1e-5,
     raise_error=True,
     check_contraction=False,
     lti_max_iter=1000,
@@ -24,43 +21,37 @@ def solve_linear_state_space(
 
     evars = model["variables"]
     func = model['context']["func_eqns"]
-    par = np.array(list(model["parameters"].values()))
+    par = jnp.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
-    stst = list(model["stst"].values())
+    stst = jnp.array(list(model["stst"].values()))
     nshc = len(shocks)
     nsts = len(stst)
 
-    if x is None:
-        x = np.array(stst)
+    xmult = stst.copy()
+    xmult = xmult.at[jnp.isclose(stst, 0)].set(1)
 
-    xmult = x.copy()
-    xmult[np.isclose(x, 0)] = 1
+    zshock = jnp.zeros(len(shocks))
+    fx = func(stst, stst, stst, stst, jnp.zeros(nshc), par)
 
-    AA = np.empty((nsts, nsts))
-    BB = AA.copy()
-    CC = AA.copy()
-    DD = np.empty((nsts, nshc))
-
-    zshock = np.zeros(len(shocks))
-    fx = func(x, x, x, x, np.zeros(nshc), par)
-
-    # use numdifftools if possible
-    AA = jax.jacfwd(lambda err: func(x, x, err, x, zshock, par))(x) * xmult
-    BB = jax.jacfwd(lambda err: func(x, err, x, x, zshock, par))(x) * xmult
-    CC = jax.jacfwd(lambda err: func(err, x, x, x, zshock, par))(x) * xmult
-    DD = jax.jacfwd(lambda err: func(x, x, x, x, err, par))(zshock)
+    AA = jax.jacfwd(lambda err: func(stst, stst, err,
+                    stst, zshock, par))(stst) * xmult
+    BB = jax.jacfwd(lambda err: func(stst, err, stst,
+                    stst, zshock, par))(stst) * xmult
+    CC = jax.jacfwd(lambda err: func(err, stst, stst,
+                    stst, zshock, par))(stst) * xmult
+    DD = jax.jacfwd(lambda err: func(stst, stst, stst, stst, err, par))(zshock)
     DD = DD.reshape((nsts, len(shocks)))
 
-    A = np.pad(AA, ((0, nshc), (0, nshc)))
-    B = block_diag(BB, np.eye(nshc))
-    C = np.block([[CC, DD], [np.zeros((nshc, A.shape[1]))]])
+    A = jnp.pad(AA, ((0, nshc), (0, nshc)))
+    B = jax.scipy.linalg.block_diag(BB, jnp.eye(nshc))
+    C = jnp.block([[CC, DD], [jnp.zeros((nshc, A.shape[1]))]])
 
     model["ABC"] = A, B, C
 
-    I = np.eye(nsts + nshc)
-    Z = np.zeros_like(I)
-    P = np.block([[B, A], [I, Z]])
-    M = np.block([[C, Z], [Z, -I]])
+    I = jnp.eye(nsts + nshc)
+    Z = jnp.zeros_like(I)
+    P = jnp.block([[B, A], [I, Z]])
+    M = jnp.block([[C, Z], [Z, -I]])
 
     mess = ""
     success = True
@@ -87,12 +78,12 @@ def solve_linear_state_space(
                 mess = mess[:-1]
 
     if check_contraction:
-        A = np.linalg.inv(BB) @ AA
-        B = np.linalg.inv(BB) @ CC
+        A = jnp.linalg.inv(BB) @ AA
+        B = jnp.linalg.inv(BB) @ CC
 
-        Aev = np.abs(np.linalg.eig(A)[0])
+        Aev = jnp.abs(jnp.linalg.eig(A)[0])
         Aev_err = Aev > 1
-        Bev = np.abs(np.linalg.eig(B)[0])
+        Bev = jnp.abs(jnp.linalg.eig(B)[0])
         Bev_err = Bev > 1
         flag += Aev_err.any() or Bev_err.any()
         mess += ", but " if success else ""
@@ -117,35 +108,50 @@ def solve_linear_state_space(
     return model["ABC"]
 
 
-def find_path_linear_state_space(model, shock, T, x, use_linear_guess):
+def find_path_linear_state_space(model, x0=None, shock=None, T=30, verbose=True):
     """Solves the expected trajectory given the linear model.
+
+    Parameters
+    ----------
+    model : dict
+        model dict or PizzaModel instance
+    x0 : array
+        initial state
+    shock : tuple, optional
+        shock in period 0 as in `(shock_name_as_str, shock_size)`. NOTE: Not (yet) implemented.
+    horizon : int, optional
+        number of periods to simulate
+    verbose : bool, optional
+        degree of verbosity. 0/`False` is silent
+
+    Returns
+    -------
+    x : array
+        array of the trajectory
+    flag : bool
+        for consistency. Always returns `True`
     """
 
-    if model.get("lin_pol") is not None:
+    stst = jnp.array(list(model["stst"].values()))
+    sel = jnp.isclose(stst, 0)
 
-        stst = np.array(list(model["stst"].values()))
-        sel = np.isclose(stst, 0)
+    x0 = jnp.array(list(x0)) if x0 is not None else stst
+    x0 = x0.at[~sel].set(x0[~sel] / stst[~sel] - 1)
 
-        shocks = model.get("shocks") or ()
-        tshock = np.zeros(len(shocks))
-        if shock is not None:
-            tshock[shocks.index(shock[0])] = shock[1]
+    shocks = model.get("shocks") or ()
+    tshock = jnp.zeros(len(shocks))
+    if shock is not None:
+        tshock[shocks.index(shock[0])] = shock[1]
 
-        x_lin = np.empty_like(x)
-        x_lin[0] = x[0]
-        x_lin[0][~sel] = (x[0][~sel] / stst[~sel] - 1)
+    x_lin = jnp.empty((T+1, len(stst)))
+    x_lin = x_lin.at[0].set(x0)
 
-        for t in range(T):
-            x_lin[t + 1] = model["lin_pol"][0] @ x_lin[t]
+    for t in range(T):
+        x_lin = x_lin.at[t + 1].set(model["lin_pol"][0] @ x_lin[t])
 
-            if not t:
-                x_lin[t + 1] += model["lin_pol"][1] @ tshock
+        if not t:
+            x_lin = x_lin.at[t + 1].add(model["lin_pol"][1] @ tshock)
 
-        x_lin[:, ~sel] = ((1 + x_lin) * stst)[:, ~sel]
+    x_lin = x_lin.at[:, ~sel].set(((1 + x_lin) * stst)[:, ~sel])
 
-        if use_linear_guess:
-            return x_lin.copy(), x_lin
-        else:
-            return x, x_lin
-    else:
-        return x, None
+    return x_lin, True

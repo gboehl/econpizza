@@ -1,37 +1,44 @@
 Module Documentation
 ====================
 
-``econpizza.load``
-------------------
+``econpizza.parsing``
+---------------------
 .. automodule:: econpizza.parsing
    :members:
    :undoc-members:
    :show-inheritance:
 
-``econpizza.find_path``
-------------------------
+``econpizza.steady_state``
+--------------------------
+.. automodule:: econpizza.steady_state
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+``econpizza.solvers.stacking``
+------------------------------
 .. automodule:: econpizza.solvers.stacking
    :members:
    :undoc-members:
    :show-inheritance:
 
-``econpizza.find_path_shooting``
-------------------------
+``econpizza.solvers.shooting``
+------------------------------
 .. automodule:: econpizza.solvers.shooting
    :members:
    :undoc-members:
    :show-inheritance:
 
-``econpizza.find_path_linear``
-------------------------
+``econpizza.solvers.solve_linear``
+----------------------------------
 .. automodule:: econpizza.solvers.solve_linear
    :members:
    :undoc-members:
    :show-inheritance:
 
-``econpizza.solve_stst``
-------------------------
-.. automodule:: econpizza.steady_state
+``econpizza.solvers.solve_linear_state_space``
+----------------------------------------------
+.. automodule:: econpizza.solvers.solve_linear_state_space
    :members:
    :undoc-members:
    :show-inheritance:

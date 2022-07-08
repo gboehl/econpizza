@@ -26,7 +26,6 @@ setup(
     packages=['econpizza', 'econpizza.parser', 'econpizza.utilities'],
     package_data={"econpizza": ["examples/*"]},
     install_requires=[
-        "numpy",
         "scipy",
         "jax",
         "jaxlib",

@@ -4,7 +4,6 @@
 import jax
 import time
 import jax.numpy as jnp
-import numpy as np
 import scipy.sparse as ssp
 
 
@@ -34,13 +33,13 @@ def get_stst_jacobian(model, horizon):
         distributions = distributions.reshape(*distSS.shape, 1)
         decisions_output = decisions_output.reshape(
             *decisions_outputSS.shape, 1)
-        return func_eqns(x[:nvars, jnp.newaxis], x[nvars:-nvars, jnp.newaxis], x[-nvars:, jnp.newaxis], stst, zshock, pars, distributions, decisions_output)
+        return func_eqns(x[:nvars, None], x[nvars:-nvars, None], x[-nvars:, None], stst, zshock, pars, distributions, decisions_output)
 
     @jax.jit
     def func_backw_ssj(x, vf):
         vf = vf.reshape(*vfSS.shape)
         vf, decisions_output = func_backw(
-            x[:nvars, jnp.newaxis], x[nvars:-nvars, jnp.newaxis], x[-nvars:, jnp.newaxis], stst, vf, zshock, pars)[:2]
+            x[:nvars, None], x[nvars:-nvars, None], x[-nvars:, None], stst, vf, zshock, pars)[:2]
         return vf.ravel(), decisions_output.ravel()
 
     @jax.jit
@@ -69,7 +68,7 @@ def get_stst_jacobian(model, horizon):
 
     else:
         jac_f2x = ssp.csc_array(jax.jacrev(lambda x: func_eqns(
-            x[:nvars, jnp.newaxis], x[nvars:-nvars, jnp.newaxis], x[-nvars:, jnp.newaxis], stst, zshock, pars))(jnp.hstack([stst]*3)))
+            x[:nvars, None], x[nvars:-nvars, None], x[-nvars:, None], stst, zshock, pars))(jnp.hstack([stst]*3)))
 
     # TODO: calculating the complete Jacobian should be a subfunction
     jac = ssp.lil_array(((horizon-1)*nvars, (horizon+1)*nvars))
@@ -122,7 +121,7 @@ def get_stst_jacobian(model, horizon):
     return jac.tocsr() + jac_via_dists.tocsr()
 
 
-def find_path_linear(model, x0, shocks=None, horizon=300, verbose=True):
+def find_path_linear(model, x0=None, shocks=None, horizon=30, verbose=True):
     """Find the linear expected trajectory given an initial state.
 
     Parameters
@@ -134,7 +133,7 @@ def find_path_linear(model, x0, shocks=None, horizon=300, verbose=True):
     shock : tuple, optional
         shock in period 0 as in `(shock_name_as_str, shock_size)`. NOTE: Not (yet) implemented.
     horizon : int, optional
-        number of periods until the system is assumed to be back in the steady state. A good idea to set this corresponding to the respective problem. A too large value may be computationally expensive. A too small value may generate inaccurate results
+        number of periods to simulate
     verbose : bool, optional
         degree of verbosity. 0/`False` is silent
 
@@ -153,6 +152,8 @@ def find_path_linear(model, x0, shocks=None, horizon=300, verbose=True):
     st = time.time()
     stst = jnp.array(list(model['stst'].values()))
     nvars = len(model["variables"])
+
+    x0 = np.array(list(x0)) if x0 is not None else stst
 
     if model['stst_jacobian'] is None:
         stst_jacobian = get_stst_jacobian(model, horizon)

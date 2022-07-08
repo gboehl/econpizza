@@ -4,12 +4,12 @@
 import logging
 import jax
 import os
-import numpy as np
 from .parsing import parse, load
 from .steady_state import solve_stst
 from .solvers.shooting import find_path_shooting
 from .solvers.stacking import find_path_stacking
 from .solvers.solve_linear import find_path_linear
+from .solvers.solve_linear_state_space import *
 
 __version__ = '0.2.2'
 
@@ -54,11 +54,13 @@ class PizzaModel(dict):
         return rdict
 
 
+PizzaModel.solve_stst = solve_stst
+PizzaModel.solve_linear_state_space = solve_linear_state_space
 PizzaModel.find_path = find_path_stacking
 PizzaModel.find_path_stacking = find_path_stacking
 PizzaModel.find_path_linear = find_path_linear
+PizzaModel.find_path_linear_state_space = find_path_linear_state_space
 PizzaModel.find_path_shooting = find_path_shooting
-PizzaModel.solve_stst = solve_stst
 
 logging.basicConfig(level=logging.INFO)
 

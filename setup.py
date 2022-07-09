@@ -15,7 +15,7 @@ setup(
     version=__version__,
     author="Gregor Boehl",
     author_email="admin@gregorboehl.com",
-    description="Solve nonlinear perfect foresight models",
+    description="Solve nonlinear perfect foresight models with heterogeneous agents",
     license="MIT",
     classifiers=[
         "License :: OSI Approved :: MIT License",

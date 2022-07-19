@@ -57,7 +57,13 @@ Econpizza needs **JAX** to be installed. This is not a problem for MacOS and Lin
 
     pip install "jax[cpu]===0.3.14" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
 
-*prior* to installing Econpizza. Econpizza then runs just fine (`proof <https://github.com/gboehl/econpizza/actions/runs/2579662335>`_).
+*prior* to installing Econpizza. Econpizza should then run just fine (`proof <https://github.com/gboehl/econpizza/actions/runs/2579662335>`_).
+
+In case you run into an error with `ptxas` (like `here <https://github.com/tensorflow/models/issues/7640>`_), a workaround is to disable CUDA by running the following **before** importing econpizza or JAX:
+
+.. code-block:: python
+
+    import os; os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 References

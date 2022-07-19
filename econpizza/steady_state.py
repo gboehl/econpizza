@@ -15,7 +15,7 @@ def solver(jval, fval):
     return jnp.linalg.pinv(jval) @ fval
 
 
-def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, verbose=True, **newton_kwargs):
+def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, raise_errors=False, verbose=True, **newton_kwargs):
     """Solves for the steady state.
 
     Parameters
@@ -143,10 +143,12 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
             nvars = len(evars)+len(par)
             nfixed = len(model['steady_state']['fixed_evalued'])
             mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of freedom ({nvars} variables/parameters, {nfixed} fixed). "
-        if not res["success"]:
+        if not res["success"] or raise_errors:
             mess = f"Steady state FAILED (error is {err:1.2e}). {res['message']} {mess}"
         else:
             mess = f"{res['message']} WARNING: Steady state error is {err:1.2e}. {mess}"
+        if raise_errors:
+            raise Exception(mess)
     elif verbose:
         duration = time.time() - st
         mess = f"Steady state found in {duration:1.5g} seconds. {res['message']}" + (

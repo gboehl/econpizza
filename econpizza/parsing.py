@@ -251,6 +251,8 @@ def load(
     model["steady_state"]['fixed_evalued'] = stst
 
     par = define_subdict_if_absent(model, "parameters")
+    if isinstance(par, dict):
+        raise TypeError(f'parameters must be a list and not {type(par)}.')
     model["parameters"] = par
     model["root_options"] = {}
 

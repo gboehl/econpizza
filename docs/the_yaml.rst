@@ -16,17 +16,21 @@ I will first briefly discuss the yaml of the small scale representative agents m
 Representative agent models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The file for the small scale NK model can be found `here <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_. The first block is self explanatory:
+The file for the small scale NK model can be found `here <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yaml>`_. The first block (``variables`` and ``shocks``) is self explanatory:
 
 .. code-block::
 
     variables: [y, c, pi, r, rn, beta, w, chi]
     shocks: [e_beta]
 
+Note that it is not necessary to define shocks. You can also simply set the initial values of any (exogenous) state. Note that shocks are not yet implemented for heterogeneous agent models.
+
+.. code-block::
+
     definitions: |
         from jax.numpy import log, maximum
 
-The second block defines general definitions and imports, which are available at all times.
+The second block (``definitions``) defines general definitions and imports, which are available at all time.
 
 .. code-block::
 
@@ -39,14 +43,14 @@ The second block defines general definitions and imports, which are available at
         ~ r = maximum(1, rn)  # zero lower bound on nominal rates
         ~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta  # exogenous discount factor shock
 
-Equations. The central part of the yaml. Here you define the model equations, which will then be parsed such that each equation prefixed by a `~` must hold. Use ``xPrime`` for variable `x` in `t+1` and ``xLag`` for `t-1`. Access steady-state values with ``xSS``. You could specify a representative agent model with just stating the equations block (additional to variables). Importantly, ``equations`` are *not* executed subsequently but simultaneously!
+``equations``. The most central part of the yaml. Here you define the model equations, which will then be parsed such that each equation prefixed by a `~` must hold. Use ``xPrime`` for variable `x` in `t+1` and ``xLag`` for `t-1`. Access steady-state values with ``xSS``. You could specify a representative agent model with just stating the equations block (additional to variables). Importantly, ``equations`` are *not* executed subsequently but simultaneously!
 Note that you need one equation for each variable defined in ``variables``.
 
 .. code-block::
 
     parameters: [ theta, psi, phi_pi, phi_y, rho, h, eta, rho_beta, chi ]
 
-Use the ``parameters`` block to define any parameters. Parameters are treated the same as variables, but they are time invariant. During steady state search they are treated exactly equally. For this reason their values are provided in the `steady_state` block.
+Use the ``parameters`` block to define any *parameters*. Parameters are treated the same as variables, but they are time invariant. During steady state search they are treated exactly equally. For this reason their values are provided in the `steady_state` block.
 
 .. code-block::
 

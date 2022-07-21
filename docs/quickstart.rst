@@ -55,7 +55,7 @@ Alternatively, you can specify the initial conditions instead of a shock vector 
         plt.plot(x[:,i])
         plt.title(v)
 
-You can also have a look at the linearized solution. This is pretty much shat the guys from the
+You can also have a look at the linearized solution. This is pretty much what the guys from the
 `Sequence Space Jacobian <https://github.com/shade-econ/sequence-jacobian>`_ are doing.
 
 .. code-block:: python

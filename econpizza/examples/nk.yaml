@@ -5,8 +5,9 @@
 ---
 
 name: "nk"
-variables: [y, c, pi, r, rn, beta, w ]
-shocks: [e_beta]
+variables: [ y, c, pi, r, rn, beta, w ]
+parameters: [ theta, psi, phi_pi, phi_y, rho, h, eta, rho_beta, chi ]
+shocks: [ e_beta ]
 
 definitions: |
     from jax.numpy import log, maximum
@@ -19,8 +20,6 @@ equations:
     ~ rn = (rSS*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*rnLag**rho  # monetary policy rule
     ~ r = maximum(1, rn)  # zero lower bound on nominal rates
     ~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta  # exogenous discount factor shock
-
-parameters: [ theta, psi, phi_pi, phi_y, rho, h, eta, rho_beta, chi ]
 
 steady_state:
     fixed_values:

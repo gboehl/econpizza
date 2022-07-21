@@ -6,8 +6,9 @@
 ---
 
 name: 'med_scale_nk'
-variables: [y, y_prod, c, pi, r, rn, beta, w, q, mc, k, i, n, z, rk, hhdf, g, b, qb, t, dd, ds, bprof]
-shocks: [e_beta]
+variables: [ y, y_prod, c, pi, r, rn, beta, w, q, mc, k, i, n, z, rk, hhdf, g, b, qb, t, dd, ds, bprof ]
+parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, rho_beta, rho_z, chi ]
+shocks: [ e_beta ]
 
 definitions: |
     from jax.numpy import log, maximum
@@ -50,8 +51,6 @@ equations:
       # exogenous
     ~ beta = betaSS*(betaLag/betaSS)**rho_beta
     ~ z = zSS*(zLag/zSS)**rho_z
-
-parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, rho_beta, rho_z, chi ]
 
 steady_state:
     fixed_values:

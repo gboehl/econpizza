@@ -12,7 +12,9 @@ definitions: |
     from jax.numpy import log, maximum
     from jax.experimental.host_callback import id_print as jax_print
 
-variables: [Div, Y, Yprod, w, pi, Rn, Rs, R, Rstar, Tax, Z, beta, C, L, B, Top10C, Top10A]
+variables: [ Div, Y, Yprod, w, pi, Rn, Rs, R, Rstar, Tax, Z, beta, C, L, B, Top10C, Top10A ]
+parameters: [ eis, frisch, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_Z, vphi ]
+
 distributions:
   dist: # the name of the first distribution
     # ordering matters. The ordering here is corresponds to the shape of the axis of the distribution
@@ -82,8 +84,6 @@ equations: # final stage
     ~ beta = betaSS*(betaLag/betaSS)**rho_beta # exogenous beta
     ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_rstar # exogenous rstar
     ~ Z = ZSS*(ZLag/ZSS)**rho_Z # exogenous technology
-
-parameters: [ eis, frisch, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_Z, vphi ]
 
 steady_state:
     fixed_values:

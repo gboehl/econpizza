@@ -27,6 +27,12 @@ Note that it is not necessary to define shocks. You can also simply set the init
 
 .. code-block::
 
+    parameters: [ theta, psi, phi_pi, phi_y, rho, h, eta, rho_beta, chi ]
+
+Use the ``parameters`` block to define any *parameters*. Parameters are treated the same as variables, but they are time invariant. During steady state search they are treated exactly equally. For this reason their values are provided in the `steady_state` block.
+
+.. code-block::
+
     definitions: |
         from jax.numpy import log, maximum
 
@@ -45,12 +51,6 @@ The second block (``definitions``) defines general definitions and imports, whic
 
 ``equations``. The most central part of the yaml. Here you define the model equations, which will then be parsed such that each equation prefixed by a `~` must hold. Use ``xPrime`` for variable `x` in `t+1` and ``xLag`` for `t-1`. Access steady-state values with ``xSS``. You could specify a representative agent model with just stating the equations block (additional to variables). Importantly, ``equations`` are *not* executed subsequently but simultaneously!
 Note that you need one equation for each variable defined in ``variables``.
-
-.. code-block::
-
-    parameters: [ theta, psi, phi_pi, phi_y, rho, h, eta, rho_beta, chi ]
-
-Use the ``parameters`` block to define any *parameters*. Parameters are treated the same as variables, but they are time invariant. During steady state search they are treated exactly equally. For this reason their values are provided in the `steady_state` block.
 
 .. code-block::
 
@@ -102,6 +102,12 @@ General definitions and imports (as above). These are available during all three
     variables: [Div, Y, Yprod, w, pi, Rn, Rs, R, Rstar, Tax, Z, beta, vphi, C, L, B, Top10C, Top10A]
 
 All the *aggregate* variables that are being tracked on a global level. If a variable is not listed here, you will not be able to recover it later. Since these are aggregate variables, they have dimensionality one.
+
+.. code-block::
+
+    parameters: [ eis, frisch, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_Z ]
+
+Define the model parameters, as above.
 
 .. code-block::
 
@@ -194,12 +200,6 @@ The distribution (``dist``) corresponds to the distribution **at the beginning o
         ~ Z = ZSS*(ZLag/ZSS)**rho_Z # exogenous technology
 
 Equations. This also works exactly as for representative agents models.
-
-.. code-block::
-
-    parameters: [ eis, frisch, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_Z ]
-
-Define the model parameters, as above.
 
 .. code-block::
 

@@ -65,7 +65,7 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
         if cond0 and cond1 and not force:
             if verbose:
                 print(
-                    f"(solve_stst:) Steady state already {'known' if model['stst_used_success'] else 'failed'}.")
+                    f"(solve_stst:) Steady state already {'known' if model['stst_used_success'] else 'FAILED'}.")
 
             return model['stst_used_res']
     except KeyError:
@@ -123,7 +123,7 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
         elif jnp.isnan(distSS).any():
             mess += f"Forward iteration returns 'NaN's. "
         elif distSS.min() < 0:
-            mess += f"Distribution contains negative values. "
+            mess += f"Distribution contains negative values ({distSS.min():0.1e}). "
         if cnt_backwards == maxit_backwards:
             mess += f'Maximum of {maxit_backwards} backwards calls reached. '
         if cnt_forwards == maxit_forwards:

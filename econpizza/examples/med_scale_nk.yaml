@@ -11,7 +11,7 @@ parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, 
 shocks: [ e_beta ]
 
 definitions: |
-    from jax.numpy import log, maximum
+    from jax.numpy import log, exp, maximum
 
 equations:
       # households
@@ -49,7 +49,7 @@ equations:
     ~ r = maximum(1, rn)
 
       # exogenous
-    ~ beta = betaSS*(betaLag/betaSS)**rho_beta
+    ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta)
     ~ z = zSS*(zLag/zSS)**rho_z
 
 steady_state:

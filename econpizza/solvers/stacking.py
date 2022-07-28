@@ -21,6 +21,7 @@ def find_path_stacking(
     maxit=None,
     use_jacrev=True,
     verbose=True,
+    raise_errors=False,
     **solver_kwargs,
 ):
     """Find the expected trajectory given an initial state.
@@ -141,6 +142,10 @@ def find_path_stacking(
     if verbose:
         duration = time.time() - st
         sucess = 'done' if res['success'] else 'FAILED'
+        if not res['success'] and raise_errors:
+            raise Exception(
+                f"(find_path:) Stacking {sucess} after {duration:1.3f} seconds. " + mess)
+
         print(
             f"(find_path:) Stacking {sucess} after {duration:1.3f} seconds. " + mess)
 

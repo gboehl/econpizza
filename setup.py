@@ -23,7 +23,8 @@ setup(
         "Programming Language :: Python :: 3.9",
     ],
     include_package_data=True,
-    packages=['econpizza', 'econpizza.parser', 'econpizza.utilities'],
+    packages=['econpizza', 'econpizza.parser',
+              'econpizza.utilities', 'econpizza.solvers'],
     package_data={"econpizza": ["examples/*"]},
     install_requires=[
         "scipy",

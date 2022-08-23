@@ -20,9 +20,11 @@ The baseline solver is a Newton-based stacking method in the spirit of Boucekkin
 
 The package makes heavy use of `automatic differentiation <https://en.wikipedia.org/wiki/Automatic_differentiation>`_ via `JAX <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_.
 
-Econpizza can solve nonlinear HANK models. The approach to deal with the distribution is inspired by the `Sequence-Space Jacobian <https://github.com/shade-econ/sequence-jacobian>`_ method (`Auclert et al., 2022, ECMA <https://doi.org/10.3982/ECTA17434>`_). Steady state and nonlinear impulse responses (including, e.g., the ELB) can typically be found within a few seconds.
+Econpizza can solve nonlinear models with heterogeneous agents, including HANK models. The approach to deal with heterogeneity is inspired by the `Sequence-Space Jacobian <https://github.com/shade-econ/sequence-jacobian>`_ method (`Auclert et al., 2022, ECMA <https://doi.org/10.3982/ECTA17434>`_). Steady state and nonlinear impulse responses (including, e.g., the ELB) can typically be found within a few seconds.
 
-There is a `model parser <https://econpizza.readthedocs.io/en/latest/quickstart.html#the-yaml-file>`_ to allow for the simple and generic specification of models (with or without heterogeneity).
+The philosophy behind this package is to consequently separate **model specification** (via a ``yaml`` file), a high-level interface for **model simulation and analysis**, and the low-level routines for **model solution** (which is what happens under the hood).
+
+A `model parser <https://econpizza.readthedocs.io/en/latest/quickstart.html#the-yaml-file>`_ allows for the simple and generic specification of models (with or without heterogeneity) in ``yaml`` format.
 
 
 Documentation

@@ -21,7 +21,7 @@ def find_path_stacking(
     maxit=None,
     use_jacrev=True,
     verbose=True,
-    raise_errors=False,
+    raise_errors=True,
     **solver_kwargs,
 ):
     """Find the expected trajectory given an initial state.
@@ -48,6 +48,8 @@ def find_path_stacking(
         whether to use reverse mode or forward mode automatic differentiation. By construction, reverse AD is faster, but does not work for all types of functions. Defaults to True
     verbose : bool, optional
         degree of verbosity. 0/`False` is silent
+    raise_errors : bool, optional
+        whether to raise errors as exceptions, or just inform about them. Defaults to `True`
     solver_kwargs : optional
         any additional keyword arguments will be passed on to the solver
 
@@ -78,7 +80,7 @@ def find_path_stacking(
     x_init = x_init.at[0].set(x0)
 
     if init_guess is not None:
-        x_init[1: len(init_guess)] = init_guess[1:]
+        x_init = x_init.at[1: len(init_guess)].set(init_guess[1:])
 
     zshock = jnp.zeros(len(shocks))
     tshock = jnp.copy(zshock)

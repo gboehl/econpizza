@@ -15,7 +15,7 @@ def solver(jval, fval):
     return jnp.linalg.pinv(jval) @ fval
 
 
-def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, raise_errors=False, verbose=True, **newton_kwargs):
+def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, raise_errors=False, check_rank=True, verbose=True, **newton_kwargs):
     """Solves for the steady state.
 
     Parameters
@@ -104,12 +104,6 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
 
     model["stst"] = dict(zip(evars, stst_vals))
     model["parameters"] = dict(zip(par, par_vals))
-    model["stst_used_pars"] = jnp.array(
-        list(model['steady_state']['fixed_evalued'].values()))
-    model["stst_used_setup"] = model.get(
-        'functions_file_plain'), tol_newton, maxit_newton, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
-    model["stst_used_res"] = res
-    model["stst_used_success"] = res['success']
 
     mess = ''
 
@@ -136,7 +130,7 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
     # calculate error
     err = jnp.abs(res['fun']).max()
 
-    if err > tol_newton or not res['success']:
+    if err > tol_newton or not res['success'] or check_rank:
         jac = res['jac']
         rank = jnp.linalg.matrix_rank(jac)
         if rank:
@@ -144,6 +138,8 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
             nfixed = len(model['steady_state']['fixed_evalued'])
             if rank != nvars - nfixed:
                 mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of freedom ({nvars} variables/parameters, {nfixed} fixed). "
+
+    if err > tol_newton or not res['success']:
         if not res["success"] or raise_errors:
             mess = f"Steady state FAILED (error is {err:1.2e}). {res['message']} {mess}"
         else:
@@ -154,6 +150,14 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
         duration = time.time() - st
         mess = f"Steady state found in {duration:1.5g} seconds. {res['message']}" + (
             ' WARNING: ' + mess if mess else '')
+
+    # cache everything if search was successful
+    model["stst_used_pars"] = jnp.array(
+        list(model['steady_state']['fixed_evalued'].values()))
+    model["stst_used_setup"] = model.get(
+        'functions_file_plain'), tol_newton, maxit_newton, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
+    model["stst_used_res"] = res
+    model["stst_used_success"] = res['success']
 
     if mess:
         print(f"(solve_stst:) {mess}")

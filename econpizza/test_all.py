@@ -153,3 +153,6 @@ def test_hank2(create=False):
 
         assert flag == 0
         assert jnp.allclose(x, test_x)
+
+
+test_hank()

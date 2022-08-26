@@ -315,7 +315,7 @@ def load(
 
     # get the initial decision functions
     if model.get('decisions'):
-        init_vf_list = [model['steady_state']['init_guesses'][dec_input]
+        init_vf_list = [init_guesses[dec_input]
                         for dec_input in model['decisions']['inputs']]  # let us for now assume that this must be present
         model['init_vf'] = jnp.array(init_vf_list)
 

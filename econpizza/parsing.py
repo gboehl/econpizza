@@ -55,6 +55,8 @@ def eval_strs(vdict, context={}):
 
     if vdict is None:
         return None
+    else:
+        vdict = vdict.copy()
 
     for v in vdict:
         if isinstance(vdict[v], str):

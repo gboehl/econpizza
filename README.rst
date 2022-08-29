@@ -30,7 +30,7 @@ A `model parser <https://econpizza.readthedocs.io/en/latest/quickstart.html#the-
 Documentation
 -------------
 
-The documentation and a **tutorial** can be found `here <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
+The documentation and some **tutorials** can be found `here <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
 
 
 Installation

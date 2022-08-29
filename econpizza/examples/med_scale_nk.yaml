@@ -1,60 +1,63 @@
 # med_scale_nk.yaml ---
 #
-# Description: a medium scale NK model with capital, capital adjustement costs, and habits
-# The model is inspired by "The zero lower bound, the dual mandate, and unconventional dynamics" (Gavin, Keen, Richter, Throckmorton, 2015 JEDC)
+# Description: a medium scale NK model with capital, capital adjustement costs, capital utilization costs, and habits
+# The model is inspired by "A Baseline DSGE Model" (Fernández-Villaverde and Rubio-Ramírez, manuscript) and by "The zero lower bound, the dual mandate, and unconventional dynamics" (Gavin, Keen, Richter, Throckmorton, 2015 JEDC)
 # Author: Gregor Boehl [mail@gregorboehl.com]
 ---
 
-name: 'med_scale_nk'
-variables: [ y, y_prod, c, pi, r, rn, beta, w, q, mc, k, i, n, z, rk, hhdf, g, b, qb, t, dd, ds, bprof ]
-parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, rho_beta, rho_z, chi ]
-shocks: [ e_beta ]
+name: 'nk_capital'
+variables: [y, c, pi, R, Rn, Rk, beta, w, q, mc, k, i, n, hhdf, g, b, qb, t, ds, bprof, dd, MPK, cap_util, cap_util_costs, y_prod]
+parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, rho_beta, rho_gamma, epsilon, nu, xi, chi, par_cap_util1 ]
+shocks: [e_beta]
 
-definitions: |
-    from jax.numpy import log, exp, maximum
+aux_equations: |
+    par_cap_util0 = MPKSS
 
 equations:
       # households
     ~ w = chi*n**eta*(c - h*cLag)
-    ~ 1 = r/piPrime*hhdf
+    ~ 1 = R/piPrime*hhdf
     ~ hhdf = betaPrime*(c - h*cLag)/(cPrime - h*c)
-    ~ dd + i + c + t = rLag/pi*ddLag + (1 - psi/2*(pi/piSS - 1)**2)*y + bprof
+    ~ dd + c + t + Phi/2*(i/iLag - 1)**2*i = w*n + RLag/pi*ddLag + (1 - mc - psi/2*(pi/piSS - 1)**2)*y + (q*(1 - Phi/2*(i/iLag - 1)**2) - 1)*i + bprof
 
       # capital
-    ~ q = 1 + Phi*(i/kLag - delta)
-    ~ q = hhdf*(rkPrime - Phi/2*(iPrime/k - delta)**2 + Phi*(iPrime/k-delta)*iPrime/k + (1-delta)*qPrime)
-    ~ k = (1-delta)*kLag + i
+    ~ 1 = q*(1 - Phi/2*(i/iLag - 1)**2 - Phi*(i/iLag - 1)*i/iLag) + hhdf*qPrime*Phi*(iPrime/i - 1)*(iPrime/i)**2
+    ~ k = (1-delta)*kLag + (1 - Phi/2*(i/iLag - 1)**2)*i
 
       # "banks"
-    ~ r = (1 + kappa*qbPrime)/qb
-    ~ ds = qb*b
-    ~ bprof = (1+kappa*qb)/pi*bLag - rLag/pi*ddLag
+    ~ ds = qb*b + q*k
+    ~ R = (1 + kappa*qbPrime)/qb
+    ~ R = Rk
+    ~ bprof = ((1+kappa*qb)*bLag + RkLag*qLag*kLag - RLag*ddLag)/pi
 
       # government
     ~ g + (1+kappa*qb)/pi*bLag = qb*b + t
     ~ g = 0.2*ySS
     ~ b = ySS/qbSS
 
-    ~ c + i + g + Phi/2*(i/kLag - delta)**2*kLag = (1-psi*(pi/piSS - 1)**2/2)*y_prod
+      # clearing
+    ~ c + i + g + Phi/2*(i/iLag - 1)**2*i + cap_util_costs*kLag = (1-xi*(pi/piSS - 1)**2/2)*y_prod
     ~ c + i + g = y
-    ~ y_prod = z*k**alpha*n**(1-alpha)
 
       # firms
-    ~ alpha*w*n = (1-alpha)*rk*kLag
-    ~ mc = w**(1-alpha)*rk**alpha/(z*(1-alpha)**(1-alpha)*alpha**alpha)
-    ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*mc + psi*hhdf*(piPrime/piSS - 1)*piPrime/piSS*y_prodPrime/y_prod
+    ~ cap_util_costs = par_cap_util0*(cap_util - 1) + par_cap_util1/(1-par_cap_util1)/2*(cap_util - 1)**2
+    ~ MPK = par_cap_util0 + par_cap_util1/(1-par_cap_util1)*(cap_util - 1)
+    ~ MPK = alpha*mc*y/(cap_util*kLag)
+    ~ q*Rk/piPrime = MPKPrime*cap_utilPrime + (1-delta)*qPrime - cap_util_costs
+    ~ w = (1-alpha)*mc*y/n
+    ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*mc + psi*hhdf*(piPrime/piSS - 1)*piPrime/piSS*yPrime/y
+    ~ y_prod = (kLag*cap_util)**alpha*n**(1-alpha)
 
       # central bank
-    ~ rn = (rSS*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho)*rnLag**rho
-    ~ r = maximum(1, rn)
+    ~ Rn = (RSS*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho)*RnLag**rho
+    ~ R = max(1, Rn)
 
       # exogenous
     ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta)
-    ~ z = zSS*(zLag/zSS)**rho_z
 
 steady_state:
     fixed_values:
-        # parameters
+        # parameters:
         theta: 6.
         kappa: 0.975
         psi: 59.11
@@ -67,10 +70,19 @@ steady_state:
         rho: .8
         eta: .33
         rho_beta: .8
-        rho_z: .9
+        rho_gamma: .8
+        epsilon: 1.01
+        nu: 1/5
+        xi: 0.1
+        par_cap_util1: 0.8
 
         # steady state
         beta: 0.995
-        z: 1
         pi: 1.02^.25
         n: 0.33
+        mc: (theta-1)/theta
+        q: 1.
+
+    init_guesses:
+        chi: 1e+1
+        MPK: alpha*mc/20

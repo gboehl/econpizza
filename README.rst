@@ -36,13 +36,13 @@ The documentation and some **tutorials** can be found `here <https://econpizza.r
 Installation
 ------------
 
-Installing the `repository version <https://pypi.org/project/econpizza/>`_ from PyPi is as simple as:
+Installing the `repository version <https://pypi.org/project/econpizza/>`_ from PyPi is as simple as typing
 
 .. code-block:: bash
 
    pip install econpizza
 
-Alternatively, the most recent version from GitHub with some experimental features can be installed via
+in your terminal or Anaconda Prompt. Alternatively, the most recent version from GitHub with some experimental features can be installed via
 
 .. code-block:: bash
 

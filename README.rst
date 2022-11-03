@@ -61,7 +61,7 @@ Econpizza needs **JAX** to be installed. This is not a problem for MacOS and Lin
 
 *prior* to installing Econpizza. Econpizza should then run just fine (`proof <https://github.com/gboehl/econpizza/actions/runs/2579662335>`_).
 
-In case you run into an error with `ptxas` (like `here <https://github.com/tensorflow/models/issues/7640>`_), a workaround is to disable CUDA by running the following **before** importing econpizza or JAX:
+In case you run into an error with `ptxas` (like `in this case <https://github.com/tensorflow/models/issues/7640>`_), a workaround is to disable CUDA by running the following **before** importing econpizza or JAX:
 
 .. code-block:: python
 

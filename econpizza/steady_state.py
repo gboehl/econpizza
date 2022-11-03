@@ -51,6 +51,7 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
     func_pre_stst = model['context']["func_pre_stst"]
     par = model["parameters"]
     shocks = model.get("shocks") or ()
+    fixed_vals = model['steady_state']['fixed_evalued']
 
     tol_newton = tol if tol_newton is None else tol_newton
     tol_backwards = tol if tol_backwards is None else tol_backwards
@@ -59,7 +60,7 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
     # check if steady state was already calculated
     try:
         cond0 = jnp.allclose(model["stst_used_pars"], jnp.array(
-            list(model['steady_state']['fixed_evalued'].values())))
+            list(fixed_vals.values())))
         cond1 = model["stst_used_setup"] == (
             model.get('functions_file_plain'), tol_newton, maxit_newton, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
         if cond0 and cond1 and not force:
@@ -135,9 +136,14 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
         rank = jnp.linalg.matrix_rank(jac)
         if rank:
             nvars = len(evars)+len(par)
-            nfixed = len(model['steady_state']['fixed_evalued'])
+            nfixed = len(fixed_vals)
             if rank != nvars - nfixed:
                 mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of freedom ({nvars} variables/parameters, {nfixed} fixed). "
+
+    # check if any of the fixed variables are neither a parameter nor variable
+    if mess:
+        not_var_nor_par = list(set(fixed_vals) - set(evars) - set(par))
+        mess += f"Fixed value(s) {', '.join(not_var_nor_par)} not defined. " if not_var_nor_par else ''
 
     if err > tol_newton or not res['success']:
         if not res["success"] or raise_errors:

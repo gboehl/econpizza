@@ -15,7 +15,7 @@ def solver(jval, fval):
     return jnp.linalg.pinv(jval) @ fval
 
 
-def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, raise_errors=False, check_rank=True, verbose=True, **newton_kwargs):
+def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, raise_errors=False, check_rank=False, verbose=True, **newton_kwargs):
     """Solves for the steady state.
 
     Parameters
@@ -143,7 +143,7 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
     # check if any of the fixed variables are neither a parameter nor variable
     if mess:
         not_var_nor_par = list(set(fixed_vals) - set(evars) - set(par))
-        mess += f"Fixed value(s) {', '.join(not_var_nor_par)} not defined. " if not_var_nor_par else ''
+        mess += f"Fixed value(s) ``{'``, ``'.join(not_var_nor_par)}`` not defined. " if not_var_nor_par else ''
 
     if err > tol_newton or not res['success']:
         if not res["success"] or raise_errors:

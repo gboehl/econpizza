@@ -75,8 +75,6 @@ def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS
 
         return (dist, decisions_output_storage), dist_old
 
-    from grgrlib.jaxed import jax_print
-
     def stacked_func_dist(x, full_output=False):
 
         X = jnp.hstack((x0, x, endpoint)).reshape(horizon+1, -1).T

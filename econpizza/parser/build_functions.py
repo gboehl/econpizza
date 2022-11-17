@@ -54,7 +54,7 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shoc
     return func_stst_raw
 
 
-def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, distSS, zshock, tshock, horizon, nvars, endpoint, has_distributions, shock):
+def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, distSS, zshock, horizon, nvars, endpoint, has_distributions):
     """Get a function that returns the (flattend) value and Jacobian of the stacked aggregate model equations.
     """
 

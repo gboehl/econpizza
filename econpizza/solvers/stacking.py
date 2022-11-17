@@ -63,25 +63,32 @@ def find_path_stacking(
 
     st = time.time()
 
+    # set defaults
+    tol = 1e-8 if tol is None else tol
+    maxit = 30 if maxit is None else maxit
+
+    # get variables
     stst = jnp.array(list(model["stst"].values()))
     nvars = len(model["variables"])
     pars = jnp.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
-    # load functions
+
+    # get functions
     func_eqns = model['context']["func_eqns"]
     func_backw = model['context'].get('func_backw')
     func_dist = model['context'].get('func_dist')
 
-    tol = 1e-8 if tol is None else tol
-    maxit = 30 if maxit is None else maxit
-
+    # get initial guess
     x0 = jnp.array(list(x0)) if x0 is not None else stst
     x_init = jnp.ones((horizon + 1, nvars)) * stst
     x_init = x_init.at[0].set(x0)
-
     if init_guess is not None:
         x_init = x_init.at[1: len(init_guess)].set(init_guess[1:])
 
+    # set terminal condition
+    endpoint = endpoint if endpoint is not None else stst
+
+    # deal with shocks if any
     zshock = jnp.zeros(len(shocks))
     tshock = jnp.copy(zshock)
     if shock is not None:
@@ -89,8 +96,7 @@ def find_path_stacking(
         if model.get('distributions'):
             print("(find_stack:) Warning: shocks for heterogenous agent models are not yet fully supported. Use adjusted steady state values as x0 instead.")
 
-    endpoint = endpoint if endpoint is not None else stst
-
+    # get additional stuff for het-agent models
     if model.get('distributions'):
         vfSS = model['steady_state']['decisions']
         distSS = jnp.array(model['steady_state']['distributions'])
@@ -98,18 +104,16 @@ def find_path_stacking(
             model['steady_state']['decisions_output'])
 
         # get values of func_eqns that are independent of the distribution
-        stst_in_t = stst[:, None]
-
+        # mask those variables that are invariante to the distribution
         def func_eqns_from_dist(dist, decisions_output): return func_eqns(
-            stst_in_t, stst_in_t, stst_in_t, stst, zshock, pars, dist[..., None], decisions_output[..., None])
-
+            stst[:, None], stst[:, None], stst[:, None], stst, zshock, pars, dist[..., None], decisions_output[..., None])
         _, mask_out_jvp = jax.jvp(func_eqns_from_dist, (distSS, decisions_outputSS), (
             jnp.ones_like(distSS), jnp.ones_like(decisions_outputSS)))
         mask_out = jnp.tile(mask_out_jvp.astype(bool), horizon-1)
 
         # compile dist-specific functions
-        stacked_func_dist_raw = get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, x0, stst,
-                                                      vfSS, distSS, zshock, tshock, horizon, nvars, endpoint, model.get('distributions'), shock)
+        stacked_func_dist_raw = get_stacked_func_dist(
+            pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, distSS, zshock, horizon, nvars, endpoint, model.get('distributions'))
         stacked_func_dist = jax.jit(
             stacked_func_dist_raw, static_argnames='full_output')
         model['context']['stacked_func_dist'] = stacked_func_dist
@@ -118,25 +122,29 @@ def find_path_stacking(
     else:
         dist_dummy = decisions_output_dummy = []
 
+    # compile part of stacked function that is independent of the distribution
     stacked_func = get_stacked_func(pars, func_eqns, stst, x0, horizon, nvars,
                                     endpoint, zshock, tshock, shock, dist_dummy, decisions_output_dummy)
+
+    # append part of stacked_func that depends on distribution (if any)
+    if model.get('distributions'):
+        stacked_func = get_combined_funcs(
+            stacked_func_dist, stacked_func, mask_out, use_jacrev)
 
     if verbose:
         print("(find_stack:) Solving stack (size: %s)..." %
               (horizon*nvars))
 
-    if model.get('distributions'):
-        stacked_func = get_combined_funcs(
-            stacked_func_dist, stacked_func, mask_out, use_jacrev)
+    # find path
     res = newton_jax(stacked_func, x_init[1:-1].flatten(), None, maxit, tol,
                      sparse=True, func_returns_jac=True, verbose=verbose, **solver_kwargs)
 
     # calculate error
     err = jnp.abs(res['fun']).max()
     x = x_init.at[1:-1].set(res['x'].reshape((horizon - 1, nvars)))
-
     mess = res['message']
 
+    # compile error/report message
     if err > tol or not res['success']:
         mess += f" Max. error is {err:1.2e}."
         verbose = True

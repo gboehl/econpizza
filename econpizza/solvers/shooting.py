@@ -8,6 +8,15 @@ import jax.numpy as jnp
 from grgrlib.jaxed import newton_jax_jit, newton_jax_jittable
 
 
+msgs = (
+    ", root finding did not converge",
+    ", ftol not reached in root finding",
+    ", contains NaNs",
+    ", contains infs",
+    ", max_iter reached",
+)
+
+
 def find_path_shooting(
     model,
     x0=None,
@@ -97,14 +106,6 @@ def find_path_shooting(
 
     fin_flag = jnp.zeros(5, dtype=bool)
     old_clock = time.time()
-
-    msgs = (
-        ", root finding did not converge",
-        ", ftol not reached in root finding",
-        ", contains NaNs",
-        ", contains infs",
-        ", max_iter reached",
-    )
 
     @jax.jit
     def solve_current(pars, shock, XLag, XLastGuess, XPrime):

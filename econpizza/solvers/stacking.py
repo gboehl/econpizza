@@ -19,7 +19,6 @@ def find_path_stacking(
     endpoint=None,
     tol=None,
     maxit=None,
-    use_jacrev=True,
     verbose=True,
     raise_errors=True,
     **solver_kwargs,
@@ -96,48 +95,31 @@ def find_path_stacking(
         if model.get('distributions'):
             print("(find_stack:) Warning: shocks for heterogenous agent models are not yet fully supported. Use adjusted steady state values as x0 instead.")
 
-    # get additional stuff for het-agent models
     if model.get('distributions'):
+        # get stuff for het-agent models
         vfSS = model['steady_state']['decisions']
         distSS = jnp.array(model['steady_state']['distributions'])
         decisions_outputSS = jnp.array(
             model['steady_state']['decisions_output'])
 
-        # get values of func_eqns that are independent of the distribution
-        # mask those variables that are invariante to the distribution
-        def func_eqns_from_dist(dist, decisions_output): return func_eqns(
-            stst[:, None], stst[:, None], stst[:, None], stst, zshock, pars, dist[..., None], decisions_output[..., None])
-        _, mask_out_jvp = jax.jvp(func_eqns_from_dist, (distSS, decisions_outputSS), (
-            jnp.ones_like(distSS), jnp.ones_like(decisions_outputSS)))
-        mask_out = jnp.tile(mask_out_jvp.astype(bool), horizon-1)
-
-        # compile dist-specific functions
+        # compile stacked function if distribution matters
         stacked_func_dist_raw = get_stacked_func_dist(
-            pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, distSS, zshock, horizon, nvars, endpoint, model.get('distributions'))
-        stacked_func_dist = jax.jit(
-            stacked_func_dist_raw, static_argnames='full_output')
-        model['context']['stacked_func_dist'] = stacked_func_dist
-        dist_dummy = distSS[..., None]
-        decisions_output_dummy = decisions_outputSS[..., None]
+            pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, distSS, zshock, horizon, nvars, endpoint)
+        stacked_func = jax.jit(stacked_func_dist_raw,
+                               static_argnames='full_output')
     else:
-        dist_dummy = decisions_output_dummy = []
+        # compile stacked function if independent of the distribution
+        stacked_func = get_stacked_func_simple(
+            pars, func_eqns, stst, x0, horizon, nvars, endpoint, zshock, tshock, shock, [], [])
 
-    # compile part of stacked function that is independent of the distribution
-    stacked_func = get_stacked_func(pars, func_eqns, stst, x0, horizon, nvars,
-                                    endpoint, zshock, tshock, shock, dist_dummy, decisions_output_dummy)
-
-    # append part of stacked_func that depends on distribution (if any)
-    if model.get('distributions'):
-        stacked_func = get_combined_funcs(
-            stacked_func_dist, stacked_func, mask_out, use_jacrev)
-
+    model['context']['stacked_func_dist'] = stacked_func
     if verbose:
         print("(find_stack:) Solving stack (size: %s)..." %
               (horizon*nvars))
 
     # find path
-    res = newton_jax(stacked_func, x_init[1:-1].flatten(), None, maxit, tol,
-                     sparse=True, func_returns_jac=True, verbose=verbose, **solver_kwargs)
+    res = newton_jax(stacked_func, x_init[1:-1].flatten(), None, maxit, tol, sparse=not model.get(
+        'distributions'), func_returns_jac=True, verbose=verbose, **solver_kwargs)
 
     # calculate error
     err = jnp.abs(res['fun']).max()

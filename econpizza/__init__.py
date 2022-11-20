@@ -1,21 +1,22 @@
 #!/bin/python
 # -*- coding: utf-8 -*-
 
-import logging
-import jax
-import os
-from .parsing import parse, load
-from .steady_state import solve_stst
-from .solvers.shooting import find_path_shooting
-from .solvers.stacking import find_path_stacking
-from .solvers.solve_linear import find_path_linear
 from .solvers.solve_linear_state_space import *
+from .solvers.solve_linear import find_path_linear
+from .solvers.stacking import find_path_stacking
+from .solvers.shooting import find_path_shooting
+from .steady_state import solve_stst
+from .parsing import parse, load
+import jax
+import logging
+import os
+# set number of cores for XLA
+os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
+
 
 __version__ = '0.2.4'
 
 jax.config.update("jax_enable_x64", True)
-# set number of cores for XLA
-os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
 
 
 class PizzaModel(dict):

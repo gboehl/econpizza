@@ -7,7 +7,7 @@
 
 name: 'nk_capital'
 variables: [y, c, pi, R, Rn, Rk, beta, w, q, mc, k, i, n, hhdf, g, b, qb, t, ds, bprof, dd, MPK, cap_util, cap_util_costs, y_prod]
-parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, rho_beta, xi, chi, par_cap_util1 ]
+parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, rho_beta, chi, par_cap_util1 ]
 shocks: [e_beta]
 
 aux_equations: |
@@ -36,7 +36,7 @@ equations:
     ~ b = ySS/qbSS
 
       # clearing
-    ~ c + i + g + Phi/2*(i/iLag - 1)**2*i + cap_util_costs*kLag = (1-xi*(pi/piSS - 1)**2/2)*y_prod
+    ~ c + i + g + Phi/2*(i/iLag - 1)**2*i + cap_util_costs*kLag = (1-psi*(pi/piSS - 1)**2/2)*y_prod
     ~ c + i + g = y
 
       # firms
@@ -70,7 +70,6 @@ steady_state:
         rho: .8
         eta: .33
         rho_beta: .8
-        xi: 0.1
         par_cap_util1: 0.8
 
         # steady state

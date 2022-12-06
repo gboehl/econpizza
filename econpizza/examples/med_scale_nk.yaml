@@ -7,7 +7,7 @@
 
 name: 'nk_capital'
 variables: [y, c, pi, R, Rn, Rk, beta, w, q, mc, k, i, n, hhdf, g, b, qb, t, ds, bprof, dd, MPK, cap_util, cap_util_costs, y_prod]
-parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, rho_beta, rho_gamma, epsilon, xi, chi, par_cap_util1 ]
+parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, rho_beta, xi, chi, par_cap_util1 ]
 shocks: [e_beta]
 
 aux_equations: |
@@ -70,8 +70,6 @@ steady_state:
         rho: .8
         eta: .33
         rho_beta: .8
-        rho_gamma: .8
-        epsilon: 1.01
         xi: 0.1
         par_cap_util1: 0.8
 

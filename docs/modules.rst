@@ -21,24 +21,3 @@ Module Documentation
    :members:
    :undoc-members:
    :show-inheritance:
-
-``econpizza.solvers.shooting``
-------------------------------
-.. automodule:: econpizza.solvers.shooting
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-``econpizza.solvers.solve_linear``
-----------------------------------
-.. automodule:: econpizza.solvers.solve_linear
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-``econpizza.solvers.solve_linear_state_space``
-----------------------------------------------
-.. automodule:: econpizza.solvers.solve_linear_state_space
-   :members:
-   :undoc-members:
-   :show-inheritance:

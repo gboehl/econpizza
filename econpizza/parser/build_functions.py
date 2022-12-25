@@ -90,7 +90,7 @@ def get_stacked_func_simple(pars, func_eqns, stst, x0, horizon, nvars, endpoint,
 
 
 def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, distSS, zshock, horizon, nvars, endpoint):
-    """Get a function that returns the (flattend) values and Jacobian of the stacked aggregate model equations if there are heterogenous agents.
+    """Get a function that returns the (flattend) value and Jacobian of the stacked aggregate model equations.
     """
 
     nshpe = (nvars, horizon-1)
@@ -106,7 +106,6 @@ def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS
     def backwards_sweep(x):
 
         X = jnp.hstack((x0, x, endpoint)).reshape(horizon+1, -1).T
-        vf2x = jnp.zeros((*vfSS.shape, *x.shape))
 
         _, decisions_output_storage = jax.lax.scan(
             backwards_step, (vfSS, X), jnp.arange(horizon-1), reverse=True)
@@ -138,31 +137,22 @@ def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, x0, stst, vfSS
 
         return out
 
-    backwards_sweep_jvp = jvp_vmap(backwards_sweep)
-    forwards_sweep_jvp = jvp_vmap(forwards_sweep)
-    final_jvp = jvp_vmap(final_step, (0, 1, 2))
+    def second_sweep(x, decisions_output_storage):
 
-    def stacked_func(x, full_output=False):
+        # forwards step
+        dists_storage = forwards_sweep(decisions_output_storage)
+        # final step
+        out = final_step(x, dists_storage, decisions_output_storage)
 
-        if full_output:
-            # backwards step
-            decisions_output_storage = backwards_sweep(x)
-            # forwards step
-            dists_storage = forwards_sweep(decisions_output_storage)
-            return decisions_output_storage, dists_storage
+        return out
 
-        X = jnp.hstack((x0, x, endpoint)).reshape(horizon+1, -1).T
-        bases_x = jnp.eye(len(x))
+    def stacked_func_dist(x, full_output=False):
 
         # backwards step
-        decisions_output_storage, dos2x = backwards_sweep_jvp((x,), (bases_x,))
-        # forwards step
-        dists_storage, ds2x = forwards_sweep_jvp(
-            (decisions_output_storage,), (dos2x,))
-        # final step
-        out, f2x = final_jvp(
-            (x, dists_storage, decisions_output_storage), (bases_x, ds2x, dos2x))
+        decisions_output_storage = backwards_sweep(x)
+        # combined step
+        out = second_sweep(x, decisions_output_storage)
 
-        return out, f2x
+        return out
 
-    return stacked_func
+    return stacked_func_dist, backwards_sweep, second_sweep

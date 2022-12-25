@@ -53,6 +53,7 @@ equations:
     ~ R = max(1, Rn)
 
       # exogenous
+    #~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta
     ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta)
 
 steady_state:

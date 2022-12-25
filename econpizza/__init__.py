@@ -5,7 +5,7 @@ from .solvers.solve_linear_state_space import *
 from .solvers.solve_linear import find_path_linear
 from .solvers.stacking import find_path_stacking
 from .solvers.shooting import find_path_shooting
-from .steady_state import solve_stst
+from .solvers.steady_state import solve_stst
 from .parsing import parse, load
 import jax
 import logging

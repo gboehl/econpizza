@@ -140,17 +140,14 @@ def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, stst, vfSS, di
     return stacked_func_dist, backwards_sweep, second_sweep
 
 
-def compile_functions(model, zshock, horizon, nvars, pars, stst, xstst):
+def get_derivatives(model, nvars, pars, stst, x_stst, zshock, horizon, verbose):
 
-    print('starting')
-    ts = time.time()
+    st = time.time()
 
     # get functions
     func_eqns = model['context']["func_eqns"]
     func_backw = model['context'].get('func_backw')
     func_dist = model['context'].get('func_dist')
-
-    jac_eqns = jax.jacrev(func_eqns, argnums=(0, 1, 2))
 
     if model.get('distributions'):
         # get stuff for het-agent models
@@ -171,24 +168,27 @@ def compile_functions(model, zshock, horizon, nvars, pars, stst, xstst):
         basis = basis.at[-nvars:, -nvars:].set(jnp.eye(nvars))
 
         doSS, do2x = jvp_vmap(backwards_sweep)(
-            (xstst[1:-1].flatten(), stst, stst), (basis,))
+            (x_stst[1:-1].flatten(), stst, stst), (basis,))
         _, (f2do,) = vjp_vmap(second_sweep, argnums=1)(
-            (xstst[1:-1].flatten(), doSS, stst, stst), basis.T)
-        f2do_re = jnp.moveaxis(f2do, -1, 1)
+            (x_stst[1:-1].flatten(), doSS, stst, stst), basis.T)
+        f2do = jnp.moveaxis(f2do, -1, 1)
     else:
         func_raw = get_stacked_func_rep_agent(
             pars, func_eqns, stst, zshock, horizon, nvars)
-        f2do_re = None
+        f2do = None
         do2x = None
 
-    f2X = jac_eqns(stst[:, None], stst[:, None], stst[:, None],
-                   stst, zshock, pars, distSS, decisions_outputSS)
+    jacrev_func_eqns = jax.jacrev(func_eqns, argnums=(0, 1, 2))
+    f2X = jacrev_func_eqns(stst[:, None], stst[:, None], stst[:, None],
+                           stst, zshock, pars, distSS, decisions_outputSS)
 
+    model['func_raw'] = func_raw
     model['jvp'] = lambda primals, tangens, x0, xT: jax.jvp(
         func_raw, (primals, x0, xT), (tangens, jnp.zeros(nvars), jnp.zeros(nvars)))
-    model['func_raw'] = func_raw
 
-    print('derivatives')
-    print(-ts + time.time())
+    if verbose:
+        duration = time.time() - st
+        print(
+            f"(get_derivatives:) Derivatives calculation done ({duration:1.3f}s).")
 
-    return f2X, f2do_re, do2x
+    return f2X, f2do, do2x

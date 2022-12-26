@@ -16,7 +16,7 @@ def find_path_stacking(
     model,
     x0=None,
     shock=None,
-    horizon=250,
+    horizon=300,
     endpoint=None,
     verbose=True,
     raise_errors=True,
@@ -36,14 +36,12 @@ def find_path_stacking(
         number of periods until the system is assumed to be back in the steady state. A good idea to set this corresponding to the respective problem. A too large value may be computationally expensive. A too small value may generate inaccurate results
     endpoint : array, optional
         the final state at `horizon`. Defaults to the steay state if `None`
-    use_jacrev : bool, optional
-        whether to use reverse mode or forward mode automatic differentiation. By construction, reverse AD is faster, but does not work for all types of functions. Defaults to True
     verbose : bool, optional
         degree of verbosity. 0/`False` is silent
     raise_errors : bool, optional
         whether to raise errors as exceptions, or just inform about them. Defaults to `True`
-    solver_kwargs : optional
-        any additional keyword arguments will be passed on to the solver
+    newton_args : optional
+        any additional arguments to be passed on to the solver
 
     Returns
     -------
@@ -78,9 +76,11 @@ def find_path_stacking(
             print("(find_stack:) Warning: shocks for heterogenous agent models are not yet fully supported. Use adjusted steady state values as x0 instead.")
 
     if model['new_model_horizon'] != horizon:
-        derivatives = compile_functions(
-            model, zshock, horizon, nvars, pars, stst, x_stst)
+        # get derivatives (via AD) and compile functions
+        derivatives = get_derivatives(
+            model, nvars, pars, stst, x_stst, zshock, horizon, verbose)
 
+        # accumulate steady stat jacobian
         get_jacobian(model, derivatives, model.get(
             'distributions'), horizon, nvars, verbose)
         model['new_model_horizon'] = horizon
@@ -99,11 +99,10 @@ def find_path_stacking(
     if verbose:
         duration = time.time() - st
         result = 'done' if not flag else 'FAILED'
+        mess = f"(find_path:) Stacking {result} ({duration:1.3f}s). " + mess
         if flag and raise_errors:
-            raise Exception(
-                f"(find_path:) Stacking {result} after {duration:1.3f} seconds. " + mess)
-
-        print(
-            f"(find_path:) Stacking {result} after {duration:1.3f} seconds. " + mess)
+            raise Exception(mess)
+        else:
+            print(mess)
 
     return x_out, flag

@@ -119,7 +119,7 @@ def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, stst, vfSS, di
 
         return out
 
-    return stacked_func_dist, backwards_sweep, second_sweep
+    return stacked_func_dist, backwards_sweep, forwards_sweep, second_sweep
 
 
 def get_derivatives(model, nvars, pars, stst, x_stst, zshock, horizon, verbose):
@@ -138,7 +138,7 @@ def get_derivatives(model, nvars, pars, stst, x_stst, zshock, horizon, verbose):
         model['steady_state']['decisions_output'])[..., None]
 
     # get actual functions
-    func_raw, backwards_sweep, second_sweep = get_stacked_func_dist(
+    func_raw, backwards_sweep, forwards_sweep, second_sweep = get_stacked_func_dist(
         pars, func_backw, func_dist, func_eqns, stst, vfSS, distSS[..., 0], zshock, horizon, nvars)
 
     # basis for steady state jacobian construction
@@ -158,7 +158,9 @@ def get_derivatives(model, nvars, pars, stst, x_stst, zshock, horizon, verbose):
                            stst, zshock, pars, distSS, decisions_outputSS)
 
     # store everything
-    model['func_raw'] = func_raw
+    model['context']['func_raw'] = func_raw
+    model['context']['backwards_sweep'] = backwards_sweep
+    model['context']['forwards_sweep'] = forwards_sweep
     model['jvp'] = lambda primals, tangens, x0, xT: jax.jvp(
         func_raw, (primals, x0, xT), (tangens, jnp.zeros(nvars), jnp.zeros(nvars)))
 

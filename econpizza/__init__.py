@@ -41,16 +41,18 @@ class PizzaModel(dict):
             a dictionary of the outputs of the decision and distributions stage
         """
 
-        stacked_func = self['context']['stacked_func_dist']
-        decisions_outputs = self['decisions']['outputs']
         dist_names = list(self['distributions'].keys())
+        x = xst[1:-1].flatten()
+        x0 = xst[0]
+        xT = xst[-1]
 
-        het_vars = stacked_func(xst[1:-1].ravel(), True)
+        # get functions and execute
+        backwards_sweep = self['context']['backwards_sweep']
+        forwards_sweep = self['context']['forwards_sweep']
+        decisions_output_storage = backwards_sweep(x, x0, xT)
+        dists_storage = forwards_sweep(decisions_output_storage)
 
-        rdict = {oput: het_vars[0][i]
-                 for i, oput in enumerate(decisions_outputs)}
-        rdict.update({oput: het_vars[1][i]
-                     for i, oput in enumerate(dist_names)})
+        rdict = {oput: dists_storage[i] for i, oput in enumerate(dist_names)}
 
         return rdict
 

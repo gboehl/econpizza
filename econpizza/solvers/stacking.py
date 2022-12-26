@@ -8,8 +8,8 @@ import jax.numpy as jnp
 import scipy.sparse as ssp
 from grgrlib.jaxed import *
 from ..parser.build_functions import *
-from ..utilities.jacobian import get_jac
-from ..utilities.newton import newton
+from ..utilities.jacobian import get_jacobian
+from ..utilities.newton import newton_for_jvp
 
 
 def find_path_stacking(
@@ -18,8 +18,6 @@ def find_path_stacking(
     shock=None,
     horizon=250,
     endpoint=None,
-    tol=None,
-    maxit=None,
     verbose=True,
     raise_errors=True,
     **newton_args
@@ -38,10 +36,6 @@ def find_path_stacking(
         number of periods until the system is assumed to be back in the steady state. A good idea to set this corresponding to the respective problem. A too large value may be computationally expensive. A too small value may generate inaccurate results
     endpoint : array, optional
         the final state at `horizon`. Defaults to the steay state if `None`
-    tol : float, optional
-        convergence criterion. Defaults to 1e-8
-    maxit : int, optional
-        number of iterations. Default is 30.
     use_jacrev : bool, optional
         whether to use reverse mode or forward mode automatic differentiation. By construction, reverse AD is faster, but does not work for all types of functions. Defaults to True
     verbose : bool, optional
@@ -60,10 +54,6 @@ def find_path_stacking(
     """
 
     st = time.time()
-
-    # set defaults
-    tol = 1e-8 if tol is None else tol
-    maxit = 30 if maxit is None else maxit
 
     # get variables
     stst = jnp.array(list(model["stst"].values()))
@@ -87,39 +77,33 @@ def find_path_stacking(
         if model.get('distributions'):
             print("(find_stack:) Warning: shocks for heterogenous agent models are not yet fully supported. Use adjusted steady state values as x0 instead.")
 
-    if model['new_model_flag']:
+    if model['new_model_horizon'] != horizon:
         derivatives = compile_functions(
             model, zshock, horizon, nvars, pars, stst, x_stst)
 
-        get_jac(model, derivatives, model.get('distributions'), horizon, nvars)
-        model['new_model_flag'] = False
+        get_jacobian(model, derivatives, model.get(
+            'distributions'), horizon, nvars, verbose)
+        model['new_model_horizon'] = horizon
 
-    # TODO: jvp should also alow for the terminal point
-    jac, jvp = model['jac'], model['jvp']
-    jvp_partial = jax.tree_util.Partial(jvp, x0=x0, xT=xT)
-    x, err = newton(jvp_partial, jac, x_init, **newton_args)
+    # get jvp function and steady state jacobian
+    jvp_partial = jax.tree_util.Partial(model['jvp'], x0=x0, xT=xT)
+    jacobian = model['jac']
+
+    # actual newton iterations
+    x, flag, mess = newton_for_jvp(
+        x_init, jvp_partial, jacobian, verbose, **newton_args)
 
     # calculate error
     x_out = x_init.at[1:-1].set(x.reshape((horizon - 1, nvars)))
-    # mess = res['message']
-    # TODO: create messages
-    mess = ''
-
-    # compile error/report message
-    # TODO: create success criterion
-    success = True
-    if err > tol or not success:
-        mess += f" Max. error is {err:1.2e}."
-        verbose = True
 
     if verbose:
         duration = time.time() - st
-        sucess = 'done' if success else 'FAILED'
-        if not success and raise_errors:
+        result = 'done' if not flag else 'FAILED'
+        if flag and raise_errors:
             raise Exception(
-                f"(find_path:) Stacking {sucess} after {duration:1.3f} seconds. " + mess)
+                f"(find_path:) Stacking {result} after {duration:1.3f} seconds. " + mess)
 
         print(
-            f"(find_path:) Stacking {sucess} after {duration:1.3f} seconds. " + mess)
+            f"(find_path:) Stacking {result} after {duration:1.3f} seconds. " + mess)
 
-    return x_out, not success
+    return x_out, flag

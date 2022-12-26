@@ -184,8 +184,8 @@ def compile_functions(model, zshock, horizon, nvars, pars, stst, xstst):
     f2X = jac_eqns(stst[:, None], stst[:, None], stst[:, None],
                    stst, zshock, pars, distSS, decisions_outputSS)
 
-    model['jvp'] = jax.jit(lambda primals, tangens, x0, xT: jax.jvp(
-        func_raw, (primals, x0, xT), (tangens, jnp.zeros(nvars), jnp.zeros(nvars))))
+    model['jvp'] = lambda primals, tangens, x0, xT: jax.jvp(
+        func_raw, (primals, x0, xT), (tangens, jnp.zeros(nvars), jnp.zeros(nvars)))
     model['func_raw'] = func_raw
 
     print('derivatives')

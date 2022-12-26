@@ -61,7 +61,7 @@ def test_stacked(create=False):
 
     shk = ("e_beta", 0.02)
 
-    x, flag = find_path_stacking(mod, shock=shk)
+    x, flag = find_path_stacking(mod, shock=shk, horizon=250)
 
     path = os.path.join(filepath, "test_storage", "stacked.npy")
 
@@ -86,7 +86,7 @@ def test_hank(create=False):
 
     x, flag = mod.find_path(x0.values(), horizon=10)
     x_lin, _ = mod.find_path_linear(x0.values(), horizon=10)
-    het_vars = mod.get_het_vars(x)
+    het_vars = mod.get_distributions(x)
     dist = het_vars['dist']
 
     path_x = os.path.join(filepath, "test_storage", "hank.npy")
@@ -153,6 +153,3 @@ def test_hank2(create=False):
 
         assert flag == 0
         assert jnp.allclose(x, test_x)
-
-
-test_hank()

@@ -10,6 +10,8 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shoc
     """Get a function that evaluates the steady state
     """
 
+    zshock = jnp.zeros(len(shocks))
+
     def cond_func(cont):
         (vf, _, _), vf_old, cnt = cont
         cond0 = jnp.abs(vf - vf_old).max() > tol_backw
@@ -18,7 +20,7 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shoc
 
     def body_func_raw(cont, x, par):
         (vf, _, _), _, cnt = cont
-        return func_backw(x, x, x, x, vf, [], par), vf, cnt + 1
+        return func_backw(x, x, x, x, vf, zshock, par), vf, cnt + 1
 
     def func_backw_ext(x, par):
 
@@ -35,7 +37,7 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shoc
         x = x[..., None]
 
         if not func_stst_dist:
-            return func_eqns(x, x, x, x, jnp.zeros(len(shocks)), par)
+            return func_eqns(x, x, x, x, zshock, par)
 
         vf, decisions_output, exog_grid_vars, cnt_backw = func_backw_ext(
             x, par)
@@ -48,7 +50,7 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shoc
         if full_output:
             return (vf, decisions_output, exog_grid_vars, cnt_backw), (dist, cnt_forw)
 
-        return func_eqns(x, x, x, x, [], par, dist_array, decisions_output_array)
+        return func_eqns(x, x, x, x, zshock, par, dist_array, decisions_output_array)
 
     return func_stst_raw
 
@@ -63,7 +65,7 @@ def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, stst, vfSS, di
 
         vf, X = carry
         vf, decisions_output, exog_grid_vars = func_backw(
-            X[:, i], X[:, i+1], X[:, i+2], stst, vf, [], pars)
+            X[:, i], X[:, i+1], X[:, i+2], stst, vf, zshock, pars)
 
         return (vf, X), decisions_output
 

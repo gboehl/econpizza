@@ -68,32 +68,38 @@ def find_path_stacking(
     xT = endpoint if endpoint is not None else stst
 
     # deal with shocks if any
-    zshock = jnp.zeros(len(shocks))
-    tshock = jnp.copy(zshock)
+    zero_shock = jnp.zeros(len(shocks))
+    shock_series = jnp.zeros((horizon-1, len(shocks)))
     if shock is not None:
-        tshock = tshock.at[shocks.index(shock[0])].set(shock[1])
+        try:
+            shock_series = shock_series.at[0,
+                                           shocks.index(shock[0])].set(shock[1])
+        except ValueError:
+            raise ValueError(f'Shock "{shock[0]}" is not defined.')
+
         if model.get('distributions'):
-            print("(find_stack:) Warning: shocks for heterogenous agent models are not yet fully supported. Use adjusted steady state values as x0 instead.")
+            raise NotImplementedError(
+                "Shocks for heterogenous agent models are not yet implemented. Use adjusted steady state values as initial steady state 'x0' instead.")
 
     if not model.get('distributions'):
 
         # get transition function
         func_eqns = model['context']["func_eqns"]
 
-        def func_eqns_partial(xLag, x, xPrime): return func_eqns(
-            xLag, x, xPrime, stst, zshock, pars, [], [])
+        def func_eqns_partial(xLag, x, xPrime, e_shock): return func_eqns(
+            xLag, x, xPrime, stst, e_shock, pars, [], [])
         jav_func = jax.tree_util.Partial(
             jacrev_and_val(func_eqns_partial, (0, 1, 2)))
 
         # actual newton iterations
         x_out, flag, mess = newton_for_banded_jac(
-            jav_func, nvars, horizon, x_init, verbose, **newton_args)
+            jav_func, nvars, horizon, x_init, shock_series, verbose, **newton_args)
 
     else:
         if model['new_model_horizon'] != horizon:
             # get derivatives via AD and compile functions
             derivatives = get_derivatives(
-                model, nvars, pars, stst, x_stst, zshock, horizon, verbose)
+                model, nvars, pars, stst, x_stst, zero_shock, horizon, verbose)
 
             # accumulate steady stat jacobian
             get_jacobian(model, derivatives, horizon, nvars, verbose)

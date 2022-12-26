@@ -24,7 +24,7 @@ class PizzaModel(dict):
         super(PizzaModel, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
-    def get_het_vars(self, xst):
+    def get_distributions(self, xst):
         """Get all disaggregated variables for a given trajectory of aggregate variables.
 
         Parameters
@@ -33,12 +33,12 @@ class PizzaModel(dict):
         self : PizzaModel
             the model instance
         xst : array
-            a trajectory of aggregate variables
+            a _full_ trajectory of aggregate variables
 
         Returns
         -------
         rdict : dict
-            a dictionary of the outputs of the decision and distributions stage
+            a dictionary of the distributions
         """
 
         dist_names = list(self['distributions'].keys())

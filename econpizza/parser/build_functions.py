@@ -1,9 +1,8 @@
 
-"""Build dynamic functions."""
+"""Dynamically build functions."""
 
 import jax
 import jax.numpy as jnp
-import scipy.sparse as ssp
 from grgrlib.jaxed import *
 
 
@@ -52,23 +51,6 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shoc
         return func_eqns(x, x, x, x, [], par, dist_array, decisions_output_array)
 
     return func_stst_raw
-
-
-def get_stacked_func_rep_agent(pars, func_eqns, stst, zshock, horizon, nvars):
-    """Get a function that returns the (flattend) value and Jacobian of the stacked aggregate model equations.
-    """
-
-    nshpe = (nvars, horizon-1)
-
-    def final_step(x, x0, xT):
-
-        X = jnp.hstack((x0, x, xT)).reshape(horizon+1, -1).T
-        out = func_eqns(X[:, :-2].reshape(nshpe), X[:, 1:-1].reshape(nshpe),
-                        X[:, 2:].reshape(nshpe), stst, zshock, pars, [], [])
-
-        return out
-
-    return final_step
 
 
 def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, stst, vfSS, distSS, zshock, horizon, nvars):
@@ -149,39 +131,33 @@ def get_derivatives(model, nvars, pars, stst, x_stst, zshock, horizon, verbose):
     func_backw = model['context'].get('func_backw')
     func_dist = model['context'].get('func_dist')
 
-    if model.get('distributions'):
-        # get stuff for het-agent models
-        vfSS = model['steady_state'].get('decisions')
-        distSS = jnp.array(model['steady_state']['distributions'])[..., None]
-        decisions_outputSS = jnp.array(
-            model['steady_state']['decisions_output'])[..., None]
-    else:
-        distSS = []
-        decisions_outputSS = []
+    # get stuff for het-agent models
+    vfSS = model['steady_state'].get('decisions')
+    distSS = jnp.array(model['steady_state']['distributions'])[..., None]
+    decisions_outputSS = jnp.array(
+        model['steady_state']['decisions_output'])[..., None]
 
-    if model.get('distributions'):
-        func_raw, backwards_sweep, second_sweep = get_stacked_func_dist(
-            pars, func_backw, func_dist, func_eqns, stst, vfSS, distSS[..., 0], zshock, horizon, nvars)
+    # get actual functions
+    func_raw, backwards_sweep, second_sweep = get_stacked_func_dist(
+        pars, func_backw, func_dist, func_eqns, stst, vfSS, distSS[..., 0], zshock, horizon, nvars)
 
-        # should be a nicer way. Maybe I can even rewrite func to use non-flattend input
-        basis = jnp.zeros((nvars*(horizon-1), nvars))
-        basis = basis.at[-nvars:, -nvars:].set(jnp.eye(nvars))
+    # basis for steady state jacobian construction
+    basis = jnp.zeros((nvars*(horizon-1), nvars))
+    basis = basis.at[-nvars:, -nvars:].set(jnp.eye(nvars))
 
-        doSS, do2x = jvp_vmap(backwards_sweep)(
-            (x_stst[1:-1].flatten(), stst, stst), (basis,))
-        _, (f2do,) = vjp_vmap(second_sweep, argnums=1)(
-            (x_stst[1:-1].flatten(), doSS, stst, stst), basis.T)
-        f2do = jnp.moveaxis(f2do, -1, 1)
-    else:
-        func_raw = get_stacked_func_rep_agent(
-            pars, func_eqns, stst, zshock, horizon, nvars)
-        f2do = None
-        do2x = None
+    # get steady state jacobians for dist transition
+    doSS, do2x = jvp_vmap(backwards_sweep)(
+        (x_stst[1:-1].flatten(), stst, stst), (basis,))
+    _, (f2do,) = vjp_vmap(second_sweep, argnums=1)(
+        (x_stst[1:-1].flatten(), doSS, stst, stst), basis.T)
+    f2do = jnp.moveaxis(f2do, -1, 1)
 
+    # get steady state jacobians for direct effects x on f
     jacrev_func_eqns = jax.jacrev(func_eqns, argnums=(0, 1, 2))
     f2X = jacrev_func_eqns(stst[:, None], stst[:, None], stst[:, None],
                            stst, zshock, pars, distSS, decisions_outputSS)
 
+    # store everything
     model['func_raw'] = func_raw
     model['jvp'] = lambda primals, tangens, x0, xT: jax.jvp(
         func_raw, (primals, x0, xT), (tangens, jnp.zeros(nvars), jnp.zeros(nvars)))

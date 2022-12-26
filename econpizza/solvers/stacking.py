@@ -9,7 +9,7 @@ import scipy.sparse as ssp
 from grgrlib.jaxed import *
 from ..parser.build_functions import *
 from ..utilities.jacobian import get_jacobian
-from ..utilities.newton import newton_for_jvp
+from ..utilities.newton import newton_for_jvp, newton_for_banded_jac
 
 
 def find_path_stacking(
@@ -75,27 +75,41 @@ def find_path_stacking(
         if model.get('distributions'):
             print("(find_stack:) Warning: shocks for heterogenous agent models are not yet fully supported. Use adjusted steady state values as x0 instead.")
 
-    if model['new_model_horizon'] != horizon:
-        # get derivatives (via AD) and compile functions
-        derivatives = get_derivatives(
-            model, nvars, pars, stst, x_stst, zshock, horizon, verbose)
+    if not model.get('distributions'):
 
-        # accumulate steady stat jacobian
-        get_jacobian(model, derivatives, model.get(
-            'distributions'), horizon, nvars, verbose)
-        model['new_model_horizon'] = horizon
+        # get transition function
+        func_eqns = model['context']["func_eqns"]
 
-    # get jvp function and steady state jacobian
-    jvp_partial = jax.tree_util.Partial(model['jvp'], x0=x0, xT=xT)
-    jacobian = model['jac']
+        def func_eqns_partial(xLag, x, xPrime): return func_eqns(
+            xLag, x, xPrime, stst, zshock, pars, [], [])
+        jav_func = jax.tree_util.Partial(
+            jacrev_and_val(func_eqns_partial, (0, 1, 2)))
 
-    # actual newton iterations
-    x, flag, mess = newton_for_jvp(
-        x_init, jvp_partial, jacobian, verbose, **newton_args)
+        # actual newton iterations
+        x_out, flag, mess = newton_for_banded_jac(
+            jav_func, nvars, horizon, x_init, verbose, **newton_args)
 
-    # calculate error
-    x_out = x_init.at[1:-1].set(x.reshape((horizon - 1, nvars)))
+    else:
+        if model['new_model_horizon'] != horizon:
+            # get derivatives via AD and compile functions
+            derivatives = get_derivatives(
+                model, nvars, pars, stst, x_stst, zshock, horizon, verbose)
 
+            # accumulate steady stat jacobian
+            get_jacobian(model, derivatives, horizon, nvars, verbose)
+            model['new_model_horizon'] = horizon
+
+        # get jvp function and steady state jacobian
+        jvp_partial = jax.tree_util.Partial(model['jvp'], x0=x0, xT=xT)
+        jacobian = model['jac']
+
+        # actual newton iterations
+        x, flag, mess = newton_for_jvp(
+            x_init, jvp_partial, jacobian, verbose, **newton_args)
+
+        x_out = x_init.at[1:-1].set(x.reshape((horizon - 1, nvars)))
+
+    # some informative print messages
     if verbose:
         duration = time.time() - st
         result = 'done' if not flag else 'FAILED'

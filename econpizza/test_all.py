@@ -140,7 +140,7 @@ def test_hank2(create=False):
     x0 = mod['stst'].copy()
     x0['beta'] *= 1.01  # setting a shock on the discount factor
 
-    x, flag = mod.find_path(x0=x0.values(), horizon=10)
+    x, flag = mod.find_path(x0=x0.values())
 
     path = os.path.join(filepath, "test_storage", "hank2.npy")
 

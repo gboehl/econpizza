@@ -40,6 +40,6 @@ def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
     if verbose:
         duration = time.time() - st
         print(
-            f"(get_jacobian:) Jacobian compilation and decomposition done ({duration:1.3f}s).")
+            f"(get_jacobian:) Jacobian accumulation and decomposition done ({duration:1.3f}s).")
 
     return 0

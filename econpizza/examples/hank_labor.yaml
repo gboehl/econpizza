@@ -53,10 +53,12 @@ decisions: # stage one
 # aggregate variables from 'variables' (including those with "Prime", "Lag",...) are included by default
 # from here on the objects are _sequences_ with shapes either (1, horizon) or (n1, n2, horizon). Last dimension is always the time dimension
 aux_equations: |
-    # note: summing over the first two dimensions e and a, but not the time dimension (dimension 2)
+    # NOTE: summing over the first two dimensions e and a, but not the time dimension (dimension 2)
     # `dist` here corresponds to the dist from the *previous* period.
+    # also note that we are using jax.numpy (imported as jnp by default)
     aggr_a = jnp.sum(dist*a, axis=(0,1))
     aggr_c = jnp.sum(dist*c, axis=(0,1))
+    NE = jnp.sum(dist*ne, axis=(0,1))
     # calculate consumption and wealth share of top-10% cumsumers
     top10c = 1 - percentile(c, dist, .9)
     top10a = 1 - percentile(a, dist, .9)

@@ -79,9 +79,9 @@ def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=200, nst
 
         cnt += cnt_loop*nsteps
         ltime = time.time() - st
-        info_str = f'    Iteration {cnt:3d} | max error {err:.2e} | dampening {dampening:1.3f} | lapsed {ltime:3.4f}s'
 
         if verbose:
+            info_str = f'    Iteration {cnt:3d} | max error {err:.2e} | dampening {dampening:1.3f} | lapsed {ltime:3.4f}s'
             print(info_str)
 
         do_break, (success, mess) = check_status(err, cnt, maxit, tol)
@@ -112,9 +112,9 @@ def newton_for_banded_jac(jav_func, nvars, horizon, X, shocks, verbose, maxit=30
         cnt += 1
 
         ltime = time.time() - st
-        info_str = f'    Iteration {cnt:3d} | max error {err:.2e} | lapsed {ltime:3.4f}s'
 
         if verbose:
+            info_str = f'    Iteration {cnt:3d} | max error {err:.2e} | lapsed {ltime:3.4f}s'
             print(info_str)
 
         do_break, (success, mess) = check_status(err, cnt, maxit, tol)

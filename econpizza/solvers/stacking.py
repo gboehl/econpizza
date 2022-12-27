@@ -26,12 +26,12 @@ def find_path_stacking(
     ----------
     model : dict
         model dict or PizzaModel instance
-    x0 : array
-        initial state
     shock : tuple, optional
         shock in period 0 as in `(shock_name_as_str, shock_size)`
+    x0 : array, optional
+        initial state
     horizon : int, optional
-        number of periods until the system is assumed to be back in the steady state. A good idea to set this corresponding to the respective problem. A too large value may be computationally expensive. A too small value may generate inaccurate results
+        number of periods until the system is assumed to be back in the steady state. Defaults to 300
     verbose : bool, optional
         degree of verbosity. 0/`False` is silent
     raise_errors : bool, optional
@@ -44,7 +44,7 @@ def find_path_stacking(
     x : array
         array of the trajectory
     flag : bool
-        returns True if the solver was successful, else False
+        returns False if the solver was successful, else True
     """
 
     st = time.time()
@@ -61,15 +61,13 @@ def find_path_stacking(
     x_init = x_stst.at[0].set(x0)
 
     # deal with shocks if any
-    zero_shocks = jnp.zeros((horizon-1, len(shocks)))
+    shock_series = jnp.zeros((horizon-1, len(shocks)))
     if shock is not None:
         try:
-            shock_series = zero_shocks.at[0,
-                                          shocks.index(shock[0])].set(shock[1])
+            shock_series = shock_series.at[0,
+                                           shocks.index(shock[0])].set(shock[1])
         except ValueError:
             raise ValueError(f"Shock '{shock[0]}' is not defined.")
-    else:
-        shock_series = zero_shocks
 
     if not model.get('distributions'):
 
@@ -79,8 +77,9 @@ def find_path_stacking(
             jav_func_eqns = jacrev_and_val(func_eqns, (0, 1, 2))
             jav_func_eqns_partial = jax.tree_util.Partial(
                 jav_func_eqns, XSS=stst, pars=pars, distributions=[], decisions_outputs=[])
-            model['new_model_horizon'] = horizon
             model['jav_func'] = jav_func_eqns_partial
+            # mark as compiled
+            model['new_model_horizon'] = horizon
 
         # actual newton iterations
         jav_func_eqns_partial = model['jav_func']
@@ -91,10 +90,11 @@ def find_path_stacking(
         if model['new_model_horizon'] != horizon:
             # get derivatives via AD and compile functions
             derivatives = get_derivatives(
-                model, nvars, pars, stst, x_stst, zero_shocks.T, horizon, verbose)
+                model, nvars, pars, stst, x_stst, jnp.zeros_like(shock_series).T, horizon, verbose)
 
             # accumulate steady stat jacobian
             get_stst_jacobian(model, derivatives, horizon, nvars, verbose)
+            # mark as compiled
             model['new_model_horizon'] = horizon
 
         # get jvp function and steady state jacobian
@@ -108,13 +108,12 @@ def find_path_stacking(
         x_out = x_init.at[1:-1].set(x.reshape((horizon - 1, nvars)))
 
     # some informative print messages
-    if verbose:
-        duration = time.time() - st
-        result = 'done' if not flag else 'FAILED'
-        mess = f"(find_path:) Stacking {result} ({duration:1.3f}s). " + mess
-        if flag and raise_errors:
-            raise Exception(mess)
-        else:
-            print(mess)
+    duration = time.time() - st
+    result = 'done' if not flag else 'FAILED'
+    mess = f"(find_path:) Stacking {result} ({duration:1.3f}s). " + mess
+    if flag and raise_errors:
+        raise Exception(mess)
+    elif verbose:
+        print(mess)
 
     return x_out, flag

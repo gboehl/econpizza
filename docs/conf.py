@@ -76,7 +76,7 @@ html_theme_options = {
     "description": " Solve nonlinear heterogeneous agents models",
     "github_repo": "econpizza",
     "github_user": "gboehl",
-    "sidebar_collapse": False,
+    "sidebar_collapse": True,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,

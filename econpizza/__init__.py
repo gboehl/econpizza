@@ -14,7 +14,7 @@ import os
 os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
 
 
-__version__ = '0.2.4'
+__version__ = '0.3.0'
 
 jax.config.update("jax_enable_x64", True)
 

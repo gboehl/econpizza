@@ -36,10 +36,12 @@ release = version
 # "sphinx.ext.autodoc",
 # ]
 extensions = [
-    "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
     "sphinx.ext.autosectionlabel",
+    "sphinx.ext.intersphinx",
     "nbsphinx",
+    "sphinx.ext.mathjax",
     "IPython.sphinxext.ipython_console_highlighting",
 ]
 
@@ -71,13 +73,15 @@ html_theme_options = {
     "use_issues_button": True,
     "use_repository_button": True,
     "use_download_button": True,
+    "description": " Solve nonlinear heterogeneous agents models",
+    "github_repo": "econpizza",
+    "github_user": "gboehl",
+    "sidebar_collapse": False,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
-
 autoclass_content = "both"
 autodoc_member_order = "groupwise"
 latex_use_parts = False
@@ -88,11 +92,3 @@ def setup(app):
 
 
 master_doc = 'index'
-
-html_theme_options = {
-    "description": " Solve nonlinear heterogeneous agents models",
-    "github_button": True,
-    "github_repo": "econpizza",
-    "github_user": "gboehl",
-    "sidebar_collapse": False,
-}

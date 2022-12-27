@@ -120,7 +120,7 @@ def get_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, verbose)
     model['context']['func_raw'] = func_raw
     model['context']['backwards_sweep'] = backwards_sweep
     model['context']['forwards_sweep'] = forwards_sweep
-    model['jvp'] = lambda primals, tangens, x0, shocks: jax.jvp(
+    model['jvp_func'] = lambda primals, tangens, x0, shocks: jax.jvp(
         func_raw, (primals, x0, shocks), (tangens, jnp.zeros(nvars), zshocks))
 
     if verbose:

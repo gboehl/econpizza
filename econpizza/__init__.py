@@ -5,7 +5,7 @@ from .solvers.solve_linear_state_space import *
 from .solvers.solve_linear import find_path_linear
 from .solvers.stacking import find_path_stacking
 from .solvers.shooting import find_path_shooting
-from .steady_state import solve_stst
+from .solvers.steady_state import solve_stst
 from .parsing import parse, load
 import jax
 import logging
@@ -24,7 +24,7 @@ class PizzaModel(dict):
         super(PizzaModel, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
-    def get_het_vars(self, xst):
+    def get_distributions(self, xst, shock=None):
         """Get all disaggregated variables for a given trajectory of aggregate variables.
 
         Parameters
@@ -33,24 +33,32 @@ class PizzaModel(dict):
         self : PizzaModel
             the model instance
         xst : array
-            a trajectory of aggregate variables
+            a _full_ trajectory of aggregate variables
 
         Returns
         -------
         rdict : dict
-            a dictionary of the outputs of the decision and distributions stage
+            a dictionary of the distributions
         """
 
-        stacked_func = self['context']['stacked_func_dist']
-        decisions_outputs = self['decisions']['outputs']
+        shocks = self.get("shocks") or ()
         dist_names = list(self['distributions'].keys())
+        x = xst[1:-1].flatten()
+        x0 = xst[0]
 
-        het_vars = stacked_func(xst[1:-1].ravel(), True)
+        # deal with shocks if any
+        shock_series = jnp.zeros((len(xst)-2, len(shocks)))
+        if shock is not None:
+            shock_series = shock_series.at[0,
+                                           shocks.index(shock[0])].set(shock[1])
 
-        rdict = {oput: het_vars[0][i]
-                 for i, oput in enumerate(decisions_outputs)}
-        rdict.update({oput: het_vars[1][i]
-                     for i, oput in enumerate(dist_names)})
+        # get functions and execute
+        backwards_sweep = self['context']['backwards_sweep']
+        forwards_sweep = self['context']['forwards_sweep']
+        decisions_output_storage = backwards_sweep(x, x0, shock_series.T)
+        dists_storage = forwards_sweep(decisions_output_storage)
+
+        rdict = {oput: dists_storage[i] for i, oput in enumerate(dist_names)}
 
         return rdict
 

@@ -27,10 +27,9 @@ setup(
               'econpizza.utilities', 'econpizza.solvers'],
     package_data={"econpizza": ["examples/*"]},
     install_requires=[
-        "scipy>=1.8.0",
         "jax",
         "jaxlib",
-        "grgrlib>=0.1.17",
+        "grgrlib>=0.1.19",
         "pyyaml",
     ],
 )

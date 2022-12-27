@@ -1,38 +1,8 @@
-#!/bin/python
-# -*- coding: utf-8 -*-
+"""Tools for dealing with distributions
+"""
 
 import jax
 import jax.numpy as jnp
-
-
-def tmat_from_exog(probs, D):
-
-    nZ, nX = D.shape
-    tmat = jnp.zeros((nX*nZ, nX*nZ))
-
-    i = jnp.arange(nZ)*nX
-    xi = jnp.arange(nX)[:, None]
-    zi = jnp.arange(nZ)[:, None, None]
-    tmat = tmat.at[xi+zi*nX, xi +
-                   i].set(probs.broadcast_in_dim((nZ, nX, nZ), (0, 2)))
-
-    return tmat
-
-
-def tmat_from_endo(x_i, probs):
-
-    nZ, nX = x_i.shape
-    tmat = jnp.zeros((nX*nZ, nX*nZ))
-
-    ix = jnp.arange(nX*nZ)
-    j = jnp.arange(nZ).repeat(nX)*nX
-    i = x_i.ravel()
-    pi = probs.ravel()
-
-    tmat = tmat.at[i+j, ix].add(pi)
-    tmat = tmat.at[i+1+j, ix].add(1-pi)
-
-    return tmat
 
 
 def expect_transition(Pi, X):
@@ -60,22 +30,24 @@ def forward_policy_1d(D, x_i, x_pi):
     return Dnew
 
 
+def cond_func(cont):
+    dist, dist_old, cnt, tol, maxit = cont
+    cond0 = jnp.abs(dist-dist_old).max() > tol
+    cond1 = cnt < maxit
+    return jnp.logical_and(cond0, cond1)
+
+
 def stationary_distribution_forward_policy_1d(endog_inds, endog_probs, exog_probs, tol=1e-10, maxit=1000):
 
     dist = jnp.ones_like(endog_inds, dtype=jnp.float64)
     dist /= dist.sum()
 
-    def cond_func(cont):
-        dist, dist_old, cnt = cont
-        cond0 = jnp.abs(dist-dist_old).max() > tol
-        cond1 = cnt < maxit
-        return cond0 & cond1
-
     def body_func(cont):
-        dist, _, cnt = cont
-        return exog_probs.T @ forward_policy_1d(dist, endog_inds, endog_probs), dist, cnt + 1
+        dist, _, cnt, tol, maxit = cont
+        return exog_probs.T @ forward_policy_1d(dist, endog_inds, endog_probs), dist, cnt + 1, tol, maxit
 
-    dist, _, cnt = jax.lax.while_loop(cond_func, body_func, (dist, dist+1, 0))
+    dist, _, cnt, _, _ = jax.lax.while_loop(
+        cond_func, body_func, (dist, dist+1, 0, tol, maxit))
     return dist, cnt
 
 
@@ -100,20 +72,15 @@ def stationary_distribution_forward_policy_2d(endog_inds0, endog_inds1, endog_pr
     dist = jnp.ones_like(endog_inds0, dtype=jnp.float64)
     dist /= dist.sum()
 
-    def cond_func(cont):
-        dist, dist_old, cnt = cont
-        cond0 = jnp.abs(dist-dist_old).max() > tol
-        cond1 = cnt < maxit
-        return cond0 & cond1
-
     def body_func(cont):
-        dist, _, cnt = cont
+        dist, _, cnt, tol, maxit = cont
         pre_exo_dist = forward_policy_2d(
             dist, endog_inds0, endog_inds1, endog_probs0, endog_probs1)
         new_dist = expect_transition(exog_probs.T, pre_exo_dist)
-        return new_dist, dist, cnt + 1
+        return new_dist, dist, cnt + 1, tol, maxit
 
-    dist, _, cnt = jax.lax.while_loop(cond_func, body_func, (dist, dist+1, 0))
+    dist, _, cnt, _, _ = jax.lax.while_loop(
+        cond_func, body_func, (dist, dist+1, 0, tol, maxit))
     return dist, cnt
 
 

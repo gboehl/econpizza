@@ -3,7 +3,7 @@
 
 import jax
 import jax.numpy as jnp
-from grgrlib.jaxed import jax_print
+from grgrlib.jaxed import jax_print, amax
 from econpizza.utilities.interp import interpolate
 
 
@@ -66,7 +66,7 @@ def solve_uc(w, T, eis, frisch, vphi, uc_seed):
     """
 
     def solve_uc_cond(cont):
-        return jnp.abs(cont[0]).max() > 1e-11
+        return amax(cont[0]) > 1e-11
 
     def solve_uc_body(cont):
         ne, log_uc = cont

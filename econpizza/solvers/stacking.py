@@ -5,23 +5,20 @@ import os
 import jax
 import time
 import jax.numpy as jnp
-import scipy.sparse as ssp
-from grgrlib.jaxed import newton_jax, jacfwd_and_val, jacrev_and_val
+from grgrlib.jaxed import *
 from ..parser.build_functions import *
+from ..utilities.jacobian import get_stst_jacobian
+from ..utilities.newton import newton_for_jvp, newton_for_banded_jac
 
 
 def find_path_stacking(
     model,
-    x0=None,
     shock=None,
-    horizon=250,
-    init_guess=None,
-    endpoint=None,
-    tol=None,
-    maxit=None,
+    x0=None,
+    horizon=300,
     verbose=True,
     raise_errors=True,
-    **solver_kwargs,
+    **newton_args
 ):
     """Find the expected trajectory given an initial state.
 
@@ -35,22 +32,12 @@ def find_path_stacking(
         shock in period 0 as in `(shock_name_as_str, shock_size)`
     horizon : int, optional
         number of periods until the system is assumed to be back in the steady state. A good idea to set this corresponding to the respective problem. A too large value may be computationally expensive. A too small value may generate inaccurate results
-    init_guess : array, optional
-        a first guess on the trajectory. Not necessary in general
-    endpoint : array, optional
-        the final state at `horizon`. Defaults to the steay state if `None`
-    tol : float, optional
-        convergence criterion. Defaults to 1e-8
-    maxit : int, optional
-        number of iterations. Default is 30.
-    use_jacrev : bool, optional
-        whether to use reverse mode or forward mode automatic differentiation. By construction, reverse AD is faster, but does not work for all types of functions. Defaults to True
     verbose : bool, optional
         degree of verbosity. 0/`False` is silent
     raise_errors : bool, optional
         whether to raise errors as exceptions, or just inform about them. Defaults to `True`
-    solver_kwargs : optional
-        any additional keyword arguments will be passed on to the solver
+    newton_args : optional
+        any additional arguments to be passed on to the solver
 
     Returns
     -------
@@ -62,83 +49,70 @@ def find_path_stacking(
 
     st = time.time()
 
-    # set defaults
-    tol = 1e-8 if tol is None else tol
-    maxit = 30 if maxit is None else maxit
-
     # get variables
     stst = jnp.array(list(model["stst"].values()))
     nvars = len(model["variables"])
     pars = jnp.array(list(model["parameters"].values()))
     shocks = model.get("shocks") or ()
 
-    # get functions
-    func_eqns = model['context']["func_eqns"]
-    func_backw = model['context'].get('func_backw')
-    func_dist = model['context'].get('func_dist')
-
     # get initial guess
     x0 = jnp.array(list(x0)) if x0 is not None else stst
-    x_init = jnp.ones((horizon + 1, nvars)) * stst
-    x_init = x_init.at[0].set(x0)
-    if init_guess is not None:
-        x_init = x_init.at[1: len(init_guess)].set(init_guess[1:])
-
-    # set terminal condition
-    endpoint = endpoint if endpoint is not None else stst
+    x_stst = jnp.ones((horizon + 1, nvars)) * stst
+    x_init = x_stst.at[0].set(x0)
 
     # deal with shocks if any
-    zshock = jnp.zeros(len(shocks))
-    tshock = jnp.copy(zshock)
+    zero_shocks = jnp.zeros((horizon-1, len(shocks)))
     if shock is not None:
-        tshock = tshock.at[shocks.index(shock[0])].set(shock[1])
-        if model.get('distributions'):
-            print("(find_stack:) Warning: shocks for heterogenous agent models are not yet fully supported. Use adjusted steady state values as x0 instead.")
-
-    if model.get('distributions'):
-        # get stuff for het-agent models
-        vfSS = model['steady_state']['decisions']
-        distSS = jnp.array(model['steady_state']['distributions'])
-        decisions_outputSS = jnp.array(
-            model['steady_state']['decisions_output'])
-
-        # compile stacked function if distribution matters
-        stacked_func_dist_raw = get_stacked_func_dist(
-            pars, func_backw, func_dist, func_eqns, x0, stst, vfSS, distSS, zshock, horizon, nvars, endpoint)
-        stacked_func = jax.jit(stacked_func_dist_raw,
-                               static_argnames='full_output')
+        try:
+            shock_series = zero_shocks.at[0,
+                                          shocks.index(shock[0])].set(shock[1])
+        except ValueError:
+            raise ValueError(f"Shock '{shock[0]}' is not defined.")
     else:
-        # compile stacked function if independent of the distribution
-        stacked_func = get_stacked_func_simple(
-            pars, func_eqns, stst, x0, horizon, nvars, endpoint, zshock, tshock, shock, [], [])
+        shock_series = zero_shocks
 
-    model['context']['stacked_func_dist'] = stacked_func
-    if verbose:
-        print("(find_stack:) Solving stack (size: %s)..." %
-              (horizon*nvars))
+    if not model.get('distributions'):
 
-    # find path
-    res = newton_jax(stacked_func, x_init[1:-1].flatten(), None, maxit, tol, sparse=not model.get(
-        'distributions'), func_returns_jac=True, verbose=verbose, **solver_kwargs)
+        # get transition function
+        func_eqns = model['context']["func_eqns"]
 
-    # calculate error
-    err = jnp.abs(res['fun']).max()
-    x = x_init.at[1:-1].set(res['x'].reshape((horizon - 1, nvars)))
-    mess = res['message']
+        def func_eqns_partial(xLag, x, xPrime, e_shock): return func_eqns(
+            xLag, x, xPrime, stst, e_shock, pars, [], [])
+        jav_func = jax.tree_util.Partial(
+            jacrev_and_val(func_eqns_partial, (0, 1, 2)))
 
-    # compile error/report message
-    if err > tol or not res['success']:
-        mess += f" Max. error is {err:1.2e}."
-        verbose = True
+        # actual newton iterations
+        x_out, flag, mess = newton_for_banded_jac(
+            jav_func, nvars, horizon, x_init, shock_series, verbose, **newton_args)
 
+    else:
+        if model['new_model_horizon'] != horizon:
+            # get derivatives via AD and compile functions
+            derivatives = get_derivatives(
+                model, nvars, pars, stst, x_stst, zero_shocks.T, horizon, verbose)
+
+            # accumulate steady stat jacobian
+            get_stst_jacobian(model, derivatives, horizon, nvars, verbose)
+            model['new_model_horizon'] = horizon
+
+        # get jvp function and steady state jacobian
+        jvp_partial = jax.tree_util.Partial(
+            model['jvp'], x0=x0, shocks=shock_series.T)
+        jacobian = model['jac_factorized']
+
+        # actual newton iterations
+        x, flag, mess = newton_for_jvp(
+            jvp_partial, jacobian, x_init, verbose, **newton_args)
+        x_out = x_init.at[1:-1].set(x.reshape((horizon - 1, nvars)))
+
+    # some informative print messages
     if verbose:
         duration = time.time() - st
-        sucess = 'done' if res['success'] else 'FAILED'
-        if not res['success'] and raise_errors:
-            raise Exception(
-                f"(find_path:) Stacking {sucess} after {duration:1.3f} seconds. " + mess)
+        result = 'done' if not flag else 'FAILED'
+        mess = f"(find_path:) Stacking {result} ({duration:1.3f}s). " + mess
+        if flag and raise_errors:
+            raise Exception(mess)
+        else:
+            print(mess)
 
-        print(
-            f"(find_path:) Stacking {sucess} after {duration:1.3f} seconds. " + mess)
-
-    return x, not res['success']
+    return x_out, flag

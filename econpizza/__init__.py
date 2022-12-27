@@ -43,6 +43,7 @@ class PizzaModel(dict):
 
         shocks = self.get("shocks") or ()
         dist_names = list(self['distributions'].keys())
+        decisions_outputs = self['decisions']['outputs']
         x = xst[1:-1].flatten()
         x0 = xst[0]
 
@@ -58,7 +59,10 @@ class PizzaModel(dict):
         decisions_output_storage = backwards_sweep(x, x0, shock_series.T)
         dists_storage = forwards_sweep(decisions_output_storage)
 
-        rdict = {oput: dists_storage[i] for i, oput in enumerate(dist_names)}
+        rdict = {oput: decisions_output_storage[i]
+                 for i, oput in enumerate(decisions_outputs)}
+        rdict.update({oput: dists_storage[1][i]
+                     for i, oput in enumerate(dist_names)})
 
         return rdict
 

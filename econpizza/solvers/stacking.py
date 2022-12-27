@@ -5,7 +5,6 @@ import os
 import jax
 import time
 import jax.numpy as jnp
-import scipy.sparse as ssp
 from grgrlib.jaxed import *
 from ..parser.build_functions import *
 from ..utilities.jacobian import get_stst_jacobian

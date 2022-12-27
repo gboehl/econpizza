@@ -3,7 +3,6 @@
 
 import jax
 import jax.numpy as jnp
-from scipy.stats import norm
 from .dists import stationary_distribution
 
 

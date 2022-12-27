@@ -5,6 +5,7 @@ import jax
 import time
 import jax.numpy as jnp
 from ..utilities.jacobian import get_stst_jacobian
+from ..parser.build_functions import get_derivatives
 
 
 def find_path_linear(model, shock=None, x0=None, horizon=300, verbose=True):
@@ -65,7 +66,9 @@ def find_path_linear(model, shock=None, x0=None, horizon=300, verbose=True):
     jacobian = model['jac']
 
     x0 -= stst
-    x = -jax.scipy.linalg.solve(jacobian, jacobian[:, :nvars] @ x0)
+    x = - \
+        jax.scipy.linalg.solve(
+            jacobian[nvars:, nvars:], jacobian[nvars:, :nvars] @ x0)
     x = jnp.hstack((x0, x)).reshape(-1, nvars) + stst
 
     if verbose:

@@ -59,9 +59,10 @@ class PizzaModel(dict):
         decisions_output_storage = backwards_sweep(x, x0, shock_series.T)
         dists_storage = forwards_sweep(decisions_output_storage)
 
+        # store this
         rdict = {oput: decisions_output_storage[i]
                  for i, oput in enumerate(decisions_outputs)}
-        rdict.update({oput: dists_storage[1][i]
+        rdict.update({oput: dists_storage[i]
                      for i, oput in enumerate(dist_names)})
 
         return rdict

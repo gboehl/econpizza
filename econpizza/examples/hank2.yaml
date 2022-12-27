@@ -11,7 +11,7 @@ definitions: |
     from jax.numpy import log, maximum
     from econpizza.utilities.grids import log_grid
     from econpizza.utilities.dists import expect_transition
-    from grgrlib.jaxed import jax_print
+    from econpizza.tools import jax_print
     k_grid = log_grid(amax=1., n=4)[::-1]
 
 variables: [ C, mc, Y, pi, div, p, N, Z, w, K, Q, R, Rn, Rstar, tax, G, Rb, Ra, piw, wealth, A, B, I, beta ]

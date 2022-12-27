@@ -10,7 +10,7 @@ functions_file: 'hank_labor_functions.py'
 # these are available during all three stages (decisions, distributions, equations)
 definitions: |
     from jax.numpy import log, maximum
-    from jax.experimental.host_callback import id_print as jax_print
+    from econpizza.tools import percentile, jax_print
 
 variables: [ Div, Y, Yprod, w, pi, Rn, Rs, R, Rstar, Tax, Z, beta, C, L, B, Top10C, Top10A ]
 parameters: [ eis, frisch, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_Z, vphi ]
@@ -53,19 +53,13 @@ decisions: # stage one
 # aggregate variables from 'variables' (including those with "Prime", "Lag",...) are included by default
 # from here on the objects are _sequences_ with shapes either (1, horizon) or (n1, n2, horizon). Last dimension is always the time dimension
 aux_equations: |
-    A = jnp.sum(dist*a, axis=(0,1)) # note that we are summing over the first two dimensions e and a, but not the time dimension (dimension 2)
-    NE = jnp.sum(dist*ne, axis=(0,1)) # also note that we are using jax.numpy (as jnp)
+    # note: summing over the first two dimensions e and a, but not the time dimension (dimension 2)
+    # `dist` here corresponds to the dist from the *previous* period.
+    aggr_a = jnp.sum(dist*a, axis=(0,1))
     aggr_c = jnp.sum(dist*c, axis=(0,1))
-
-    # calculate consumption share of top-10% cumsumers
-    c_flat = c.reshape(-1,c.shape[-1]) # consumption flattend for each t
-    dist_sorted_c = jnp.take_along_axis(dist.reshape(-1,c.shape[-1]), jnp.argsort(c_flat, axis=0), axis=0) # distribution sorted after consumption level, flattend for each t
-    top10c = jnp.where(jnp.cumsum(dist_sorted_c, axis=0) > .9, c_flat, 0.).sum(0)/c_flat.sum(axis=0) # must use `where` for jax. All sums must be taken over the non-time axis
-
-    # calculate wealth share of top-10% wealth holders
-    a_flat = a.reshape(-1,a.shape[-1]) # assets flattend for each t
-    dist_sorted_a = jnp.take_along_axis(dist.reshape(-1,a.shape[-1]), jnp.argsort(a_flat, axis=0), axis=0) # as above
-    top10a = jnp.where(jnp.cumsum(dist_sorted_a, axis=0) > .9, a_flat, 0.).sum(0)/a_flat.sum(axis=0)
+    # calculate consumption and wealth share of top-10% cumsumers
+    top10c = 1 - percentile(c, dist, .9)
+    top10a = 1 - percentile(a, dist, .9)
 
 equations: # final stage
     ~ C = aggr_c # definition
@@ -80,7 +74,7 @@ equations: # final stage
     ~ Rs = (Rstar*((pi/piSS)**phi_pi)*((Y/YLag)**phi_y))**(1-rho)*RsLag**rho # MP rule on shadow nominal rate
     ~ Rn = maximum(1, Rs) # ZLB
     ~ Tax = (R-1) * B # balanced budget
-    ~ B = A # bond market clearing
+    ~ B = aggr_a # bond market clearing
     ~ NE = L # labor market clearing
     ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # exogenous beta
     ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_rstar*exp(e_rstar) # exogenous rstar

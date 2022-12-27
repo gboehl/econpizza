@@ -93,9 +93,10 @@ The relative path to a functions-file, which may provide additional functions. I
     # these are available during all three stages (decisions, distributions, equations)
     definitions: |
         from jax.numpy import log, maximum
-        from jax.experimental.host_callback import id_print as jax_print
+        from econpizza.tools import percentile, jax_print
 
 General definitions and imports (as above). These are available during all three stages (decisions, distributions, equations).
+We will use the ``percentile`` function to get some distributional statistics. ``jax_print`` is a jax-able print function that can be used during ``call`` stages for debugging.
 
 .. code-block::
 
@@ -106,8 +107,10 @@ All the *aggregate* variables that are being tracked on a global level. If a var
 .. code-block::
 
     parameters: [ eis, frisch, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_Z ]
+    shocks: [ e_beta, e_rstar, e_z ]
 
-Define the model parameters, as above.
+Define the model parameters and shocks, as above.
+
 
 .. code-block::
 
@@ -150,20 +153,13 @@ The decisions block. Only relevant for heterogeneous agents models. It is import
 
     # stage three (optional): aux_equations
     aux_equations: |
-        A = jnp.sum(dist*a, axis=(0,1)) # note that we are summing over the first two dimensions e and a, but not the time dimension (dimension 2)
-        aggr_c = jnp.sum(dist*c, axis=(0,1))
+        # NOTE: summing over the first two dimensions e and a, but not the time dimension (dimension 2)
         # `dist` here corresponds to the dist from the *previous* period.
-
-
-        # calculate consumption share of top-10% cumsumers
-        c_flat = c.reshape(-1,c.shape[-1]) # consumption flattend for each t
-        dist_sorted_c = jnp.take_along_axis(dist.reshape(-1,c.shape[-1]), jnp.argsort(c_flat, axis=0), axis=0) # distribution sorted after consumption level, flattend for each t
-        top10c = jnp.where(jnp.cumsum(dist_sorted_c, axis=0) > .9, c_flat, 0.).sum(0)/c_flat.sum(axis=0) # must use `where` for jax. All sums must be taken over the non-time axis
-
-        # calculate wealth share of top-10% wealth holders
-        a_flat = a.reshape(-1,a.shape[-1]) # assets flattend for each t
-        dist_sorted_a = jnp.take_along_axis(dist.reshape(-1,a.shape[-1]), jnp.argsort(a_flat, axis=0), axis=0) # as above
-        top10a = jnp.where(jnp.cumsum(dist_sorted_a, axis=0) > .9, a_flat, 0.).sum(0)/a_flat.sum(axis=0)
+        aggr_a = jnp.sum(dist*a, axis=(0,1))
+        aggr_c = jnp.sum(dist*c, axis=(0,1))
+        # calculate consumption and wealth share of top-10% cumsumers
+        top10c = 1 - percentile(c, dist, .9)
+        top10a = 1 - percentile(a, dist, .9)
 
 Auxiliary equations. This again works exactly as for the representative agent model. These are executed before the ``equations`` block, and can be used for all sorts of definitions that you may not want to keep track of. For heterogeneous agents models, this is a good place to do aggregation. Auxiliary equations are also executed subsequently.
 
@@ -191,7 +187,7 @@ The distribution (``dist``) corresponds to the distribution **at the beginning o
 
         # clearings
         ~ C = Y # market clearing
-        ~ B = A # bond market clearing
+        ~ B = aggr_a # bond market clearing
         ~ w**frisch = n # labor market clearing
 
         # exogenous

@@ -16,6 +16,7 @@ functions_file: 'hank_functions.py'
 definitions: |
     from jax.numpy import log, maximum
     from econpizza.tools import percentile, jax_print
+    # jax_print can be used for debugging
 
 # these lists define the relevant models objects
 variables: [ Div, Y, Yprod, w, pi, Rn, Rs, R, Rstar, Tax, Z, beta, C, n, B, Top10C, Top10A ]
@@ -75,7 +76,7 @@ decisions:
 # from here on the objects are _sequences_ with shapes (..., horizon), i.e. the last dimension is always the time dimension
 aux_equations: |
     # NOTE: summing over the first two dimensions e and a, but not the time dimension (dimension 2)
-    # `dist` here corresponds to the dist from the *previous* period.
+    # `dist` here corresponds to the dist *at the beginning of the period*
     aggr_a = jnp.sum(dist*a, axis=(0,1))
     aggr_c = jnp.sum(dist*c, axis=(0,1))
     # calculate consumption and wealth share of top-10% cumsumers

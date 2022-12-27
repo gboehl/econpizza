@@ -8,7 +8,6 @@ from grgrlib.jaxed import newton_jax, jacfwd_and_val, amax
 from ..parser.build_functions import get_func_stst_raw
 
 
-# use a solver that can deal with ill-conditioned jacobians
 def solver(jval, fval):
     """A default solver to solve indetermined problems.
     """
@@ -16,8 +15,10 @@ def solver(jval, fval):
 
 
 def get_stst_dist_objs(model, res, maxit_backwards, maxit_forwards):
-    # TODO: loosing some time here
-    res_backw, res_forw = model['context']['func_stst_raw'](res['x'], True)
+    """Get the steady state distribution and decision outputs, which is an auxilliary output of the steady state function. Compile error messages if things go wrong.
+    """
+
+    res_backw, res_forw = res['aux']
     vfSS, decisions_output, exog_grid_vars, cnt_backwards = res_backw
     distSS, cnt_forwards = res_forw
 
@@ -33,10 +34,12 @@ def get_stst_dist_objs(model, res, maxit_backwards, maxit_forwards):
         mess += f'Maximum of {maxit_backwards} backwards calls reached. '
     if cnt_forwards == maxit_forwards:
         mess += f'Maximum of {maxit_forwards} forwards calls reached. '
+
     # TODO: this should loop over the objects in distSS/vfSS and store under the name of the distribution/decisions (i.e. 'D' or 'Va')
     model['steady_state']["distributions"] = distSS
     model['steady_state']['decisions'] = vfSS
     model['steady_state']['decisions_output'] = decisions_output
+
     return mess
 
 
@@ -117,13 +120,14 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
                                       exog_grid_vars_init, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
 
     # define jitted stst function that returns jacobian and func. value
-    func_stst = jacfwd_and_val(jax.jit(func_stst_raw))
+    func_stst = jax.jit(jacfwd_and_val(func_stst_raw, has_aux=True))
     # store functions
     model["context"]['func_stst_raw'] = func_stst_raw
     model["context"]['func_stst'] = func_stst
 
     # actual root finding
-    res = newton_jax(func_stst, jnp.array(list(model['init'].values())), None, maxit_newton, tol_newton, rtol=-1, sparse=False,
+    x_init = jnp.array(list(model['init'].values()))
+    res = newton_jax(func_stst, x_init, None, maxit_newton, tol_newton, rtol=-1, sparse=False,
                      func_returns_jac=True, solver=solver, verbose=verbose, **newton_kwargs)
 
     # exchange those values that are identified via stst_equations

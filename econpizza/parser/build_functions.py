@@ -4,6 +4,7 @@
 import jax
 import jax.numpy as jnp
 from grgrlib.jaxed import *
+from .het_agent_funcs import _backwards_sweep, _forwards_sweep, _final_step, _second_sweep, _stacked_func_dist
 
 
 def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, exog_grid_vars_init, tol_backw, maxit_backw, tol_forw, maxit_forw):
@@ -13,33 +14,31 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shoc
     zshock = jnp.zeros(len(shocks))
 
     def cond_func(cont):
-        (vf, _, _), vf_old, cnt = cont
+        (vf, _, _), (vf_old, cnt), _ = cont
         cond0 = jnp.abs(vf - vf_old).max() > tol_backw
         cond1 = cnt < maxit_backw
-        return cond0 & cond1
+        return jnp.logical_and(cond0, cond1)
 
-    def body_func_raw(cont, x, par):
-        (vf, _, _), _, cnt = cont
-        return func_backw(x, x, x, x, vf, zshock, par), vf, cnt + 1
+    def body_func(cont):
+        (vf, _, _), (_, cnt), (x, par) = cont
+        return func_backw(x, x, x, x, vf, zshock, par), (vf, cnt + 1), (x, par)
 
-    def func_backw_ext(x, par):
+    def find_stat_vf(x, par):
 
-        def body_func(cont): return body_func_raw(cont, x, par)
-
-        (vf, decisions_output, exog_grid_vars), _, cnt = jax.lax.while_loop(
-            cond_func, body_func, ((init_vf, decisions_output_init, exog_grid_vars_init), init_vf+1, 0))
+        (vf, decisions_output, exog_grid_vars), (_, cnt), _ = jax.lax.while_loop(
+            cond_func, body_func, ((init_vf, decisions_output_init, exog_grid_vars_init), (init_vf+1, 0), (x, par)))
 
         return vf, decisions_output, exog_grid_vars, cnt
 
-    def func_stst_raw(y, full_output=False):
+    def func_stst_raw(y):
 
         x, par = func_pre_stst(y)
         x = x[..., None]
 
         if not func_stst_dist:
-            return func_eqns(x, x, x, x, zshock, par)
+            return func_eqns(x, x, x, x, zshock, par), None
 
-        vf, decisions_output, exog_grid_vars, cnt_backw = func_backw_ext(
+        vf, decisions_output, exog_grid_vars, cnt_backw = find_stat_vf(
             x, par)
         dist, cnt_forw = func_stst_dist(decisions_output, tol_forw, maxit_forw)
 
@@ -47,10 +46,12 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shoc
         decisions_output_array = decisions_output[..., None]
         dist_array = dist[..., None]
 
-        if full_output:
-            return (vf, decisions_output, exog_grid_vars, cnt_backw), (dist, cnt_forw)
+        aux = (vf, decisions_output, exog_grid_vars,
+               cnt_backw), (dist, cnt_forw)
+        out = func_eqns(x, x, x, x, zshock, par,
+                        dist_array, decisions_output_array)
 
-        return func_eqns(x, x, x, x, zshock, par, dist_array, decisions_output_array)
+        return out, aux
 
     return func_stst_raw
 
@@ -60,67 +61,21 @@ def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, stst, vfSS, di
     """
 
     nshpe = (nvars, horizon-1)
+    # build partials of input functions
+    func_backw = jax.tree_util.Partial(func_backw, XSS=stst, pars=pars)
+    func_dist = jax.tree_util.Partial(func_dist)
 
-    def backwards_step(carry, i):
-
-        vf, X, shocks = carry
-        vf, decisions_output, exog_grid_vars = func_backw(
-            X[:, i], X[:, i+1], X[:, i+2], stst, vf, shocks[:, i], pars)
-
-        return (vf, X, shocks), decisions_output
-
-    def backwards_sweep(x, x0, shocks):
-
-        X = jnp.hstack((x0, x, stst)).reshape(horizon+1, -1).T
-
-        _, decisions_output_storage = jax.lax.scan(
-            backwards_step, (vfSS, X, shocks), jnp.arange(horizon-1), reverse=True)
-        decisions_output_storage = jnp.moveaxis(
-            decisions_output_storage, 0, -1)
-
-        return decisions_output_storage
-
-    def forwards_step(carry, i):
-
-        dist_old, decisions_output_storage = carry
-        dist = func_dist(dist_old, decisions_output_storage[..., i])
-
-        return (dist, decisions_output_storage), dist_old
-
-    def forwards_sweep(decisions_output_storage):
-
-        _, dists_storage = jax.lax.scan(
-            forwards_step, (distSS, decisions_output_storage), jnp.arange(horizon-1))
-        dists_storage = jnp.moveaxis(dists_storage, 0, -1)
-
-        return dists_storage
-
-    def final_step(x, dists_storage, decisions_output_storage, x0, shocks):
-
-        X = jnp.hstack((x0, x, stst)).reshape(horizon+1, -1).T
-        out = func_eqns(X[:, :-2].reshape(nshpe), X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(
-            nshpe), stst, shocks, pars, dists_storage, decisions_output_storage)
-
-        return out
-
-    def second_sweep(x, decisions_output_storage, x0, shocks):
-
-        # forwards step
-        dists_storage = forwards_sweep(decisions_output_storage)
-        # final step
-        out = final_step(x, dists_storage,
-                         decisions_output_storage, x0, shocks)
-
-        return out
-
-    def stacked_func_dist(x, x0, shocks):
-
-        # backwards step
-        decisions_output_storage = backwards_sweep(x, x0, shocks)
-        # combined step
-        out = second_sweep(x, decisions_output_storage, x0, shocks)
-
-        return out
+    # build partials of output functions
+    backwards_sweep = jax.tree_util.Partial(
+        _backwards_sweep, stst=stst, vfSS=vfSS, horizon=horizon, func_backw=func_backw)
+    forwards_sweep = jax.tree_util.Partial(
+        _forwards_sweep, distSS=distSS, horizon=horizon, func_dist=func_dist)
+    final_step = jax.tree_util.Partial(
+        _final_step, stst=stst, horizon=horizon, nshpe=nshpe, pars=pars, func_eqns=func_eqns)
+    second_sweep = jax.tree_util.Partial(
+        _second_sweep, forwards_sweep=forwards_sweep, final_step=final_step)
+    stacked_func_dist = jax.tree_util.Partial(
+        _stacked_func_dist, backwards_sweep=backwards_sweep, second_sweep=second_sweep)
 
     return stacked_func_dist, backwards_sweep, forwards_sweep, second_sweep
 

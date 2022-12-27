@@ -75,15 +75,13 @@ def find_path_stacking(
 
         # get transition function
         func_eqns = model['context']["func_eqns"]
-
-        def func_eqns_partial(xLag, x, xPrime, e_shock): return func_eqns(
-            xLag, x, xPrime, stst, e_shock, pars, [], [])
-        jav_func = jax.tree_util.Partial(
-            jacrev_and_val(func_eqns_partial, (0, 1, 2)))
+        jav_func_eqns = jacrev_and_val(func_eqns, (0, 1, 2))
+        jav_func_eqns_partial = jax.tree_util.Partial(
+            jav_func_eqns, XSS=stst, pars=pars, distributions=[], decisions_outputs=[])
 
         # actual newton iterations
         x_out, flag, mess = newton_for_banded_jac(
-            jav_func, nvars, horizon, x_init, shock_series, verbose, **newton_args)
+            jav_func_eqns_partial, nvars, horizon, x_init, shock_series, verbose, **newton_args)
 
     else:
         if model['new_model_horizon'] != horizon:

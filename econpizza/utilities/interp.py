@@ -1,5 +1,5 @@
-#!/bin/python
-# -*- coding: utf-8 -*-
+"""interpolation tools
+"""
 
 import jax
 import jax.numpy as jnp

@@ -1,61 +1,78 @@
-# hank.yaml ---
-#
 # Description: a small example HANK model
 # Author: Gregor Boehl [mail@gregorboehl.com]
 ---
 
 name: 'hank'
+# the functions_file contains longer definitions, e.g. of the value function 'hh'
+# the path is relative to the location of this yaml
 functions_file: 'hank_functions.py'
 
-# these are available during all three stages (decisions, distributions, equations)
+# there are three stages:
+# 1. (making) decisions
+# 2. (moving) distributions
+# 3. (solving for) aggregte equations
+#
+# the following definitions are available during all three stages:
 definitions: |
     from jax.numpy import log, maximum
     from econpizza.tools import percentile, jax_print
 
+# these lists define the relevant models objects
 variables: [ Div, Y, Yprod, w, pi, Rn, Rs, R, Rstar, Tax, Z, beta, C, n, B, Top10C, Top10A ]
 parameters: [ eis, frisch, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_Z ]
 shocks: [ e_beta, e_rstar, e_z ]
 
+# this defines all distribution objects (so far, only one distribution is supported)
 distributions:
-  dist: # the name of the first distribution
+  # the name of the first distribution
+  dist:
     # ordering matters. The ordering here is corresponds to the shape of the axis of the distribution
-    skills: # first dimension
+    # the naming of the dimensions (skills, a) is arbitrary
+    skills:
+      # first dimension
       type: exogenous
       grid_variables: [skills_grid, skills_stationary, skills_transition] # returns skills_grid, skills_stationary, skills_transition
       rho: 0.966
       sigma: 0.6
       n: 4
-    a: # second dimension
+    a:
+      # second dimension
       type: endogenous
       # endogenous variables require inputs from the decisions stage. This assumes that the decisions stage returns a variable named 'a'
-      grid_variables: a_grid # a variable named a_grid will be made available during decisions calls and distributions calls
+      # a variable named a_grid with the following properties will be made available during decisions calls and distributions calls
+      grid_variables: a_grid
       min: 0.0
       max: 50
       n: 40
 
-decisions: # stage one: iterating the decisions function backwards
-  inputs: [VaPrime] # additional to all aggregated variables defined in 'variables'
+# stage one: iterating the decisions function backwards
+decisions:
+  # define the multidimensional input "VaPrime", in addition to all aggregated variables (defined in 'variables')
+  inputs: [VaPrime]
   calls: |
-    # these are executed subsequently, starting with the last in time T and then iterating forwards
-    # Each call takes the previous outputs as given
+    # calls executed during the decisions stage
+    # these are executed subsequently (top-down)
+    # iteration starts with the last in time T and then iterating backwards
+    # each call takes the previous input (Va as VaPrime) as given
+    # these functions are defined in functions_file
     T = transfers(skills_stationary, Div, Tax, skills_grid)
     VaPrimeExp = skills_transition @ VaPrime
     Va, a, c = hh(VaPrimeExp, a_grid, skills_grid, w, n, T, R, beta, eis, frisch)
   # the 'outputs' values are stored for the following stages
-  # NOTE: each output must have the same shape as the distribution (4,40)
+  # NOTE: each output must have the same shape as the distribution (here: 4,40)
   outputs: [a,c]
 
-# stage two: iterating the distribution fowards
+# stage two: iterating the distribution forwards
 # This is done automatically using the information provided in 'distributions'
 # inputs are all grid_variables and, for endogenous distribution variables, the outputs from the decisions stage.
-# NOTE: for endogenous distributions, the output variables must be named appropiately, i.e. like the members of 'distributions' (e.g. 'a')
+# NOTE: for endogenous distributions, the output variables must be named appropiately, i.e. like the members of 'distributions' (e.g. here 'a')
 # outputs are the distribution(s) named as define in 'distributions' (e.g. here 'dist')
 
-# stage three (optional): aux_equations
+# intermediate stage (optional): aux_equations
 # these can contain misc definitions that are available during the final stage.
 # outputs from decisions, the grid variables, the distributions and
 # aggregate variables from 'variables' (including those with "Prime", "Lag",...) are included by default
-# from here on the objects are _sequences_ with shapes either (1, horizon) or (n1, n2, horizon). Last dimension is always the time dimension
+# from here on the objects are _sequences_ with shapes (..., horizon), i.e. the last dimension is always the time dimension
 aux_equations: |
     # NOTE: summing over the first two dimensions e and a, but not the time dimension (dimension 2)
     # `dist` here corresponds to the dist from the *previous* period.
@@ -65,7 +82,8 @@ aux_equations: |
     top10c = 1 - percentile(c, dist, .9)
     top10a = 1 - percentile(a, dist, .9)
 
-equations: # final stage
+# final/mail stage: aggregate equations
+equations:
     # definitions
     ~ C = aggr_c
     ~ Top10C = top10c
@@ -112,6 +130,7 @@ steady_state:
         pi: 1.0
         beta: 0.97
         B: 5.6
+        # definitions can be recursive: theta is defined above
         w: (theta-1)/theta
         n: w**frisch
 

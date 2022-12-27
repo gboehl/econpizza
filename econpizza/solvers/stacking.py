@@ -8,16 +8,15 @@ import jax.numpy as jnp
 import scipy.sparse as ssp
 from grgrlib.jaxed import *
 from ..parser.build_functions import *
-from ..utilities.jacobian import get_jacobian
+from ..utilities.jacobian import get_stst_jacobian
 from ..utilities.newton import newton_for_jvp, newton_for_banded_jac
 
 
 def find_path_stacking(
     model,
-    x0=None,
     shock=None,
+    x0=None,
     horizon=300,
-    endpoint=None,
     verbose=True,
     raise_errors=True,
     **newton_args
@@ -34,8 +33,6 @@ def find_path_stacking(
         shock in period 0 as in `(shock_name_as_str, shock_size)`
     horizon : int, optional
         number of periods until the system is assumed to be back in the steady state. A good idea to set this corresponding to the respective problem. A too large value may be computationally expensive. A too small value may generate inaccurate results
-    endpoint : array, optional
-        the final state at `horizon`. Defaults to the steay state if `None`
     verbose : bool, optional
         degree of verbosity. 0/`False` is silent
     raise_errors : bool, optional
@@ -60,12 +57,9 @@ def find_path_stacking(
     shocks = model.get("shocks") or ()
 
     # get initial guess
-    x_stst = jnp.ones((horizon + 1, nvars)) * stst
     x0 = jnp.array(list(x0)) if x0 is not None else stst
+    x_stst = jnp.ones((horizon + 1, nvars)) * stst
     x_init = x_stst.at[0].set(x0)
-
-    # set terminal condition
-    xT = endpoint if endpoint is not None else stst
 
     # deal with shocks if any
     zero_shocks = jnp.zeros((horizon-1, len(shocks)))
@@ -99,13 +93,13 @@ def find_path_stacking(
                 model, nvars, pars, stst, x_stst, zero_shocks.T, horizon, verbose)
 
             # accumulate steady stat jacobian
-            get_jacobian(model, derivatives, horizon, nvars, verbose)
+            get_stst_jacobian(model, derivatives, horizon, nvars, verbose)
             model['new_model_horizon'] = horizon
 
         # get jvp function and steady state jacobian
         jvp_partial = jax.tree_util.Partial(
-            model['jvp'], x0=x0, xT=xT, shocks=shock_series.T)
-        jacobian = model['jac']
+            model['jvp'], x0=x0, shocks=shock_series.T)
+        jacobian = model['jac_factorized']
 
         # actual newton iterations
         x, flag, mess = newton_for_jvp(

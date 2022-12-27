@@ -79,13 +79,13 @@ def test_hank(create=False):
 
     mod_dict = ep.parse(example_hank)
     mod = ep.load(mod_dict)
-    _ = mod.solve_stst(tol=1e-4)
+    _ = mod.solve_stst(tol=1e-8)
 
     x0 = mod['stst'].copy()
     x0['beta'] *= 1.01  # setting a shock on the discount factor
 
-    x, flag = mod.find_path(x0.values(), horizon=10)
-    x_lin, _ = mod.find_path_linear(x0.values(), horizon=10)
+    x, flag = mod.find_path(x0=x0.values())
+    x_lin, _ = mod.find_path_linear(x0=x0.values())
     het_vars = mod.get_distributions(x)
     dist = het_vars['dist']
 
@@ -113,12 +113,11 @@ def test_hank_labor(create=False):
 
     mod_dict = ep.parse(example_hank_labor)
     mod = ep.load(mod_dict)
-    _ = mod.solve_stst(tol=1e-6)
+    _ = mod.solve_stst(tol=1e-8)
 
-    x0 = mod['stst'].copy()
-    x0['beta'] *= 1.01  # setting a shock on the discount factor
+    shocks = ('e_beta', .01)
 
-    x, flag = mod.find_path(x0.values(), horizon=10)
+    x, flag = mod.find_path(shocks)
 
     path = os.path.join(filepath, "test_storage", "hank_labor.npy")
 
@@ -141,7 +140,7 @@ def test_hank2(create=False):
     x0 = mod['stst'].copy()
     x0['beta'] *= 1.01  # setting a shock on the discount factor
 
-    x, flag = mod.find_path(x0.values(), horizon=10)
+    x, flag = mod.find_path(x0=x0.values(), horizon=10)
 
     path = os.path.join(filepath, "test_storage", "hank2.npy")
 

@@ -1,38 +1,8 @@
-#!/bin/python
-# -*- coding: utf-8 -*-
+"""Tools for dealing with distributions
+"""
 
 import jax
 import jax.numpy as jnp
-
-
-def tmat_from_exog(probs, D):
-
-    nZ, nX = D.shape
-    tmat = jnp.zeros((nX*nZ, nX*nZ))
-
-    i = jnp.arange(nZ)*nX
-    xi = jnp.arange(nX)[:, None]
-    zi = jnp.arange(nZ)[:, None, None]
-    tmat = tmat.at[xi+zi*nX, xi +
-                   i].set(probs.broadcast_in_dim((nZ, nX, nZ), (0, 2)))
-
-    return tmat
-
-
-def tmat_from_endo(x_i, probs):
-
-    nZ, nX = x_i.shape
-    tmat = jnp.zeros((nX*nZ, nX*nZ))
-
-    ix = jnp.arange(nX*nZ)
-    j = jnp.arange(nZ).repeat(nX)*nX
-    i = x_i.ravel()
-    pi = probs.ravel()
-
-    tmat = tmat.at[i+j, ix].add(pi)
-    tmat = tmat.at[i+1+j, ix].add(1-pi)
-
-    return tmat
 
 
 def expect_transition(Pi, X):

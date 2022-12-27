@@ -16,6 +16,7 @@ definitions: |
 
 variables: [ C, mc, Y, pi, div, p, N, Z, w, K, Q, R, Rn, Rstar, tax, G, Rb, Ra, piw, wealth, A, B, I, beta ]
 parameters: [ eis, frisch, psi, psiw, delta, Bg, chi0, chi2, phiss, omega, phi_pi, phi_y, rho, rho_beta, rho_Rstar, rho_G, rho_Z, thetaw, alpha, theta, vphi, chi1 ]
+shocks: [ e_beta ]
 
 distributions:
   dist: # the name of the first distribution
@@ -96,7 +97,7 @@ equations: # main stage
   ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_Rstar # exogenous Rstar
   ~ G = GSS*(GLag/GSS)**rho_G
   ~ Z = ZSS*(ZLag/ZSS)**rho_Z
-  ~ beta = betaSS*(betaLag/betaSS)**rho_beta
+  ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta)
 
 steady_state:
     fixed_values:

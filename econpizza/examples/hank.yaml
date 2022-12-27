@@ -14,6 +14,7 @@ definitions: |
 
 variables: [ Div, Y, Yprod, w, pi, Rn, Rs, R, Rstar, Tax, Z, beta, C, n, B, Top10C, Top10A ]
 parameters: [ eis, frisch, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_Z ]
+shocks: [ e_beta, e_rstar, e_z ]
 
 distributions:
   dist: # the name of the first distribution
@@ -94,9 +95,9 @@ equations: # final stage
     ~ w**frisch = n # labor market clearing
 
     # exogenous
-    ~ beta = betaSS*(betaLag/betaSS)**rho_beta # exogenous beta
-    ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_rstar # exogenous rstar
-    ~ Z = ZSS*(ZLag/ZSS)**rho_Z # exogenous technology
+    ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # exogenous beta
+    ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_rstar*exp(e_rstar) # exogenous rstar
+    ~ Z = ZSS*(ZLag/ZSS)**rho_Z*exp(e_z) # exogenous technology
 
 steady_state:
     fixed_values:

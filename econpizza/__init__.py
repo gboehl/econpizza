@@ -24,7 +24,7 @@ class PizzaModel(dict):
         super(PizzaModel, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
-    def get_distributions(self, xst):
+    def get_distributions(self, xst, shock=None):
         """Get all disaggregated variables for a given trajectory of aggregate variables.
 
         Parameters
@@ -41,15 +41,21 @@ class PizzaModel(dict):
             a dictionary of the distributions
         """
 
+        shocks = self.get("shocks") or ()
         dist_names = list(self['distributions'].keys())
         x = xst[1:-1].flatten()
         x0 = xst[0]
-        xT = xst[-1]
+
+        # deal with shocks if any
+        shock_series = jnp.zeros((len(xst)-2, len(shocks)))
+        if shock is not None:
+            shock_series = shock_series.at[0,
+                                           shocks.index(shock[0])].set(shock[1])
 
         # get functions and execute
         backwards_sweep = self['context']['backwards_sweep']
         forwards_sweep = self['context']['forwards_sweep']
-        decisions_output_storage = backwards_sweep(x, x0, xT)
+        decisions_output_storage = backwards_sweep(x, x0, shock_series.T)
         dists_storage = forwards_sweep(decisions_output_storage)
 
         rdict = {oput: dists_storage[i] for i, oput in enumerate(dist_names)}

@@ -63,18 +63,18 @@ def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, stst, vfSS, di
 
     def backwards_step(carry, i):
 
-        vf, X = carry
+        vf, X, shocks = carry
         vf, decisions_output, exog_grid_vars = func_backw(
-            X[:, i], X[:, i+1], X[:, i+2], stst, vf, zshock, pars)
+            X[:, i], X[:, i+1], X[:, i+2], stst, vf, shocks[:, i], pars)
 
-        return (vf, X), decisions_output
+        return (vf, X, shocks), decisions_output
 
-    def backwards_sweep(x, x0, xT):
+    def backwards_sweep(x, x0, xT, shocks):
 
         X = jnp.hstack((x0, x, xT)).reshape(horizon+1, -1).T
 
         _, decisions_output_storage = jax.lax.scan(
-            backwards_step, (vfSS, X), jnp.arange(horizon-1), reverse=True)
+            backwards_step, (vfSS, X, shocks), jnp.arange(horizon-1), reverse=True)
         decisions_output_storage = jnp.moveaxis(
             decisions_output_storage, 0, -1)
 
@@ -95,36 +95,37 @@ def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, stst, vfSS, di
 
         return dists_storage
 
-    def final_step(x, dists_storage, decisions_output_storage, x0, xT):
+    def final_step(x, dists_storage, decisions_output_storage, x0, xT, shocks):
 
         X = jnp.hstack((x0, x, xT)).reshape(horizon+1, -1).T
         out = func_eqns(X[:, :-2].reshape(nshpe), X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(
-            nshpe), stst, zshock, pars, dists_storage, decisions_output_storage)
+            nshpe), stst, shocks, pars, dists_storage, decisions_output_storage)
 
         return out
 
-    def second_sweep(x, decisions_output_storage, x0, xT):
+    def second_sweep(x, decisions_output_storage, x0, xT, shocks):
 
         # forwards step
         dists_storage = forwards_sweep(decisions_output_storage)
         # final step
-        out = final_step(x, dists_storage, decisions_output_storage, x0, xT)
+        out = final_step(x, dists_storage,
+                         decisions_output_storage, x0, xT, shocks)
 
         return out
 
-    def stacked_func_dist(x, x0, xT, full_output=False):
+    def stacked_func_dist(x, x0, xT, shocks):
 
         # backwards step
-        decisions_output_storage = backwards_sweep(x, x0, xT)
+        decisions_output_storage = backwards_sweep(x, x0, xT, shocks)
         # combined step
-        out = second_sweep(x, decisions_output_storage, x0, xT)
+        out = second_sweep(x, decisions_output_storage, x0, xT, shocks)
 
         return out
 
     return stacked_func_dist, backwards_sweep, forwards_sweep, second_sweep
 
 
-def get_derivatives(model, nvars, pars, stst, x_stst, zshock, horizon, verbose):
+def get_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, verbose):
 
     st = time.time()
 
@@ -141,7 +142,7 @@ def get_derivatives(model, nvars, pars, stst, x_stst, zshock, horizon, verbose):
 
     # get actual functions
     func_raw, backwards_sweep, forwards_sweep, second_sweep = get_stacked_func_dist(
-        pars, func_backw, func_dist, func_eqns, stst, vfSS, distSS[..., 0], zshock, horizon, nvars)
+        pars, func_backw, func_dist, func_eqns, stst, vfSS, distSS[..., 0], zshocks[:, 0], horizon, nvars)
 
     # basis for steady state jacobian construction
     basis = jnp.zeros((nvars*(horizon-1), nvars))
@@ -149,22 +150,22 @@ def get_derivatives(model, nvars, pars, stst, x_stst, zshock, horizon, verbose):
 
     # get steady state jacobians for dist transition
     doSS, do2x = jvp_vmap(backwards_sweep)(
-        (x_stst[1:-1].flatten(), stst, stst), (basis,))
+        (x_stst[1:-1].flatten(), stst, stst, zshocks), (basis,))
     _, (f2do,) = vjp_vmap(second_sweep, argnums=1)(
-        (x_stst[1:-1].flatten(), doSS, stst, stst), basis.T)
+        (x_stst[1:-1].flatten(), doSS, stst, stst, zshocks), basis.T)
     f2do = jnp.moveaxis(f2do, -1, 1)
 
     # get steady state jacobians for direct effects x on f
     jacrev_func_eqns = jax.jacrev(func_eqns, argnums=(0, 1, 2))
     f2X = jacrev_func_eqns(stst[:, None], stst[:, None], stst[:, None],
-                           stst, zshock, pars, distSS, decisions_outputSS)
+                           stst, zshocks[:, 0], pars, distSS, decisions_outputSS)
 
     # store everything
     model['context']['func_raw'] = func_raw
     model['context']['backwards_sweep'] = backwards_sweep
     model['context']['forwards_sweep'] = forwards_sweep
-    model['jvp'] = lambda primals, tangens, x0, xT: jax.jvp(
-        func_raw, (primals, x0, xT), (tangens, jnp.zeros(nvars), jnp.zeros(nvars)))
+    model['jvp'] = lambda primals, tangens, x0, xT, shocks: jax.jvp(
+        func_raw, (primals, x0, xT, shocks), (tangens, jnp.zeros(nvars), jnp.zeros(nvars), zshocks))
 
     if verbose:
         duration = time.time() - st

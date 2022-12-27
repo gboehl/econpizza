@@ -68,18 +68,15 @@ def find_path_stacking(
     xT = endpoint if endpoint is not None else stst
 
     # deal with shocks if any
-    zero_shock = jnp.zeros(len(shocks))
-    shock_series = jnp.zeros((horizon-1, len(shocks)))
+    zero_shocks = jnp.zeros((horizon-1, len(shocks)))
     if shock is not None:
         try:
-            shock_series = shock_series.at[0,
-                                           shocks.index(shock[0])].set(shock[1])
+            shock_series = zero_shocks.at[0,
+                                          shocks.index(shock[0])].set(shock[1])
         except ValueError:
-            raise ValueError(f'Shock "{shock[0]}" is not defined.')
-
-        if model.get('distributions'):
-            raise NotImplementedError(
-                "Shocks for heterogenous agent models are not yet implemented. Use adjusted steady state values as initial steady state 'x0' instead.")
+            raise ValueError(f"Shock '{shock[0]}' is not defined.")
+    else:
+        shock_series = zero_shocks
 
     if not model.get('distributions'):
 
@@ -99,20 +96,20 @@ def find_path_stacking(
         if model['new_model_horizon'] != horizon:
             # get derivatives via AD and compile functions
             derivatives = get_derivatives(
-                model, nvars, pars, stst, x_stst, zero_shock, horizon, verbose)
+                model, nvars, pars, stst, x_stst, zero_shocks.T, horizon, verbose)
 
             # accumulate steady stat jacobian
             get_jacobian(model, derivatives, horizon, nvars, verbose)
             model['new_model_horizon'] = horizon
 
         # get jvp function and steady state jacobian
-        jvp_partial = jax.tree_util.Partial(model['jvp'], x0=x0, xT=xT)
+        jvp_partial = jax.tree_util.Partial(
+            model['jvp'], x0=x0, xT=xT, shocks=shock_series.T)
         jacobian = model['jac']
 
         # actual newton iterations
         x, flag, mess = newton_for_jvp(
-            x_init, jvp_partial, jacobian, verbose, **newton_args)
-
+            jvp_partial, jacobian, x_init, verbose, **newton_args)
         x_out = x_init.at[1:-1].set(x.reshape((horizon - 1, nvars)))
 
     # some informative print messages

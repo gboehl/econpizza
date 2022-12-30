@@ -41,7 +41,7 @@ equations:
 
       # firms
     ~ cap_util_costs = par_cap_util0*(cap_util - 1) + par_cap_util1/(1-par_cap_util1)/2*(cap_util - 1)**2
-    ~ MPK = par_cap_util0 + par_cap_util1/(1-par_cap_util1)*(cap_util - 1)
+    ~ (1-par_cap_util1)*(MPK - par_cap_util0) = par_cap_util1*(cap_util - 1)
     ~ MPK = alpha*mc*y/(cap_util*kLag)
     ~ q*Rk/piPrime = MPKPrime*cap_utilPrime + (1-delta)*qPrime - cap_util_costs
     ~ w = (1-alpha)*mc*y/n
@@ -53,8 +53,7 @@ equations:
     ~ R = max(1, Rn)
 
       # exogenous
-    #~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta
-    ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta)
+    ~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta
 
 steady_state:
     fixed_values:
@@ -75,8 +74,12 @@ steady_state:
 
         # steady state
         beta: 0.995
+        hhdf: beta
         pi: 1.02^.25
-        n: 0.33
+        cap_util: 1.
+        R: pi/beta
+        Rn: R
+        n_u: 0.33
         mc: (theta-1)/theta
         q: 1.
 

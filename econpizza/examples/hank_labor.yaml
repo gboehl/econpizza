@@ -1,8 +1,8 @@
-# Description: a small example HANK model with labor supply decision
 # Author: Gregor Boehl [mail@gregorboehl.com]
 ---
 
 name: 'hank_labor'
+description: 'A small example HANK model with endogenous labor supply'
 functions_file: 'hank_labor_functions.py'
 # NOTE: the file hank.yaml contains a detailed explanation of the objects defined here
 

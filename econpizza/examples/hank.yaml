@@ -1,8 +1,8 @@
-# Description: a small example HANK model
 # Author: Gregor Boehl [mail@gregorboehl.com]
 ---
 
 name: 'hank'
+description: 'A small example HANK model with one asset'
 # the functions_file contains longer definitions, e.g. of the value function 'hh'
 # the path is relative to the location of this yaml
 functions_file: 'hank_functions.py'

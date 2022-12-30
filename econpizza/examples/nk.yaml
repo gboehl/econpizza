@@ -1,10 +1,8 @@
-# nk.yaml
-#
-# Description: a small example NK model
 # Author: Gregor Boehl [mail@gregorboehl.com]
 ---
 
 name: "nk"
+description: "A small example NK model"
 variables: [ y, c, pi, r, rn, beta, w ]
 parameters: [ theta, psi, phi_pi, phi_y, rho, h, eta, rho_beta, chi ]
 shocks: [ e_beta ]

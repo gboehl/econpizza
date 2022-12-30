@@ -1,11 +1,9 @@
-# med_scale_nk.yaml ---
-#
-# Description: a medium scale NK model with capital, capital adjustement costs, capital utilization costs, and habits
 # The model is inspired by "A Baseline DSGE Model" (Fernández-Villaverde and Rubio-Ramírez, manuscript) and by "The zero lower bound, the dual mandate, and unconventional dynamics" (Gavin, Keen, Richter, Throckmorton, 2015 JEDC)
 # Author: Gregor Boehl [mail@gregorboehl.com]
 ---
 
 name: 'nk_capital'
+description: 'A medium scale NK model with capital, capital adjustement costs, capital utilization costs, and habits'
 variables: [y, c, pi, R, Rn, Rk, beta, w, q, mc, k, i, n, hhdf, g, b, qb, t, ds, bprof, dd, MPK, cap_util, cap_util_costs, y_prod]
 parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, rho_beta, chi, par_cap_util1 ]
 shocks: [e_beta]

@@ -1,8 +1,8 @@
-# Description: a medium-scale HANK model with portfolio choice
 # Author: Gregor Boehl [mail@gregorboehl.com]
 ---
 
 name: 'hank2'
+description: 'A HANK model with two assets and portfolio choice'
 functions_file: 'hank2_functions.py'
 # NOTE: the file hank.yaml contains a detailed explanation of the objects defined here
 

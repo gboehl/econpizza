@@ -1,7 +1,7 @@
 econpizza
 =========
 
-**Solve nonlinear heterogeneous agent models using machine learning techniques**
+**Solve nonlinear heterogeneous agent models using automatic differentiation**
 
 .. image:: https://img.shields.io/badge/GitHub-gboehl%2Feconpizza-blue.svg?style=flat
     :target: https://github.com/gboehl/econpizza
@@ -12,17 +12,20 @@ econpizza
 .. image:: https://badge.fury.io/py/econpizza.svg
     :target: https://badge.fury.io/py/econpizza
 
-Econpizza is a framework to solve and simulate nonlinear perfect foresight models, with or without heterogeneous agents.
+Econpizza is a framework to solve and simulate *fully nonlinear* perfect foresight models, with or without heterogeneous agents.
 A parser allows to express economic models in a simple, high-level fashion as yaml-files.
 Generic and robust routines for steady state search are provided.
 
-The baseline solver is a Newton-based stacking method in the spirit of Boucekkine (1995), Juillard (1996) and others. Hence, the method is similar to the solver in dynare, but faster and more robust due to the use of automatic differentiation and sparse jacobians. Even perfect-foresight IRFs for large-scale nonlinear models with, e.g., occassionally binding constraints can be computed in less than a second.
+The baseline method for representative agent models builds on the shooting methods of, e.g., Boucekkine (1995) and Juillard (1996). It is faster and more reliable than the nonlinear solver in dynare due to the use of a Newton method in combination with automatic differentiation and efficient jacobian decompositions. Nonlinear perfect-foresight transition dynamics can - even for large-scale nonlinear models with several occassionally binding constraints - be computed in less than a second.
 
-The package makes heavy use of `automatic differentiation <https://en.wikipedia.org/wiki/Automatic_differentiation>`_ via `JAX <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_.
+The package can solve nonlinear models with heterogeneous agents, such as HANK models with portfolio choice. Steady state and nonlinear impulse responses (including, e.g., the ELB) can typically be found within a few seconds.
+The approach to deal with heterogeneity extends the `Sequence-Space Jacobian <https://github.com/shade-econ/sequence-jacobian>`_ method (`Auclert et al., 2022, ECMA <https://doi.org/10.3982/ECTA17434>`_) to fully nonlinear models by iteratively using `jacobian-vector producs <https://jax.readthedocs.io/en/latest/notebooks/autodiff_cookbook.html#how-it-s-made-two-foundational-autodiff-functions>`_ to construct the inverse jacobian during each Newton iteration. This not only allows to study the dynamics of aggregate variables, but also the complete nonlinear transition dynamics of the distribution of assets across agents.
 
-Econpizza can solve nonlinear models with heterogeneous agents, including HANK models. The approach to deal with heterogeneity is inspired by the `Sequence-Space Jacobian <https://github.com/shade-econ/sequence-jacobian>`_ method (`Auclert et al., 2022, ECMA <https://doi.org/10.3982/ECTA17434>`_). Steady state and nonlinear impulse responses (including, e.g., the ELB) can typically be found within a few seconds.
+The package builds heavily on `automatic differentiation <https://en.wikipedia.org/wiki/Automatic_differentiation>`_ via `JAX <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_.
 
-The philosophy behind this package is to consequently separate **model specification** (via a ``yaml`` file), a high-level interface for **model simulation and analysis**, and the low-level routines for **model solution** (which is what happens under the hood).
+A central philosophy of this package is to consequently separate the low-level routines for *model solution* (which is what happens under the hood) from
+*model specification* (via a ``yaml`` file) and the
+high-level interface for *model simulation and analysis* (what the user does with the model).
 
 A `model parser <https://econpizza.readthedocs.io/en/latest/quickstart.html#the-yaml-file>`_ allows for the simple and generic specification of models (with or without heterogeneity) in ``yaml`` format.
 

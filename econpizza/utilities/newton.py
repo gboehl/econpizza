@@ -58,7 +58,7 @@ def check_status(err, cnt, maxit, tol):
         return True, (True, "The solution converged.")
 
     if jnp.isnan(err):
-        return True, (False, "Function returns 'NaN's")
+        return True, (False, "Function returns 'NaN's.")
 
     if cnt > maxit:
         return True, (False, f"Maximum number of {maxit} iterations reached.")
@@ -89,7 +89,7 @@ def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=200, nst
             break
 
     # compile error/report message
-    if not success:
+    if not success and not jnp.isnan(err):
         mess += f" Max. error is {err:1.2e}."
 
     return x, not success, mess

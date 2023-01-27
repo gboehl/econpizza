@@ -6,29 +6,44 @@ import jax.numpy as jnp
 from grgrlib.jaxed import *
 
 
+def callback_func(cnt, err, dampening=None, ltime=None, verbose=True):
+    mess = f'    Iteration {cnt:3d} | max error {err:.2e}'
+    if dampening is not None:
+        mess += f' | dampening {dampening:1.3f}'
+    if ltime is not None:
+        mess += f' | lapsed {ltime:3.4f}s'
+    if verbose:
+        print(mess)
+
+
 def iteration_step(dummy, carry):
-    (y, dampening), (x, f, jvp_func, jacobian) = carry
+    (y, dampening), (x, f, jvp_func, jacobian, factor) = carry
     _, v = jvp_func(x, y)
-    y_norm, v_norm = amax(y), amax(v)
-    dampening = jnp.minimum(dampening, 2*y_norm/v_norm)
-    y += dampening*jax.scipy.linalg.lu_solve(jacobian, f-v)
-    return (y, dampening), (x, f, jvp_func, jacobian)
+    v = jax.scipy.linalg.lu_solve(jacobian, v)
+    dampening = jnp.minimum(dampening, factor*(y.T@y)/(v.T@y))
+    y += dampening*(f-v)
+    return (y, dampening), (x, f, jvp_func, jacobian, factor)
 
 
 def while_body_jvp(carry):
-    (x, _, _, cnt), (jvp_func, jacobian, nloops, nsteps, tol) = carry
+    (x, _, _, cnt), (jvp_func, jacobian, maxit,
+                     nsteps, tol, factor, verbose) = carry
     # first iteration
     f, _ = jvp_func(x, jnp.zeros_like(x))
-    y = jax.scipy.linalg.lu_solve(jacobian, f)
+    f = jax.scipy.linalg.lu_solve(jacobian, f)
     # other iterations
     (y, dampening), _ = jax.lax.fori_loop(0, nsteps,
-                                          iteration_step, ((y, 1.), (x, f, jvp_func, jacobian)))
-    return (x-y, amax(f), dampening, cnt+1), (jvp_func, jacobian, nloops, nsteps, tol)
+                                          iteration_step, ((f, 1.), (x, f, jvp_func, jacobian, factor)))
+    return (x-y, amax(f), dampening, cnt+1), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)
 
 
 def while_cond_jvp(carry):
-    (_, err, _, cnt), (_, _, nloops, _, tol) = carry
-    return jnp.logical_and(err > tol, cnt < nloops)
+    (_, err, dampening, cnt), (_, _, maxit, nsteps, tol, _, verbose) = carry
+    cond = jnp.logical_and(err > tol, cnt*(nsteps+1) < maxit)
+    verbose = jnp.logical_and(cond, verbose)
+    jax.debug.callback(callback_func, cnt*(nsteps+1),
+                       err, dampening, verbose=verbose)
+    return cond
 
 
 def sweep_banded_down(val, i):
@@ -56,37 +71,26 @@ def check_status(err, cnt, maxit, tol):
     # exit causes
     if err < tol:
         return True, (True, "The solution converged.")
-
     if jnp.isnan(err):
         return True, (False, "Function returns 'NaN's.")
-
     if cnt > maxit:
         return True, (False, f"Maximum number of {maxit} iterations reached.")
 
     return False, (False, "")
 
 
-def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=200, nsteps=2, nloops=5):
+def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=200, nsteps=2, factor=1.5):
 
-    st = time.time()
+    start_time = time.time()
     x = x_init[1:-1].flatten()
-    cnt = 0
 
-    while True:
+    (x, err, dampening, cnt_loop), _ = jax.lax.while_loop(while_cond_jvp, while_body_jvp,
+                                                          ((x, 1., 0., 0), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)))
 
-        (x, err, dampening, cnt_loop), _ = jax.lax.while_loop(while_cond_jvp,
-                                                              while_body_jvp, ((x, 1., 0., 0), (jvp_func, jacobian, nloops, nsteps, tol)))
-
-        cnt += cnt_loop*nsteps
-        ltime = time.time() - st
-
-        if verbose:
-            info_str = f'    Iteration {cnt:3d} | max error {err:.2e} | dampening {dampening:1.3f} | lapsed {ltime:3.4f}s'
-            print(info_str)
-
-        do_break, (success, mess) = check_status(err, cnt, maxit, tol)
-        if do_break:
-            break
+    ltime = time.time() - start_time
+    cnt = cnt_loop*(nsteps+1)
+    callback_func(cnt, err, dampening, ltime, verbose)
+    _, (success, mess) = check_status(err, cnt, maxit, tol)
 
     # compile error/report message
     if not success and not jnp.isnan(err):

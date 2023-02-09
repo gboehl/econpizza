@@ -152,3 +152,26 @@ def test_hank2(create=False):
 
         assert flag == 0
         assert jnp.allclose(x, test_x)
+
+
+def test_solid(create=False):
+
+    mod_dict = ep.parse(example_hank)
+    mod = ep.load(mod_dict)
+    _ = mod.solve_stst(tol=1e-8)
+
+    shocks = ('e_beta', .01)
+
+    x, flag = mod.find_path(shocks, use_solid_solver=True,
+                            horizon=20, chunk_size=90)
+
+    path = os.path.join(filepath, "test_storage", "hank_solid.npy")
+
+    if create:
+        jnp.save(path, x)
+        print(f'Test file updated at {path}')
+    else:
+        test_x = jnp.load(path)
+
+        assert flag == 0
+        assert jnp.allclose(x, test_x)

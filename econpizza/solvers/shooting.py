@@ -5,7 +5,7 @@ import sys
 import time
 import jax
 import jax.numpy as jnp
-from grgrlib.jaxed import newton_jax_jit, newton_jax_jittable
+from grgrlib.jaxed import newton_jax_jit, jacfwd_and_val
 
 
 msgs = (
@@ -112,10 +112,13 @@ def find_path_shooting(
         """Solves for one period.
         """
 
-        res = newton_jax_jittable(lambda x: func(
-            XLag, x, XPrime, stst, shock, pars), XLastGuess)
+        # partial_func = jax.tree_util.Partial(func, XLag=XLag, XPrime=XPrime, XSS=stst, shocks=shock, pars=pars)
+        def partial_func(x): return func(XLag, x, XPrime, stst, shock, pars)
+        jav = jacfwd_and_val(partial_func)
+        partial_jav = jax.tree_util.Partial(jav)
+        res = newton_jax_jit(partial_jav, XLastGuess, verbose=False)
 
-        return res[0], res[2], res[3]
+        return res[0], res[3]
 
     try:
         for i in range(T):
@@ -138,14 +141,15 @@ def find_path_shooting(
                     else:
                         tshock.at[:].set(0)
 
-                    x_new, flag_root, flag_ftol = solve_current(
+                    x_new, flag_ftol = solve_current(
                         pars, tshock, x[t], x[t + 1], x[t + 2])
+                    flag_ftol = ~flag_ftol
 
                     x = x.at[t + 1].set(x_new)
 
-                    flag_loc = flag_loc.at[0].set(flag_loc[0] or not flag_root)
+                    flag_loc = flag_loc.at[0].set(flag_loc[0])
                     flag_loc = flag_loc.at[1].set(
-                        flag_loc[2] or (not flag_ftol and flag_root))
+                        flag_loc[2] or not flag_ftol)
 
                 flag = flag.at[2].set(flag[2] or jnp.any(jnp.isnan(x)))
                 flag = flag.at[3].set(flag[3] or jnp.any(jnp.isinf(x)))

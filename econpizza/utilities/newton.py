@@ -2,18 +2,9 @@
 """
 
 import jax
+import time
 import jax.numpy as jnp
-from grgrlib.jaxed import *
-
-
-def callback_func(cnt, err, dampening=None, ltime=None, verbose=True):
-    mess = f'    Iteration {cnt:3d} | max error {err:.2e}'
-    if dampening is not None:
-        mess += f' | dampening {dampening:1.3f}'
-    if ltime is not None:
-        mess += f' | lapsed {ltime:3.4f}s'
-    if verbose:
-        print(mess)
+from grgrlib.jaxed import callback_func, amax
 
 
 def iteration_step(dummy, carry):
@@ -70,13 +61,16 @@ def check_status(err, cnt, maxit, tol):
 
     # exit causes
     if err < tol:
-        return True, (True, "The solution converged.")
-    if jnp.isnan(err):
-        return True, (False, "Function returns 'NaN's.")
-    if cnt > maxit:
-        return True, (False, f"Maximum number of {maxit} iterations reached.")
+        r = True, (True, "The solution converged.")
+    elif jnp.isnan(err):
+        r = True, (False, "Function returns 'NaN's.")
+    elif cnt > maxit:
+        r = True, (False, f"Maximum number of {maxit} iterations reached.")
+    else:
+        r = False, (False, "")
+    return r
 
-    return False, (False, "")
+    # return False, (False, "")
 
 
 def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=200, nsteps=2, factor=1.5):

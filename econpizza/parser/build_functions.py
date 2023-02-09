@@ -80,25 +80,17 @@ def get_stacked_func_dist(pars, func_backw, func_dist, func_eqns, stst, vfSS, di
     return stacked_func_dist, backwards_sweep, forwards_sweep, second_sweep
 
 
-def get_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, verbose):
+def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, verbose):
 
     st = time.time()
 
-    shocks = model.get("shocks") or ()
-    # get functions
     func_eqns = model['context']["func_eqns"]
-    func_backw = model['context'].get('func_backw')
-    func_dist = model['context'].get('func_dist')
+    backwards_sweep = model['context']['backwards_sweep']
+    second_sweep = model['context']['second_sweep']
 
-    # get stuff for het-agent models
-    vfSS = model['steady_state'].get('decisions')
     distSS = jnp.array(model['steady_state']['distributions'])[..., None]
     decisions_outputSS = jnp.array(
         model['steady_state']['decisions_output'])[..., None]
-
-    # get actual functions
-    func_raw, backwards_sweep, forwards_sweep, second_sweep = get_stacked_func_dist(
-        pars, func_backw, func_dist, func_eqns, stst, vfSS, distSS[..., 0], horizon, nvars)
 
     # basis for steady state jacobian construction
     basis = jnp.zeros((nvars*(horizon-1), nvars))
@@ -116,16 +108,38 @@ def get_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, verbose)
     f2X = jacrev_func_eqns(stst[:, None], stst[:, None], stst[:, None],
                            stst, zshocks[:, 0], pars, distSS, decisions_outputSS)
 
-    # store everything
-    model['context']['func_raw'] = func_raw
-    model['context']['backwards_sweep'] = backwards_sweep
-    model['context']['forwards_sweep'] = forwards_sweep
-    model['jvp_func'] = lambda primals, tangens, x0, shocks: jax.jvp(
-        func_raw, (primals, x0, shocks), (tangens, jnp.zeros(nvars), zshocks))
-
     if verbose:
         duration = time.time() - st
         print(
             f"(get_derivatives:) Derivatives calculation done ({duration:1.3f}s).")
 
     return f2X, f2do, do2x
+
+
+def build_aggr_het_agent_funcs(model, nvars, pars, stst, zshocks, horizon):
+
+    shocks = model.get("shocks") or ()
+    # get functions
+    func_eqns = model['context']["func_eqns"]
+    func_backw = model['context'].get('func_backw')
+    func_dist = model['context'].get('func_dist')
+
+    # get stuff for het-agent models
+    vfSS = model['steady_state'].get('decisions')
+    distSS = jnp.array(model['steady_state']['distributions'])[..., None]
+    decisions_outputSS = jnp.array(
+        model['steady_state']['decisions_output'])[..., None]
+
+    # get actual functions
+    func_raw, backwards_sweep, forwards_sweep, second_sweep = get_stacked_func_dist(
+        pars, func_backw, func_dist, func_eqns, stst, vfSS, distSS[..., 0], horizon, nvars)
+
+    # store everything
+    model['context']['func_raw'] = func_raw
+    model['context']['backwards_sweep'] = backwards_sweep
+    model['context']['forwards_sweep'] = forwards_sweep
+    model['context']['second_sweep'] = second_sweep
+    model['context']['jvp_func'] = lambda primals, tangens, x0, shocks: jax.jvp(
+        func_raw, (primals, x0, shocks), (tangens, jnp.zeros(nvars), zshocks))
+    model['context']['vjp_func'] = lambda primals, tangens, x0, shocks: jax.vjp(
+        lambda x: func_raw(x, x0, shocks), primals)[1](tangens)[0]

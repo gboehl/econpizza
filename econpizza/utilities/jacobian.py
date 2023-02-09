@@ -1,6 +1,7 @@
 import jax
 import time
 import jax.numpy as jnp
+from jax._src.api import partial
 
 
 def accumulate(i_and_j, carry):
@@ -13,7 +14,8 @@ def accumulate(i_and_j, carry):
 
 
 def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
-
+    """Calculate the steady state jacobian
+    """
     st = time.time()
 
     # load derivatives
@@ -43,3 +45,53 @@ def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
             f"(get_jacobian:) Jacobian accumulation and decomposition done ({duration:1.3f}s).")
 
     return 0
+
+
+def vmapped_jvp(jvp, primals, tangents):
+    """Compact version of jvp_vmap from grgrlib
+    """
+    pushfwd = partial(jvp, primals)
+    y, jac = jax.vmap(pushfwd, out_axes=(None, -1), in_axes=-1)(tangents)
+    return y, jac
+
+
+def jac_slicer(i, carry):
+    """Calclulates a chunk of the jacobian
+    """
+    (_, jac), (x, jvp, zeros_slice, marginal_base, chunk_size) = carry
+    # get base slice
+    base_slice = jax.lax.dynamic_update_slice(
+        zeros_slice, marginal_base, (i*chunk_size, len(x)))
+    # calculate slice of the jacobian
+    f, jac_slice = vmapped_jvp(jvp, x, base_slice)
+    # update jacobian
+    jac = jax.lax.dynamic_update_slice(jac, jac_slice, (0, i*chunk_size))
+    return (f, jac), (x, jvp, zeros_slice, marginal_base, chunk_size)
+
+
+def jac_and_value_sliced(jvp, chunk_size, zero_slice, eye_chunk, x):
+    """Calculate the value and jacobian at `x` while only evaluating chunks of the full jacobian at times. May be necessary due to memmory requirements.
+    """
+    x_shape = len(x)
+    nloops = jnp.ceil(x_shape/chunk_size).astype(int)
+    init_vals = x, jnp.zeros((x_shape, x_shape))
+    args = x, jvp, zero_slice, eye_chunk, chunk_size
+    # in essence a wrapper around a for loop over `jac_slicer`
+    (f, jac), _ = jax.lax.fori_loop(0, nloops, jac_slicer, (init_vals, args))
+    return f, jac
+
+
+def get_jac_and_value_sliced(dimx, jvp, newton_args):
+    """Get the jac_and_value_sliced function. This is necessary because objects depending on chunk_size must be defined outsite the jitted function
+    """
+    # get chunk_size from optional dictionary
+    if 'chunk_size' in newton_args:
+        chunk_size = newton_args['chunk_size']
+        newton_args.pop('chunk_size')
+    else:
+        chunk_size = 100
+
+    # define objects that depend on chunk_size
+    zero_slice = jnp.zeros((dimx, chunk_size))
+    eye_chunk = jnp.eye(chunk_size)
+    return jax.tree_util.Partial(jac_and_value_sliced, jvp, chunk_size, zero_slice, eye_chunk)

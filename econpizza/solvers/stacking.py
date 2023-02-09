@@ -5,9 +5,9 @@ import os
 import jax
 import time
 import jax.numpy as jnp
-from grgrlib.jaxed import *
-from ..parser.build_functions import *
-from ..utilities.jacobian import get_stst_jacobian
+from grgrlib.jaxed import newton_jax_jit, jacrev_and_val
+from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
+from ..utilities.jacobian import get_stst_jacobian, get_jac_and_value_sliced
 from ..utilities.newton import newton_for_jvp, newton_for_banded_jac
 
 
@@ -16,6 +16,7 @@ def find_path_stacking(
     shock=None,
     x0=None,
     horizon=300,
+    use_solid_solver=False,
     verbose=True,
     raise_errors=True,
     **newton_args
@@ -89,22 +90,35 @@ def find_path_stacking(
     else:
         if model['new_model_horizon'] != horizon:
             # get derivatives via AD and compile functions
-            derivatives = get_derivatives(
-                model, nvars, pars, stst, x_stst, jnp.zeros_like(shock_series).T, horizon, verbose)
+            zero_shocks = jnp.zeros_like(shock_series).T
+            build_aggr_het_agent_funcs(
+                model, nvars, pars, stst, zero_shocks, horizon)
 
-            # accumulate steady stat jacobian
-            get_stst_jacobian(model, derivatives, horizon, nvars, verbose)
+            if not use_solid_solver:
+                # get steady state partial jacobians
+                derivatives = get_stst_derivatives(
+                    model, nvars, pars, stst, x_stst, zero_shocks, horizon, verbose)
+                # accumulate steady stat jacobian
+                get_stst_jacobian(model, derivatives, horizon, nvars, verbose)
+
             # mark as compiled
             model['new_model_horizon'] = horizon
 
         # get jvp function and steady state jacobian
         jvp_partial = jax.tree_util.Partial(
-            model['jvp_func'], x0=x0, shocks=shock_series.T)
-        jacobian = model['jac_factorized']
-
-        # actual newton iterations
-        x, flag, mess = newton_for_jvp(
-            jvp_partial, jacobian, x_init, verbose, **newton_args)
+            model['context']['jvp_func'], x0=x0, shocks=shock_series.T)
+        if not use_solid_solver:
+            jacobian = model['jac_factorized']
+            # actual newton iterations
+            x, flag, mess = newton_for_jvp(
+                jvp_partial, jacobian, x_init, verbose, **newton_args)
+        else:
+            # define function returning value and jacobian calculated in slices
+            value_and_jac_func = get_jac_and_value_sliced(
+                (horizon-1)*nvars, jvp_partial, newton_args)
+            x, _, _, flag = newton_jax_jit(
+                value_and_jac_func, x_init[1:-1].flatten(), **newton_args)
+            mess = ''
         x_out = x_init.at[1:-1].set(x.reshape((horizon - 1, nvars)))
 
     # some informative print messages

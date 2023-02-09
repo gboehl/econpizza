@@ -5,7 +5,7 @@ import jax
 import time
 import jax.numpy as jnp
 from ..utilities.jacobian import get_stst_jacobian
-from ..parser.build_functions import get_derivatives
+from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 
 
 def find_path_linear(model, shock=None, x0=None, horizon=300, verbose=True):
@@ -50,14 +50,16 @@ def find_path_linear(model, shock=None, x0=None, horizon=300, verbose=True):
     x_stst = jnp.ones((horizon + 1, nvars)) * stst
 
     # deal with shocks
-    zero_shocks = jnp.zeros((horizon-1, len(shocks)))
+    zero_shocks = jnp.zeros((horizon-1, len(shocks))).T
 
     x0 = jnp.array(list(x0)) if x0 is not None else stst
 
     if model['new_model_horizon'] != horizon:
         # get derivatives via AD and compile functions
-        derivatives = get_derivatives(
-            model, nvars, pars, stst, x_stst, zero_shocks.T, horizon, verbose)
+        build_aggr_het_agent_funcs(
+            model, nvars, pars, stst, zero_shocks, horizon)
+        derivatives = get_stst_derivatives(
+            model, nvars, pars, stst, x_stst, zero_shocks, horizon, verbose)
 
         # accumulate steady stat jacobian
         get_stst_jacobian(model, derivatives, horizon, nvars, verbose)

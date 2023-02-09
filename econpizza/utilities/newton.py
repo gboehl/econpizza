@@ -61,16 +61,13 @@ def check_status(err, cnt, maxit, tol):
 
     # exit causes
     if err < tol:
-        r = True, (True, "The solution converged.")
+        return True, (True, "The solution converged.")
     elif jnp.isnan(err):
-        r = True, (False, "Function returns 'NaN's.")
+        return True, (False, "Function returns 'NaN's.")
     elif cnt > maxit:
-        r = True, (False, f"Maximum number of {maxit} iterations reached.")
+        return True, (False, f"Maximum number of {maxit} iterations reached.")
     else:
-        r = False, (False, "")
-    return r
-
-    # return False, (False, "")
+        return False, (False, "")
 
 
 def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=200, nsteps=2, factor=1.5):

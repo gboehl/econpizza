@@ -29,7 +29,7 @@ setup(
     install_requires=[
         "jax",
         "jaxlib",
-        "grgrlib>=0.1.21",
+        "grgrlib>=0.1.22",
         "pyyaml",
     ],
 )

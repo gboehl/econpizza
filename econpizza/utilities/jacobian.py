@@ -1,3 +1,4 @@
+from grgrlib.jaxed import jax_print
 import jax
 import time
 import jax.numpy as jnp
@@ -73,7 +74,7 @@ def jac_and_value_sliced(jvp, chunk_size, zero_slice, eye_chunk, x):
     """Calculate the value and jacobian at `x` while only evaluating chunks of the full jacobian at times. May be necessary due to memmory requirements.
     """
     x_shape = len(x)
-    nloops = jnp.ceil(x_shape/chunk_size).astype(int)
+    nloops = jnp.ceil(x_shape/chunk_size).astype(jnp.int64)
     init_vals = x, jnp.zeros((x_shape, x_shape))
     args = x, jvp, zero_slice, eye_chunk, chunk_size
     # in essence a wrapper around a for loop over `jac_slicer`

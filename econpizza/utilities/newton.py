@@ -58,7 +58,6 @@ def sweep_banded_up(val, i):
 
 def check_status(err, cnt, maxit, tol):
     """Check whether to exit iteration and compile error message"""
-
     # exit causes
     if err < tol:
         return True, (True, "The solution converged.")

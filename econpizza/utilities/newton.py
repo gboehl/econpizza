@@ -7,33 +7,40 @@ import jax.numpy as jnp
 from grgrlib.jaxed import callback_func, amax
 
 
-def iteration_step(dummy, carry):
-    (y, dampening), (x, f, jvp_func, jacobian, factor) = carry
+def iteration_step(carry):
+    (y, dampening, cnt), (x, f, jvp_func, jacobian, factor), (_, tol, maxit) = carry
     _, v = jvp_func(x, y)
     v = jax.scipy.linalg.lu_solve(jacobian, v)
     dampening = jnp.minimum(dampening, factor*(y.T@y)/(v.T@y))
-    y += dampening*(f-v)
-    return (y, dampening), (x, f, jvp_func, jacobian, factor)
+    diff = f-v
+    y += dampening*diff
+    eps = amax(diff)
+    return (y, dampening, cnt+1), (x, f, jvp_func, jacobian, factor), (eps, tol, maxit)
 
 
-def while_body_jvp(carry):
+def iteration_cond(carry):
+    (_, _, cnt), _, (eps, tol, maxit) = carry
+    return jnp.logical_and(cnt <= maxit, eps > tol)
+
+
+def jvp_while_body(carry):
     (x, _, _, cnt), (jvp_func, jacobian, maxit,
                      nsteps, tol, factor, verbose) = carry
     # first iteration
     f, _ = jvp_func(x, jnp.zeros_like(x))
     f = jax.scipy.linalg.lu_solve(jacobian, f)
     # other iterations
-    (y, dampening), _ = jax.lax.fori_loop(0, nsteps,
-                                          iteration_step, ((f, 1.), (x, f, jvp_func, jacobian, factor)))
-    return (x-y, amax(f), dampening, cnt+1), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)
+    init = ((f, 1., 0), (x, f, jvp_func, jacobian, factor), (1e8, 1e-5, nsteps))
+    (y, dampening, cnt_inner), _, _ = jax.lax.while_loop(
+        iteration_cond, iteration_step, init)
+    return (x-y, amax(f), dampening, cnt+cnt_inner), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)
 
 
-def while_cond_jvp(carry):
+def jvp_while_cond(carry):
     (_, err, dampening, cnt), (_, _, maxit, nsteps, tol, _, verbose) = carry
-    cond = jnp.logical_and(err > tol, cnt*(nsteps+1) < maxit)
+    cond = jnp.logical_and(err > tol, cnt < maxit)
     verbose = jnp.logical_and(cond, verbose)
-    jax.debug.callback(callback_func, cnt*(nsteps+1),
-                       err, dampening, verbose=verbose)
+    jax.debug.callback(callback_func, cnt, err, dampening, verbose=verbose)
     return cond
 
 
@@ -69,19 +76,16 @@ def check_status(err, cnt, maxit, tol):
         return False, (False, "")
 
 
-def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=200, nsteps=2, factor=1.5):
+def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=500, nsteps=30, factor=1.5):
 
     start_time = time.time()
     x = x_init[1:-1].flatten()
 
-    (x, err, dampening, cnt_loop), _ = jax.lax.while_loop(while_cond_jvp, while_body_jvp,
-                                                          ((x, 1., 0., 0), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)))
-
+    (x, err, dampening, cnt), _ = jax.lax.while_loop(jvp_while_cond, jvp_while_body,
+                                                     ((x, 1., 0., 0), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)))
     ltime = time.time() - start_time
-    cnt = cnt_loop*(nsteps+1)
     callback_func(cnt, err, dampening, ltime, verbose)
     _, (success, mess) = check_status(err, cnt, maxit, tol)
-
     # compile error/report message
     if not success and not jnp.isnan(err):
         mess += f" Max. error is {err:1.2e}."

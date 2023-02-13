@@ -1,4 +1,4 @@
-jax
+jax>=0.3.20
 jaxlib
 grgrlib>=0.1.22
 pyyaml

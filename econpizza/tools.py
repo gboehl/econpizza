@@ -8,6 +8,8 @@ from .utilities.interp import interpolate
 
 
 def percentile(x, dist, share):
+    """percentiles function. Needs a pretty fine grid to work properly!
+    """
 
     # reshape inputs flattend for each period t
     horizon = x.shape[-1]

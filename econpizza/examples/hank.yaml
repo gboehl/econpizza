@@ -80,6 +80,7 @@ aux_equations: |
     aggr_a = jnp.sum(dist*a, axis=(0,1))
     aggr_c = jnp.sum(dist*c, axis=(0,1))
     # calculate consumption and wealth share of top-10% cumsumers
+    # Warning: the percentiles function is based on interpolation and needs a pretty fine grid to work properly
     top10c = 1 - percentile(c, dist, .9)
     top10a = 1 - percentile(a, dist, .9)
 

@@ -94,7 +94,7 @@ def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, ver
 
     # basis for steady state jacobian construction
     basis = jnp.zeros((nvars*(horizon-1), nvars))
-    basis = basis.at[-nvars:, -nvars:].set(jnp.eye(nvars))
+    basis = basis.at[-nvars:].set(jnp.eye(nvars))
 
     # get steady state jacobians for dist transition
     doSS, do2x = jvp_vmap(backwards_sweep)(

@@ -49,10 +49,9 @@ def sweep_banded_down(val, i):
     # calculate value and jacobians
     fval, (jac_f2xLag, jac_f2x, jac_f2xPrime) = jav_func(
         X[i], X[i+1], X[i+2], shocks=shocks[i])
-    # work on banded sequence space jacobian
-    bmat = jnp.linalg.inv(jac_f2x - jac_f2xLag @ forward_mat)
-    forward_mat = bmat @ jac_f2xPrime
-    fmod = bmat @ (fval - jac_f2xLag @ fmod)
+    bmat = jac_f2x - jac_f2xLag @ forward_mat
+    forward_mat = jnp.linalg.solve(bmat, jac_f2xPrime)
+    fmod = jnp.linalg.solve(bmat, fval - jac_f2xLag @ fmod)
     return (jav_func, fmod, forward_mat, X, shocks), (fmod, forward_mat)
 
 

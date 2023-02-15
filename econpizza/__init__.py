@@ -1,4 +1,3 @@
-#!/bin/python
 # -*- coding: utf-8 -*-
 
 from .solvers.solve_linear_state_space import *
@@ -77,12 +76,3 @@ PizzaModel.find_path_linear_state_space = find_path_linear_state_space
 PizzaModel.find_path_shooting = find_path_shooting
 
 logging.basicConfig(level=logging.INFO)
-
-pth = os.path.dirname(__file__)
-
-example_nk = os.path.join(pth, "examples", "nk.yaml")
-example_bh = os.path.join(pth, "examples", "bh.yaml")
-example_dsge = os.path.join(pth, "examples", "med_scale_nk.yaml")
-example_hank = os.path.join(pth, "examples", "hank.yaml")
-example_hank_labor = os.path.join(pth, "examples", "hank_labor.yaml")
-example_hank2 = os.path.join(pth, "examples", "hank2.yaml")

@@ -6,9 +6,12 @@ from .solvers.stacking import find_path_stacking
 from .solvers.shooting import find_path_shooting
 from .solvers.steady_state import solve_stst
 from .parsing import parse, load
+
 import jax
 import logging
 import os
+from . import examples as examples
+
 # set number of cores for XLA
 os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
 

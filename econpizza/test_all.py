@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-from econpizza.__init__ import *
 import econpizza as ep
 
 filepath = os.path.dirname(__file__)
@@ -10,7 +9,7 @@ filepath = os.path.dirname(__file__)
 
 def test_bh(create=False):
 
-    mod = load(example_bh, raise_errors=False)
+    mod = load(ep.examples.bh, raise_errors=False)
     _ = mod.solve_stst()
 
     state = jnp.zeros(len(mod["variables"]))
@@ -33,7 +32,7 @@ def test_bh(create=False):
 
 def test_nk(create=False):
 
-    mod = load(example_nk)
+    mod = load(ep.examples.nk)
     _ = mod.solve_stst()
 
     state = mod["stst"].copy()
@@ -56,7 +55,7 @@ def test_nk(create=False):
 
 def test_stacked(create=False):
 
-    mod = load(example_nk)
+    mod = load(ep.examples.nk)
     _ = mod.solve_stst()
 
     shk = ("e_beta", 0.02)
@@ -77,7 +76,7 @@ def test_stacked(create=False):
 
 def test_hank(create=False):
 
-    mod_dict = ep.parse(example_hank)
+    mod_dict = ep.parse(ep.examples.hank)
     mod = ep.load(mod_dict)
     _ = mod.solve_stst(tol=1e-8)
 
@@ -111,7 +110,7 @@ def test_hank(create=False):
 
 def test_hank_labor(create=False):
 
-    mod_dict = ep.parse(example_hank_labor)
+    mod_dict = ep.parse(ep.examples.hank_labor)
     mod = ep.load(mod_dict)
     _ = mod.solve_stst(tol=1e-8)
 
@@ -133,7 +132,7 @@ def test_hank_labor(create=False):
 
 def test_hank2(create=False):
 
-    mod_dict = ep.parse(example_hank2)
+    mod_dict = ep.parse(ep.examples.hank2)
     mod = ep.load(mod_dict)
     _ = mod.solve_stst(tol=1e-6)
 
@@ -156,7 +155,7 @@ def test_hank2(create=False):
 
 def test_solid(create=False):
 
-    mod_dict = ep.parse(example_hank)
+    mod_dict = ep.parse(ep.examples.hank)
     mod = ep.load(mod_dict)
     _ = mod.solve_stst(tol=1e-8)
 

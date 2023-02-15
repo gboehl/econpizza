@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import jax.numpy as jnp
 import econpizza as ep
 
 filepath = os.path.dirname(__file__)
@@ -9,13 +10,13 @@ filepath = os.path.dirname(__file__)
 
 def test_bh(create=False):
 
-    mod = load(ep.examples.bh, raise_errors=False)
+    mod = ep.load(ep.examples.bh, raise_errors=False)
     _ = mod.solve_stst()
 
     state = jnp.zeros(len(mod["variables"]))
     state = state.at[:-1].set([0.1, 0.2, 0.0])
 
-    x, flag = find_path_shooting(
+    x, flag = ep.find_path_shooting(
         mod, state, T=50, max_horizon=500, tol=1e-8, verbose=2)
 
     path = os.path.join(filepath, "test_storage", "bh.npy")
@@ -32,14 +33,14 @@ def test_bh(create=False):
 
 def test_nk(create=False):
 
-    mod = load(ep.examples.nk)
+    mod = ep.load(ep.examples.nk)
     _ = mod.solve_stst()
 
     state = mod["stst"].copy()
     state["beta"] *= 1.02
 
-    x, flag = find_path_shooting(mod, state.values(), T=10,
-                                 max_horizon=10, verbose=2)
+    x, flag = ep.find_path_shooting(mod, state.values(), T=10,
+                                    max_horizon=10, verbose=2)
 
     path = os.path.join(filepath, "test_storage", "nk.npy")
 
@@ -55,12 +56,12 @@ def test_nk(create=False):
 
 def test_stacked(create=False):
 
-    mod = load(ep.examples.nk)
+    mod = ep.load(ep.examples.nk)
     _ = mod.solve_stst()
 
     shk = ("e_beta", 0.02)
 
-    x, flag = find_path_stacking(mod, shock=shk, horizon=250)
+    x, flag = ep.find_path_stacking(mod, shock=shk, horizon=250)
 
     path = os.path.join(filepath, "test_storage", "stacked.npy")
 

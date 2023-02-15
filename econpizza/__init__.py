@@ -8,9 +8,10 @@ from .solvers.solve_linear_state_space import solve_linear_state_space, find_pat
 from .solvers.shooting import find_path_shooting
 from .parsing import parse, load
 
-import jax
 import logging
 import os
+import jax
+import jax.numpy as jnp
 
 # set number of cores for XLA
 os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"

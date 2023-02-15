@@ -1,0 +1,85 @@
+# The model is a marriage of "A Baseline DSGE Model" (Fernández-Villaverde and Rubio-Ramírez, manuscript) and "The Empirical Implications of the Interest-Rate Lower Bound" (Gust et al., 2012 FED DP)
+# Author: Gregor Boehl [mail@gregorboehl.com]
+---
+
+name: 'nk_capital'
+description: 'A medium scale NK model with capital, capital adjustement costs, capital utilization costs, and habits'
+variables: [y, c, pi, R, Rn, Rk, beta, w, q, mc, k, i, n, lambta, g, b, qb, t, ds, bprof, dd, MPK, cap_util, cap_util_costs, y_prod]
+parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, rho_beta, chi, cap_util_param ]
+shocks: [e_beta]
+
+equations:
+    ## households block
+    ~ w = chi*n**eta*(c - h*cLag) # labour supply
+    ~ lambta = 1/(c - h*cLag) - h*beta/(cPrime - h*c) # stochastic discount factor
+    ~ lambta = beta*lambtaPrime*R/piPrime # Euler equation
+    ~ dd + c + t + Phi/2*(i/iLag - 1)**2*i = w*n + RLag/pi*ddLag + (1 - mc - psi/2*(pi/piSS - 1)**2)*y + (q*(1 - Phi/2*(i/iLag - 1)**2) - 1)*i + bprof # budget constraint
+
+    ## "banks" block
+    ~ ds = qb*b + q*k # supply of "bank" deposits, i.e. the "banks" balance sheet
+    ~ R = (1 + kappa*qbPrime)/qb # no arbitrage condition for the bond price
+    ~ R = Rk # no arbitrage condition for the return to capital (Rk is the return to capital as in BGG)
+    ~ bprof = ((1+kappa*qb)*bLag + RkLag*qLag*kLag - RLag*ddLag)/pi # "bank' profits
+
+    ## government block
+    ~ g + (1+kappa*qb)/pi*bLag = qb*b + t # government budget constraint
+    ~ g = 0.2*ySS # level of government spending
+    ~ b = ySS/qbSS # level of outstanding government bonds, i.e. level of government debt
+
+    ## market clearing block
+    ~ c + i + g + Phi/2*(i/iLag - 1)**2*i + cap_util_costs*kLag = (1-psi*(pi/piSS - 1)**2/2)*y_prod # goods market clearing
+    ~ c + i + g = y # definition of "effective" output
+
+    ## firms block
+    ~ 1 = q*(1 - Phi/2*(i/iLag - 1)**2 - Phi*(i/iLag - 1)*i/iLag) + beta*lambtaPrime/lambta*qPrime*Phi*(iPrime/i - 1)*(iPrime/i)**2 # investment Euler equation
+    ~ k = (1-delta)*kLag + (1 - Phi/2*(i/iLag - 1)**2)*i # law of motion for capital
+    ~ cap_util_costs = MPKSS*(cap_util - 1) + cap_util_param/(1-cap_util_param)/2*(cap_util - 1)**2 # capital utilisation costs
+    ~ (1-cap_util_param)*(MPK - MPKSS) = cap_util_param*(cap_util - 1) # cap_util utilisation
+    ~ MPK = alpha*mc*y_prod/(cap_util*kLag) # marginal product of capital
+    ~ q*Rk/piPrime = MPKPrime*cap_utilPrime + (1-delta)*qPrime - cap_util_costs # return to capital
+    ~ w = (1-alpha)*mc*y_prod/n # real marginal costs
+    ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*mc + psi*beta*lambtaPrime/lambta*(piPrime/piSS - 1)*piPrime/piSS*y_prodPrime/y_prod # price NK Phillips Curve
+    ~ y_prod = (kLag*cap_util)**alpha*n**(1-alpha) # production function
+
+    ## central bank block
+    ~ Rn = (RSS*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho)*RnLag**rho # Taylor rule for the notional nominal interest rate
+    ~ R = max(1, Rn) # (actual) nominal interest rate, subject to ZLB
+
+    ## exogenous block
+    ~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta # discount factor shock
+
+steady_state:
+    fixed_values:
+        # parameters:
+        theta: 6. # elasticity of substitution
+        kappa: 0.975 # decay parameter for coupon payments of perpetual bonds
+        psi: 59.11 # parameter on the costs of price adjustment
+        delta: 0.025 # depreciation rate
+        alpha: 0.33 # capital income share
+        Phi: 5.6 # parameter on the costs of investment adjustment
+        phi_pi: 1.5 # Taylor rule coefficient on inflation
+        phi_y: 0.1 # Taylor rule coefficient on output
+        h: 0.44 # habit formation parameter
+        rho: 0.8 # persistence in (notional) nominal interest rate
+        eta: .33 # inverse of Frisch elasticity of labour supply
+        rho_beta: 0.8 # persistence of discount factor shock
+        cap_util_param: 0.8 # parameter on the capital utilisation costs
+        rho_z: 0.8 # persistence of technology shocks
+        omega: 0.44 # coefficient on inflation target in inflation indexation
+
+        # steady state
+        beta: 0.995 # steady state discount factor
+        pi: 1.02^.25 # steady state inflation
+        R: pi/beta # steady state nominal interest rate
+        Rn: R # steady state notional nominal interest rate
+        Rk: R # steady state rental rate of capital
+        n: 0.33 # steady state labour hours
+        mc: (theta-1)/theta # steady state marginal costs
+        q: 1. # steady state value of capital in consumption units
+        z: 1. # steady state technology
+        pitilde: pi # steady state price indexed inflation
+        cap_util: 1. # steady state capital utilisation share
+
+    init_guesses:
+        chi: 1e+1 # parameter on the disutility of labour
+        MPK: alpha*mc/20 # marginal product of capital

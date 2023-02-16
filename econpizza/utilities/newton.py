@@ -40,6 +40,7 @@ def jvp_while_cond(carry):
     (_, err, dampening, cnt), (_, _, maxit, nsteps, tol, _, verbose) = carry
     cond = jnp.logical_and(err > tol, cnt < maxit)
     verbose = jnp.logical_and(cond, verbose)
+    verbose = jnp.logical_and(cnt, verbose)
     jax.debug.callback(callback_func, cnt, err, dampening, verbose=verbose)
     return cond
 

@@ -1,10 +1,9 @@
-#!/bin/python
 # -*- coding: utf-8 -*-
 
 import jax
 import time
 import jax.numpy as jnp
-from grgrlib.jaxed import newton_jax, jacfwd_and_val, amax
+from grgrjax import newton_jax, val_and_jacfwd, amax
 from ..parser.build_functions import get_func_stst_raw
 
 
@@ -120,15 +119,16 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
                                       exog_grid_vars_init, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
 
     # define jitted stst function that returns jacobian and func. value
-    func_stst = jax.jit(jacfwd_and_val(func_stst_raw, has_aux=True))
+    func_stst = jax.jit(val_and_jacfwd(func_stst_raw, has_aux=True))
     # store functions
     model["context"]['func_stst_raw'] = func_stst_raw
     model["context"]['func_stst'] = func_stst
 
     # actual root finding
     x_init = jnp.array(list(model['init'].values()))
-    res = newton_jax(func_stst, x_init, None, maxit_newton, tol_newton, rtol=-1, sparse=False,
-                     func_returns_jac=True, solver=solver, verbose=verbose, **newton_kwargs)
+
+    res = newton_jax(func_stst, x_init, maxit_newton, tol_newton,
+                     solver=solver, verbose=verbose, **newton_kwargs)
 
     # exchange those values that are identified via stst_equations
     stst_vals, par_vals = func_pre_stst(res['x'])

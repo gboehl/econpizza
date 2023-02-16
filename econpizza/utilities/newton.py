@@ -4,7 +4,7 @@
 import jax
 import time
 import jax.numpy as jnp
-from grgrlib.jaxed import callback_func, amax
+from grgrjax import callback_func, amax
 
 
 def iteration_step(carry):

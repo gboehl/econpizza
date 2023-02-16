@@ -1,4 +1,4 @@
-from grgrlib.jaxed import jax_print
+from grgrjax import jax_print
 import jax
 import time
 import jax.numpy as jnp
@@ -49,7 +49,7 @@ def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
 
 
 def vmapped_jvp(jvp, primals, tangents):
-    """Compact version of jvp_vmap from grgrlib
+    """Compact version of jvp_vmap from grgrjax
     """
     pushfwd = partial(jvp, primals)
     y, jac = jax.vmap(pushfwd, out_axes=(None, -1), in_axes=-1)(tangents)

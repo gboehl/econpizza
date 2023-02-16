@@ -1,11 +1,10 @@
-#!/bin/python
 # -*- coding: utf-8 -*-
 
 import sys
 import time
 import jax
 import jax.numpy as jnp
-from grgrlib.jaxed import newton_jax_jit, jacfwd_and_val
+from grgrjax import newton_jax_jit, val_and_jacfwd
 
 
 msgs = (
@@ -114,7 +113,7 @@ def find_path_shooting(
 
         # partial_func = jax.tree_util.Partial(func, XLag=XLag, XPrime=XPrime, XSS=stst, shocks=shock, pars=pars)
         def partial_func(x): return func(XLag, x, XPrime, stst, shock, pars)
-        jav = jacfwd_and_val(partial_func)
+        jav = val_and_jacfwd(partial_func)
         partial_jav = jax.tree_util.Partial(jav)
         res = newton_jax_jit(partial_jav, XLastGuess, verbose=False)
 

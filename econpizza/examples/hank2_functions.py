@@ -1,8 +1,8 @@
+# -*- coding: utf-8 -*-
 
 import jax.numpy as jnp
 from econpizza.utilities.interp import interpolate_coord, apply_coord, interpolate, lhs_equals_rhs_interpolate
-
-from grgrlib.jaxed import jax_print
+from grgrjax import jax_print
 
 
 def hh_init_Va(b_grid, a_grid, z_grid, eis):

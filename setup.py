@@ -26,10 +26,13 @@ setup(
     packages=['econpizza', 'econpizza.parser',
               'econpizza.utilities', 'econpizza.solvers'],
     package_data={"econpizza": ["examples/*"]},
+    extras_require={
+        'linear': ['grgrlib>=0.1.22'],
+    },
     install_requires=[
         "jax>=0.3.20",
         "jaxlib",
-        "grgrlib>=0.1.22",
+        "grgrjax",
         "pyyaml",
     ],
 )

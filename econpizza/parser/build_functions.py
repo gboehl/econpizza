@@ -2,8 +2,9 @@
 """Dynamically build functions."""
 
 import jax
+import time
 import jax.numpy as jnp
-from grgrlib.jaxed import *
+from grgrjax import jvp_vmap, vjp_vmap
 from .het_agent_funcs import _backwards_sweep, _forwards_sweep, _final_step, _second_sweep, _stacked_func_dist
 
 

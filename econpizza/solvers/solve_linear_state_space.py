@@ -1,9 +1,7 @@
-#!/bin/python
 # -*- coding: utf-8 -*-
 
 import jax
 import jax.numpy as jnp
-from grgrlib import klein, speed_kills
 
 
 def solve_linear_state_space(
@@ -18,6 +16,12 @@ def solve_linear_state_space(
     if model.get('distributions'):
         raise Exception(
             "A linear state-space solution for models with distributions is not implemented.")
+
+    try:
+        from grgrlib import klein, speed_kills
+    except ImportError:
+        raise ImportError(
+            "'solve_linear_state_space' requires the 'grgrlib' package to be installed.")
 
     evars = model["variables"]
     func = model['context']["func_eqns"]

@@ -1,9 +1,8 @@
-#!/bin/python
 # -*- coding: utf-8 -*-
 
 import jax
 import jax.numpy as jnp
-from grgrlib.jaxed import jax_print
+from grgrjax import jax_print
 from econpizza.utilities.interp import interpolate
 
 

@@ -1,5 +1,5 @@
-#!/bin/python
 # -*- coding: utf-8 -*-
+
 """Functions for model parsing yaml into a working model instance. Involves a lot of dynamic function definition...
 """
 
@@ -7,13 +7,13 @@ from copy import copy
 import yaml
 import re
 import os
+import sys
 import tempfile
 import jax
 import jaxlib
 import jax.numpy as jnp
+import importlib.util as iu
 from copy import deepcopy
-# from jax.numpy import log, exp, sqrt, maximum, minimum # maybe better to make this explicit
-from grgrlib import load_as_module
 from inspect import getmembers, isfunction
 from jax.experimental.host_callback import id_print as jax_print
 from .utilities import grids, dists, interp
@@ -25,8 +25,25 @@ cached_mdicts = ()
 cached_models = ()
 
 
+def load_as_module(path, add_to_path=True):
+    """load a file as a module
+    """
+
+    if add_to_path:
+        directory = os.path.dirname(path)
+        sys.path.append(directory)
+
+    modname = os.path.splitext(os.path.basename(path))[0]
+    spec = iu.spec_from_file_location(modname, path)
+    module = iu.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    return module
+
+
 def parse(mfile):
-    """parse from yaml file"""
+    """parse from yaml file
+    """
 
     f = open(mfile)
     mtxt = f.read()

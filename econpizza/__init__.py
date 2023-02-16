@@ -79,4 +79,4 @@ PizzaModel.find_path_linear = find_path_linear
 PizzaModel.find_path_linear_state_space = find_path_linear_state_space
 PizzaModel.find_path_shooting = find_path_shooting
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)

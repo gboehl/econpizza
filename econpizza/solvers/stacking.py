@@ -1,11 +1,10 @@
-#!/bin/python
 # -*- coding: utf-8 -*-
 
 import os
 import jax
 import time
 import jax.numpy as jnp
-from grgrlib.jaxed import newton_jax_jit, jacrev_and_val
+from grgrjax import newton_jax_jit, val_and_jacrev
 from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 from ..utilities.jacobian import get_stst_jacobian, get_jac_and_value_sliced
 from ..utilities.newton import newton_for_jvp, newton_for_banded_jac
@@ -75,7 +74,7 @@ def find_path_stacking(
         if model['new_model_horizon'] != horizon:
             # get transition function
             func_eqns = model['context']["func_eqns"]
-            jav_func_eqns = jacrev_and_val(func_eqns, (0, 1, 2))
+            jav_func_eqns = val_and_jacrev(func_eqns, (0, 1, 2))
             jav_func_eqns_partial = jax.tree_util.Partial(
                 jav_func_eqns, XSS=stst, pars=pars, distributions=[], decisions_outputs=[])
             model['jav_func'] = jav_func_eqns_partial

@@ -1,8 +1,26 @@
-"""Subfunctions of stacked_func_dist
+"""Internal subfunctions for heterogeneous agent models
 """
 
 import jax
 import jax.numpy as jnp
+
+
+def backwards_stst_cond(carry):
+    _, (vf, _, _), (vf_old, cnt), (_, tol, maxit) = carry
+    cond0 = jnp.abs(vf - vf_old).max() > tol
+    cond1 = cnt < maxit
+    return jnp.logical_and(cond0, cond1)
+
+
+def backwards_stst_body(carry):
+    (x, par), (vf, _, _), (_, cnt), (func, tol, maxit) = carry
+    return (x, par), func(x, x, x, x, vf, pars=par), (vf, cnt + 1), (func, tol, maxit)
+
+
+def _backwards_sweep_stst(x, par, carry):
+    _, (vf, decisions_output, exog_grid_vars), (_, cnt), _ = jax.lax.while_loop(
+        backwards_stst_cond, backwards_stst_body, ((x, par), *carry))
+    return vf, decisions_output, exog_grid_vars, cnt
 
 
 def backwards_step(carry, i):
@@ -63,7 +81,7 @@ def _second_sweep(x, decisions_output_storage, x0, shocks, forwards_sweep, final
     return out
 
 
-def _stacked_func_dist(x, x0, shocks, backwards_sweep, second_sweep):
+def _stacked_func_het_agents(x, x0, shocks, backwards_sweep, second_sweep):
 
     # backwards step
     decisions_output_storage = backwards_sweep(x, x0, shocks)

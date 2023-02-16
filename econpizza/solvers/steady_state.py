@@ -136,7 +136,7 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
     model["stst"] = dict(zip(evars, stst_vals))
     model["parameters"] = dict(zip(par, par_vals))
 
-    # calculate dist objects and copile message
+    # calculate dist objects and compile message
     mess = get_stst_dist_objs(model, res, maxit_backwards,
                               maxit_forwards) if model.get('distributions') else ''
     # calculate error

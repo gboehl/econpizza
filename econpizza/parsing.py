@@ -142,8 +142,8 @@ def compile_init_values(evars, pars, initvals, stst):
     """Combine all available information in initial guesses.
     """
 
-    ufixed_vars = {v: 1.1 for v in evars if v not in stst}
-    ufixed_pars = {v: 1.1 for v in pars if v not in stst}
+    ufixed_vars = {v: .95 for v in evars if v not in stst}
+    ufixed_pars = {v: .95 for v in pars if v not in stst}
 
     # get inital values to test the function
     init = {**ufixed_vars, **ufixed_pars}

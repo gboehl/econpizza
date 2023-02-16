@@ -35,8 +35,8 @@ distributions:
       type: endogenous
       grid_variables: a_grid
       min: 0.0
-      max: 1000
-      n: 16
+      max: 200
+      n: 20
 
 decisions:
   inputs: [VaPrime,VbPrime]

@@ -73,7 +73,7 @@ html_theme_options = {
     "use_issues_button": True,
     "use_repository_button": True,
     "use_download_button": True,
-    "description": " Solve nonlinear heterogeneous agents models",
+    "description": "Solve nonlinear heterogeneous agents models",
     "github_repo": "econpizza",
     "github_user": "gboehl",
     "sidebar_collapse": True,

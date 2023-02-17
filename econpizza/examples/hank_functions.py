@@ -10,7 +10,7 @@ def hh_init(a_grid, e_grid):
     return jnp.ones((e_grid.shape[0], a_grid.shape[0]))*1e-2
 
 
-def hh(Va_p, a_grid, skills_grid, w, n, T, R, beta, eis, frisch):
+def hh(Va_p, a_grid, skills_grid, w, n, T, R, beta, sigma_c, frisch):
     """A single backward step via EGM
     """
 
@@ -19,7 +19,7 @@ def hh(Va_p, a_grid, skills_grid, w, n, T, R, beta, eis, frisch):
 
     # consumption can be readily obtained from MUC and MU of labor
     labor_inc = skills_grid[:, None]*n*w
-    c_nextgrid = ux_nextgrid**-eis + labor_inc/(1 + 1/frisch)
+    c_nextgrid = ux_nextgrid**-sigma_c + labor_inc/(1 + 1/frisch)
 
     # get consumption in grid space
     lhs = c_nextgrid - labor_inc + a_grid[None, :] - T[:, None]
@@ -36,15 +36,15 @@ def hh(Va_p, a_grid, skills_grid, w, n, T, R, beta, eis, frisch):
     a = jnp.where(a < a_grid[0], a_grid[0], a)
 
     # calculate new MUC
-    Va = R * (c - labor_inc/(1 + 1/frisch)) ** (-1 / eis)
+    Va = R * (c - labor_inc/(1 + 1/frisch)) ** (-1 / sigma_c)
 
     return Va, a, c
 
 
-def transfers(age_stationary, Div, Tax, e_grid):
+def transfers(skills_stationary, Div, Tax, e_grid):
     # hardwired incidence rules are proportional to skill; scale does not matter
     rule = e_grid
-    div = Div / jnp.sum(age_stationary * rule) * rule
-    tax = Tax / jnp.sum(age_stationary * rule) * rule
+    div = Div / jnp.sum(skills_stationary * rule) * rule
+    tax = Tax / jnp.sum(skills_stationary * rule) * rule
     T = div - tax
     return T

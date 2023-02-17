@@ -6,17 +6,17 @@ from grgrjax import jax_print, amax
 from econpizza.utilities.interp import interpolate
 
 
-def hh_init(a_grid, we, R, eis, T):
+def hh_init(a_grid, we, R, sigma_c, T):
     """The initialization for the value function
     """
 
     coh = R * a_grid[None, :] + \
         we[:, None] + T[:, None]
-    Va = R * (0.1 * coh) ** (-1 / eis)
+    Va = R * (0.1 * coh) ** (-1 / sigma_c)
     return Va
 
 
-def hh(Va_p, a_grid, we, T, R, beta, eis, frisch, vphi):
+def hh(Va_p, a_grid, we, T, R, beta, sigma_c, frisch, vphi):
     """A single backward step via EGM
     """
 
@@ -24,7 +24,7 @@ def hh(Va_p, a_grid, we, T, R, beta, eis, frisch, vphi):
     uc_nextgrid = beta * Va_p
     # back out consumption and labor supply from MUC
     c_nextgrid, n_nextgrid = cn(
-        uc_nextgrid, we[:, None], eis, frisch, vphi)
+        uc_nextgrid, we[:, None], sigma_c, frisch, vphi)
 
     # get consumption and labor supply in grid space
     lhs = c_nextgrid - we[:, None] * n_nextgrid + \
@@ -38,57 +38,58 @@ def hh(Va_p, a_grid, we, T, R, beta, eis, frisch, vphi):
     a = rhs + we[:, None] * n + T[:, None] - c
     # fix consumption and labor for constrained households
     c, n = jnp.where(a < a_grid[0], solve_cn(
-        we[:, None], rhs + T[:, None] - a_grid[0], eis, frisch, vphi, Va_p), jnp.array((c, n)))
+        we[:, None], rhs + T[:, None] - a_grid[0], sigma_c, frisch, vphi, Va_p), jnp.array((c, n)))
     a = jnp.where(a > a_grid[0], a, a_grid[0])
 
     # calculate new MUC
-    Va = R * c ** (-1 / eis)
+    Va = R * c ** (-1 / sigma_c)
 
     return Va, a, c, n
 
 
-def cn(uc, w, eis, frisch, vphi):
+def cn(uc, w, sigma_c, frisch, vphi):
     """Return optimal c, n as function of u'(c) given parameters
     """
-    return jnp.array((uc ** (-eis), (w * uc / vphi) ** frisch))
+    return jnp.array((uc ** (-sigma_c), (w * uc / vphi) ** frisch))
 
 
-def solve_cn(w, T, eis, frisch, vphi, uc_seed):
-    uc = solve_uc(w, T, eis, frisch, vphi, uc_seed)
-    return cn(uc, w, eis, frisch, vphi)
+def solve_cn(w, T, sigma_c, frisch, vphi, uc_seed):
+    uc = solve_uc(w, T, sigma_c, frisch, vphi, uc_seed)
+    return cn(uc, w, sigma_c, frisch, vphi)
 
 
-def solve_uc(w, T, eis, frisch, vphi, uc_seed):
+def solve_uc_cond(carry):
+    ne, _, _ = carry
+    return amax(ne) > 1e-8
+
+
+def solve_uc_body(carry):
+    ne, log_uc, pars = carry
+    ne, ne_p = netexp(log_uc, *pars)
+    log_uc -= ne / ne_p
+    return ne, log_uc, pars
+
+
+def solve_uc(w, T, sigma_c, frisch, vphi, uc_seed):
     """Solve for optimal uc given in log uc space.
 
-    max_{c, n} c**(1-1/eis) + vphi*n**(1+1/frisch) s.t. c = w*n + T
+    max_{c, n} c**(1-1/sigma_c) + vphi*n**(1+1/frisch) s.t. c = w*n + T
     """
-
-    def solve_uc_cond(cont):
-        return amax(cont[0]) > 1e-11
-
-    def solve_uc_body(cont):
-        ne, log_uc = cont
-        ne, ne_p = netexp(log_uc, w, T, eis, frisch, vphi)
-        log_uc -= ne / ne_p
-        return ne, log_uc
-
     log_uc = jnp.log(uc_seed)
-
-    _, log_uc = jax.lax.while_loop(
-        solve_uc_cond, solve_uc_body, (uc_seed, log_uc))
-
+    pars = w, T, sigma_c, frisch, vphi
+    _, log_uc, _ = jax.lax.while_loop(
+        solve_uc_cond, solve_uc_body, (uc_seed, log_uc, pars))
     return jnp.exp(log_uc)
 
 
-def netexp(log_uc, w, T, eis, frisch, vphi):
+def netexp(log_uc, w, T, sigma_c, frisch, vphi):
     """Return net expenditure as a function of log uc and its derivative
     """
-    c, n = cn(jnp.exp(log_uc), w, eis, frisch, vphi)
+    c, n = cn(jnp.exp(log_uc), w, sigma_c, frisch, vphi)
     ne = c - w * n - T
 
-    # c and n have elasticities of -eis and frisch wrt log u'(c)
-    c_loguc = -eis * c
+    # c and n have elasticities of -sigma_c and frisch wrt log u'(c)
+    c_loguc = -sigma_c * c
     n_loguc = frisch * n
     netexp_loguc = c_loguc - w * n_loguc
 

@@ -4,7 +4,7 @@
 
 name: 'nk_capital'
 description: 'A medium scale NK model with capital, capital adjustement costs, capital utilization costs, and habits'
-variables: [ y, c, pi, R, Rn, Rk, beta, w, q, mc, k, i, n, z, zi, lamda, g, b, qb, t, ds, bprof, dd, MPK, cap_util, cap_util_costs, y_prod, pitilde, piwtilde, piw, price_markup, wage_markup, Rexo ]
+variables: [ y, c, pi, R, Rn, Rk, beta, w, q, mc, k, i, n, z, zi, lamda, g, b, qb, t, ds, bprof, dd, MPK, cap_util, cap_util_costs, y_prod, pitilde, piwtilde, piw, price_markup, wage_markup, Rstar ]
 parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, chi, cap_util_param, psi_w, omega, omega_w, theta_w, rho_beta, rho_z, rho_g, rho_p, rho_w, rho_i, rho_r ]
 shocks: [ e_beta, e_z, e_g, e_p, e_w, e_i, e_r ]
 
@@ -42,14 +42,14 @@ equations:
     ## policy block
     ~ g + (1+kappa*qb)/pi*bLag = qb*b + t # government budget constraint
     ~ b = ySS/qbSS # level of outstanding government bonds, i.e. level of government debt
-    ~ Rn = (RSS*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho)*RnLag**rho*Rexo # Taylor rule for the notional nominal interest rate
+    ~ Rn = (Rstar*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho)*RnLag**rho # Taylor rule for the notional nominal interest rate
     ~ R = max(1, Rn) # (actual) nominal interest rate, subject to ZLB
 
     ## exogenous block
     ~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta # discount factor shock
     ~ log(z) = rho_z*log(zLag) + e_z # technology shock
     ~ log(zi) = rho_z*log(ziLag) + e_i # shock to marginal efficiency of investment
-    ~ log(Rexo) = rho_r*log(RexoLag) + e_r # shock to marginal efficiency of investment
+    ~ log(Rstar) = (1-rho_r)*log(RSS) + rho_r*log(RstarLag) + e_r # shock to marginal efficiency of investment
     ~ log(price_markup) = (1-rho_p)*log(price_markupSS) + rho_p*log(price_markupLag) + e_p # price markup shock
     ~ log(wage_markup) = (1-rho_w)*log(wage_markupSS) + rho_w*log(wage_markupLag) + e_w # wage markup shock
     ~ g = (0.2*ySS)**(1-rho_g)*gLag**rho_g*exp(e_g) # level of government spending
@@ -85,13 +85,13 @@ steady_state:
         wage_markup: theta_w/(theta_w - 1) # wage markup
         price_markup: theta/(theta-1)
         zi: 1.
-        Rexo: 1.
         q: 1. # steady state value of capital in consumption units
         z: 1. # steady state technology
         beta: 0.995 # steady state discount factor
         pi: 1.02^.25 # steady state inflation
         piw: 1.02^.25 # steady state wage inflation
         R: pi/beta # steady state nominal interest rate
+        Rstar: R
         Rn: R # steady state notional nominal interest rate
         Rk: R # steady state rental rate of capital
         n: 0.33 # steady state labour hours

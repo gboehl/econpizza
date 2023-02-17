@@ -42,23 +42,23 @@ def get_stst_dist_objs(model, res, maxit_backwards, maxit_forwards):
     return mess
 
 
-def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, raise_errors=True, check_rank=False, verbose=True, **newton_kwargs):
+def solve_stst(model, tol=1e-8, maxit=30, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, raise_errors=True, check_rank=False, verbose=True, **newton_kwargs):
     """Solves for the steady state.
 
     Parameters
     ----------
-    tol_newton : float, optional
+    tol : float, optional
         tolerance of the Newton method, defaults to 1e-8
-    maxit_newton : int, optional
+    maxit : int, optional
         maximum of iterations for the Newton method, defaults to 30
     tol_backwards : float, optional
-        tolerance required for backward iteration. Defaults to tol_newton
+        tolerance required for backward iteration. Defaults to tol
     maxit_backwards : int, optional
-        maximum of iterations for the backward iteration. Defaults to maxit_newton
+        maximum of iterations for the backward iteration. Defaults to maxit
     tol_forwards : float, optional
-        tolerance required for forward iteration. Defaults to tol_newton
+        tolerance required for forward iteration. Defaults to tol
     maxit_forwards : int, optional
-        maximum of iterations for the forward iteration. Defaults to maxit_newton
+        maximum of iterations for the forward iteration. Defaults to maxit
     force : bool, optional
         force recalculation of steady state, even if it is already evaluated. Defaults to False
     verbose : bool, optional
@@ -80,7 +80,6 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
     shocks = model.get("shocks") or ()
     fixed_vals = model['steady_state']['fixed_evalued']
 
-    tol_newton = tol if tol_newton is None else tol_newton
     tol_backwards = tol if tol_backwards is None else tol_backwards
     tol_forwards = 1e-2*tol if tol_forwards is None else tol_forwards
 
@@ -89,7 +88,7 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
         cond0 = jnp.allclose(model["stst_used_pars"], jnp.array(
             list(fixed_vals.values())))
         cond1 = model["stst_used_setup"] == (
-            model.get('functions_file_plain'), tol_newton, maxit_newton, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
+            model.get('functions_file_plain'), tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
         if cond0 and cond1 and not force:
             if verbose:
                 print(
@@ -127,7 +126,7 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
     # actual root finding
     x_init = jnp.array(list(model['init'].values()))
 
-    res = newton_jax(func_stst, x_init, maxit_newton, tol_newton,
+    res = newton_jax(func_stst, x_init, maxit, tol,
                      solver=solver, verbose=verbose, **newton_kwargs)
 
     # exchange those values that are identified via stst_equations
@@ -142,7 +141,7 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
     # calculate error
     err = amax(res['fun'])
 
-    if err > tol_newton or not res['success'] or check_rank:
+    if err > tol or not res['success'] or check_rank:
         jac = res['jac']
         rank = jnp.linalg.matrix_rank(jac)
         if rank:
@@ -156,7 +155,7 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
         not_var_nor_par = list(set(fixed_vals) - set(evars) - set(par))
         mess += f"Fixed value(s) ``{'``, ``'.join(not_var_nor_par)}`` not defined. " if not_var_nor_par else ''
 
-    if err > tol_newton or not res['success']:
+    if err > tol or not res['success']:
         if not res["success"] or raise_errors:
             mess = f"Steady state FAILED (error is {err:1.2e}). {res['message']} {mess}"
         else:
@@ -172,7 +171,7 @@ def solve_stst(model, tol=1e-8, tol_newton=None, maxit_newton=30, tol_backwards=
     model["stst_used_pars"] = jnp.array(
         list(model['steady_state']['fixed_evalued'].values()))
     model["stst_used_setup"] = model.get(
-        'functions_file_plain'), tol_newton, maxit_newton, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
+        'functions_file_plain'), tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
     model["stst_used_res"] = res
     model["stst_used_success"] = res['success']
 

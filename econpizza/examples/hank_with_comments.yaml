@@ -19,8 +19,8 @@ definitions: |
     from econpizza.tools import percentile, jax_print
 
 # these lists define the relevant models objects
-variables: [ Div, Y, Yprod, w, pi, Rn, Rs, R, Rstar, Tax, Z, beta, C, n, B, Top10C, Top10A ]
-parameters: [ eis, frisch, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_Z ]
+variables: [ div, y, y_prod, w, pi, R, Rn, Rr, Rstar, tax, z, beta, C, n, B, Top10C, Top10A ]
+parameters: [ sigma_c, frisch, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_z ]
 shocks: [ e_beta, e_rstar, e_z ]
 
 # this defines all distribution objects (so far, only one distribution is supported)
@@ -43,7 +43,7 @@ distributions:
       # a variable named a_grid with the following properties will be made available during decisions calls and distributions calls
       grid_variables: a_grid
       min: 0.0
-      max: 60
+      max: 50
       n: 50
 
 # stage one: iterating the decisions function backwards
@@ -56,9 +56,9 @@ decisions:
     # iteration starts with the last in time T and then iterating backwards
     # each call takes the previous input (Va as VaPrime) as given
     # these functions are defined in functions_file
-    T = transfers(skills_stationary, Div, Tax, skills_grid)
+    trans = transfers(skills_stationary, div, tax, skills_grid)
     VaPrimeExp = skills_transition @ VaPrime
-    Va, a, c = hh(VaPrimeExp, a_grid, skills_grid, w, n, T, R, beta, eis, frisch)
+    Va, a, c = hh(VaPrimeExp, a_grid, skills_grid, w, n, trans, Rr, beta, sigma_c, frisch)
   # the 'outputs' values are stored for the following stages
   # NOTE: each output must have the same shape as the distribution (here: 4,40)
   outputs: [a,c]
@@ -83,7 +83,7 @@ aux_equations: |
     top10c = 1 - percentile(c, dist, .9)
     top10a = 1 - percentile(a, dist, .9)
 
-# final/mail stage: aggregate equations
+# final/main stage: aggregate equations
 equations:
     # definitions
     ~ C = aggr_c
@@ -91,31 +91,32 @@ equations:
     ~ Top10A = top10a
 
     # firms
-    ~ n = Yprod / Z # production function
-    ~ Div = - w * n + (1 - psi*(pi/piSS - 1)**2/2)*Yprod # dividends
-    ~ Y = (1 - psi*(pi/piSS - 1)**2/2)*Yprod # "effective" output
-    ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*piPrime/Rn*(piPrime/piSS - 1)*piPrime/piSS*YprodPrime/Yprod # NKPC
+    ~ n = y_prod/z # production function
+    ~ div = -w*n + (1 - psi*(pi/piSS - 1)**2/2)*y_prod # dividends
+    ~ y = (1 - psi*(pi/piSS - 1)**2/2)*y_prod # "effective" output
+    ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*piPrime/R*(piPrime/piSS - 1)*piPrime/piSS*y_prodPrime/y_prod # NKPC
 
     # government
-    ~ R = RsLag/pi # real rate ex-post
-    ~ Rs = (Rstar*((pi/piSS)**phi_pi)*((Y/YLag)**phi_y))**(1-rho)*RsLag**rho # MP rule on shadow nominal rate
-    ~ Rn = maximum(1, Rs) # ZLB
-    ~ Tax = (R-1) * BLag # balanced budget
+    ~ tax = (Rr-1)*BLag # balanced budget
+    ~ Rr = RLag/pi # real ex-post bond return
+    ~ Rn = (Rstar*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*RnLag**rho # MP rule on shadow nominal rate
+    #~ R = maximum(1, Rn) # ZLB
+    ~ R = Rn
 
     # clearings
-    ~ C = Y # market clearing
+    ~ C = y # market clearing
     ~ B = aggr_a # bond market clearing
     ~ w**frisch = n # labor market clearing
 
     # exogenous
     ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # exogenous beta
     ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_rstar*exp(e_rstar) # exogenous rstar
-    ~ Z = ZSS*(ZLag/ZSS)**rho_Z*exp(e_z) # exogenous technology
+    ~ z = zSS*(zLag/zSS)**rho_z*exp(e_z) # exogenous technology
 
 steady_state:
     fixed_values:
         # parameters:
-        eis: 0.5
+        sigma_c: 0.5
         frisch: 0.5
         theta: 6.
         psi: 96
@@ -124,20 +125,26 @@ steady_state:
         rho: .8
         rho_beta: .9
         rho_rstar: .9
-        rho_Z: .8
+        rho_z: .8
 
         # steady state
-        Y: 1.0
+        y: 1.0
+        y_prod: 1.0
+        C: 1.0
         pi: 1.0
-        beta: 0.97
+        beta: 0.98
         B: 5.6
         # definitions can be recursive: theta is defined above
         w: (theta-1)/theta
         n: w**frisch
+        div: 1 - w*n
+        z: y/n
 
     init_guesses:
+        z: .8
         Rstar: 1.002
-        Div: 1 - w
-        Tax: 0.028
+        Rr: Rstar
+        Rn: Rstar
         R: Rstar
+        tax: 0.028
         VaPrime: hh_init(a_grid, skills_stationary)

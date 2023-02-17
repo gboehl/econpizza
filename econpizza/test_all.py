@@ -114,7 +114,7 @@ def test_hank_labor(create=False):
     mod = ep.load(mod_dict)
     _ = mod.solve_stst(tol=1e-8)
 
-    shocks = ('e_beta', .01)
+    shocks = ('e_beta', .005)
 
     x, flag = mod.find_path(shocks)
 
@@ -137,7 +137,7 @@ def test_hank2(create=False):
     _ = mod.solve_stst(tol=1e-6)
 
     x0 = mod['stst'].copy()
-    x0['beta'] *= 1.01  # setting a shock on the discount factor
+    x0['beta'] *= 1.005  # setting a shock on the discount factor
 
     x, flag = mod.find_path(x0=x0.values())
 

@@ -1,0 +1,103 @@
+# tank.yaml ---
+#
+# Description: a medium-scale two-agent NK model (TANK) with (among others)
+# capital, capital adjustement costs, capital utilization costs, habits and
+# hand-to-mouth (h2m) households
+# Author: Gregor Boehl [mail@gregorboehl.com], Andreas Koundouros [koundouros.andreas@gmail.com]
+---
+
+name: 'tank'
+variables: [y, c, pi, R, Rn, Rk, beta, w, q, mc, k, i, n, hhdf, g, b, qb, t, ds, bprof, dd, MPK, cap_util, cap_util_costs, y_prod, c_h2m, n_h2m, c_unc, n_unc, z, pitilde, RR, prof]
+parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, chi, par_cap_util, omega, lam, rho_beta, rho_z]
+shocks: [ e_beta, e_z ]
+
+equations:
+      # HOUSEHOLD BLOCK
+      # unconstrained households
+    ~ w = chi*n_unc**eta*(c_unc - h*cLag) # labour supply
+    ~ 1 = RR*hhdf # Euler equation
+    ~ RR = R/piPrime # real interest rate
+    ~ hhdf = betaPrime*(c_unc - h*cLag)/(c_uncPrime - h*c) # stochastic discount factor
+    ~ dd + (1-lam)*c_unc + t + Phi/2*(i/iLag - 1)**2*i = (1-lam)*w*n_unc + RLag/pi*ddLag + prof + (q*(1 - Phi/2*(i/iLag - 1)**2) - 1)*i + bprof # budget constraint
+
+     # hand-to-mouth households
+    ~ w = chi*n_h2m**eta*(c_h2m - h*cLag) # labour supply
+    ~ c_h2m = w*n_h2m # budget constraint
+
+     # aggregation
+    ~ c = (1-lam)*c_unc + lam*c_h2m # aggregate consumption
+    ~ n = (1-lam)*n_unc + lam*n_h2m # aggregate labour hours
+
+      # "BANK" BLOCK
+    ~ ds = qb*b + q*k # supply of "bank" deposits, i.e. the "bank" balance sheet
+    ~ R = (1 + kappa*qbPrime)/qb # no arbitrage condition for the bond price
+    ~ R = RkPrime # no arbitrage condition for the return to capital (Rk is the return to capital as in BGG)
+    ~ bprof = ((1+kappa*qb)*bLag + Rk*qLag*kLag - RLag*ddLag)/pi # "bank' profits
+
+      # FIRMS BLOCK
+    ~ cap_util_costs = MPKSS*(cap_util - 1) + par_cap_util/(1-par_cap_util)/2*(cap_util - 1)**2 # capital utilisation costs
+    ~ MPK = MPKSS + par_cap_util/(1-par_cap_util)*(cap_util - 1)
+    ~ MPK = alpha*mc*y_prod/(cap_util*kLag) # marginal product of capital
+    ~ qLag*Rk/pi = MPK*cap_util + (1-delta)*q - cap_util_costs # return to capital
+    ~ w = (1-alpha)*mc*y_prod/n # real marginal costs
+    ~ psi*(pi/pitildeLag - 1)*pi/pitildeLag = (1-theta) + theta*mc + psi*hhdf*(piPrime/pitilde - 1)*piPrime/pitilde*y_prodPrime/y_prod # price Phillips Curve
+    ~ pitilde = piSS**omega * pi**(1-omega) # price indexation
+    ~ y_prod = (kLag*cap_util)**alpha*(z*n)**(1-alpha) # production function
+    ~ prof = (1 - mc - psi/2*(pi/pitildeLag - 1)**2)*y_prod # firm profits
+    ~ 1 = q*(1 - Phi/2*(i/iLag - 1)**2 - Phi*(i/iLag - 1)*i/iLag) + hhdf*qPrime*Phi*(iPrime/i - 1)*(iPrime/i)**2 # investment Euler equation
+    ~ k = (1-delta)*kLag + (1 - Phi/2*(i/iLag - 1)**2)*i # law of motion for capital
+
+      # POLICY BLOCK
+    ~ g + (1+kappa*qb)/pi*bLag = qb*b + t # government budget constraint
+    ~ g = 0.2*ySS # level of government spending
+    ~ b = ySS/qbSS # level of outstanding government bonds, i.e. level of government debt
+    ~ Rn = ((RSS*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho)*RnLag**rho) # Taylor rule for the notional nominal interest rate
+    ~ R = max(1, Rn) # (actual) nominal interest rate, subject to ZLB
+
+      # MARKET CLEARING BLOCK
+    ~ c + i + g + Phi/2*(i/iLag - 1)**2*i + cap_util_costs*kLag = (1-psi*(pi/pitildeLag - 1)**2/2)*y_prod # goods market clearing
+    ~ c + i + g = y # definition of "effective" output
+
+      # EXOGENOUS BLOCK
+    ~ z = zSS*(zLag/zSS)**rho_z*exp(e_z) # technology shock
+    ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # discount factor shock
+
+steady_state:
+    fixed_values:
+        # parameters
+        theta: 6. # elasticity of substitution
+        kappa: 0.975 # decay parameter for coupon payments of perpetual bonds
+        psi: 60. # parameter on the costs of price adjustment
+        delta: 0.025 # depreciation rate
+        alpha: 0.33 # capital income share
+        Phi: 5.6 # parameter on the costs of investment adjustment
+        phi_pi: 1.5 # Taylor rule coefficient on inflation
+        phi_y: 0.1 # Taylor rule coefficient on output
+        h: 0.44 # habit formation parameter
+        rho: 0.8 # persistence in (notional) nominal interest rate
+        eta: .33 # inverse of Frisch elasticity of labour supply
+        par_cap_util: 0.8 # second parameter on the capital utilisation costs
+        omega: 0.44 # coefficient on inflation target in inflation indexation
+        lam: 0.3 # fraction of hand-to-mouth agents
+        rho_beta: 0.8 # persistence of discount factor shock
+        rho_z: 0.8 # persistence of technology shocks
+
+        # steady state
+        beta: 0.995 # steady state discount factor
+        hhdf: beta # steady state (unconstrained) households' discount factor
+        pi: 1.02^.25 # steady state inflation
+        R: pi/beta # steady state nominal interest rate
+        Rn: R # steady state notional nominal interest rate
+        Rk: R # steady state rental rate of capital
+        n_unc: 0.33 # steady state labour hours of unconstrained households
+        mc: (theta-1)/theta # steady state marginal costs
+        q: 1. # steady state value of capital in consumption units
+        z: 1. # steady state technology
+        pitilde: pi # steady state price indexed inflation
+        cap_util: 1. # steady state capital utilisation share
+
+    init_guesses:
+        y: .99 # effective output
+        y_prod: y # output
+        chi: 1e+1 # parameter on the disutility of labour
+        MPK: alpha*mc/20 # marginal product of capital

@@ -37,6 +37,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install pytest
         python -m pip install jax
+        python -m pip install jaxlib
         python -m pip install git+https://github.com/gboehl/grgrjax
         python -m pip install -r requirements.txt
     - name: Test with pytest

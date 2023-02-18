@@ -1,23 +1,25 @@
 # -*- coding: utf-8 -*-
+"""functions for the two-asset HANK model. Heavily inspired by https://github.com/shade-econ/sequence-jacobian/#sequence-space-jacobian
+"""
 
 import jax.numpy as jnp
 from econpizza.utilities.interp import interpolate_coord, apply_coord, interpolate, lhs_equals_rhs_interpolate
 from grgrjax import jax_print
 
 
-def hh_init_Va(b_grid, a_grid, z_grid, eis):
+def hh_init_Va(b_grid, a_grid, z_grid, sigma_c):
     Va = (0.6 + 1.1 * b_grid[:, None] +
-          a_grid) ** (-1 / eis) * jnp.ones((z_grid.shape[0], 1, 1))
+          a_grid) ** (-1 / sigma_c) * jnp.ones((z_grid.shape[0], 1, 1))
     return Va
 
 
-def hh_init_Vb(b_grid, a_grid, z_grid, eis):
+def hh_init_Vb(b_grid, a_grid, z_grid, sigma_c):
     Vb = (0.5 + b_grid[:, None] + 1.2 *
-          a_grid) ** (-1 / eis) * jnp.ones((z_grid.shape[0], 1, 1))
+          a_grid) ** (-1 / sigma_c) * jnp.ones((z_grid.shape[0], 1, 1))
     return Vb
 
 
-def hh(Va_p, Vb_p, a_grid, b_grid, z_grid, e_grid, k_grid, beta, eis, rb, ra, chi0, chi1, chi2, Psi1):
+def hh(Va_p, Vb_p, a_grid, b_grid, z_grid, e_grid, k_grid, beta, sigma_c, rb, ra, chi0, chi1, chi2, Psi1):
 
     # === STEP 2: Wb(z, b', a') and Wa(z, b', a') ===
     # (take discounted expectation of tomorrow's value function)
@@ -33,7 +35,7 @@ def hh(Va_p, Vb_p, a_grid, b_grid, z_grid, e_grid, k_grid, beta, eis, rb, ra, ch
 
     # use same interpolation to get Wb and then c
     a_endo_unc = apply_coord(i, pi, a_grid)
-    c_endo_unc = apply_coord(i, pi, Wb) ** (-eis)
+    c_endo_unc = apply_coord(i, pi, Wb) ** (-sigma_c)
 
     # === STEP 4: b'(z, b, a), a'(z, b, a) for UNCONSTRAINED ===
 
@@ -58,8 +60,8 @@ def hh(Va_p, Vb_p, a_grid, b_grid, z_grid, e_grid, k_grid, beta, eis, rb, ra, ch
 
     # use same interpolation to get Wb and then c
     a_endo_con = apply_coord(i, pi, a_grid)
-    c_endo_con = ((1 + k_grid[None, :, None]) ** (-eis)
-                  * apply_coord(i, pi, Wb[:, 0:1, :]) ** (-eis))
+    c_endo_con = ((1 + k_grid[None, :, None]) ** (-sigma_c)
+                  * apply_coord(i, pi, Wb[:, 0:1, :]) ** (-sigma_c))
 
     # === STEP 6: a'(z, b, a) for CONSTRAINED ===
 
@@ -90,7 +92,7 @@ def hh(Va_p, Vb_p, a_grid, b_grid, z_grid, e_grid, k_grid, beta, eis, rb, ra, ch
     # solve out budget constraint to get consumption and marginal utility
     c = addouter(z_grid, (1 + rb) * b_grid, (1 + ra) * a_grid) - Psi - a - b
 
-    uc = c ** (-1 / eis)
+    uc = c ** (-1 / sigma_c)
     uce = e_grid[:, None, None] * uc
 
     # update derivatives of value function using envelope conditions

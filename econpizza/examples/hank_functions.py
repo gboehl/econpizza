@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+"""functions for the one-asset HANK model without labor choice. Heavily inspired by https://github.com/shade-econ/sequence-jacobian/#sequence-space-jacobian
+"""
 
 import jax
 import jax.numpy as jnp
@@ -10,7 +12,7 @@ def hh_init(a_grid, e_grid):
     return jnp.ones((e_grid.shape[0], a_grid.shape[0]))*1e-2
 
 
-def hh(Va_p, a_grid, skills_grid, w, n, T, R, beta, sigma_c, frisch):
+def hh(Va_p, a_grid, skills_grid, w, n, T, R, beta, sigma_c, eta):
     """A single backward step via EGM
     """
 
@@ -19,7 +21,7 @@ def hh(Va_p, a_grid, skills_grid, w, n, T, R, beta, sigma_c, frisch):
 
     # consumption can be readily obtained from MUC and MU of labor
     labor_inc = skills_grid[:, None]*n*w
-    c_nextgrid = ux_nextgrid**-sigma_c + labor_inc/(1 + 1/frisch)
+    c_nextgrid = ux_nextgrid**-sigma_c + labor_inc/(1 + 1/eta)
 
     # get consumption in grid space
     lhs = c_nextgrid - labor_inc + a_grid[None, :] - T[:, None]
@@ -36,7 +38,7 @@ def hh(Va_p, a_grid, skills_grid, w, n, T, R, beta, sigma_c, frisch):
     a = jnp.where(a < a_grid[0], a_grid[0], a)
 
     # calculate new MUC
-    Va = R * (c - labor_inc/(1 + 1/frisch)) ** (-1 / sigma_c)
+    Va = R * (c - labor_inc/(1 + 1/eta)) ** (-1 / sigma_c)
 
     return Va, a, c
 

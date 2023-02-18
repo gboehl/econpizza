@@ -11,7 +11,7 @@ definitions: |
     from econpizza.tools import percentile, jax_print
 
 variables: [ div, y, y_prod, w, pi, R, Rn, Rr, Rstar, tax, z, beta, C, N, B, Top10C, Top10A ]
-parameters: [ eis, frisch, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_z, vphi ]
+parameters: [ sigma_c, eta, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_z, vphi ]
 shocks: [ e_beta, e_rstar, e_z ]
 
 distributions:
@@ -35,7 +35,7 @@ decisions:
     trans = transfers(skills_stationary, div, tax, skills_grid)
     we = wages(w, skills_grid)
     VaPrimeExp = skills_transition @ VaPrime
-    Va, a, c, n = hh(VaPrimeExp, a_grid, we, trans, Rr, beta, eis, frisch, vphi)
+    Va, a, c, n = hh(VaPrimeExp, a_grid, we, trans, Rr, beta, sigma_c, eta, vphi)
     n = labor_supply(n, skills_grid)
   outputs: [a,c,n]
 
@@ -79,8 +79,8 @@ equations:
 steady_state:
     fixed_values:
         # parameters
-        eis: 0.5
-        frisch: 0.5
+        sigma_c: 0.5
+        eta: 0.5
         theta: 6.
         psi: 96
         phi_pi: 2
@@ -107,4 +107,4 @@ steady_state:
         Rr: Rstar
         we: wages(w, skills_grid)
         T: transfers(skills_stationary, div, tax, skills_grid)
-        VaPrime: hh_init(a_grid, we, Rr, eis, T)
+        VaPrime: hh_init(a_grid, we, Rr, sigma_c, T)

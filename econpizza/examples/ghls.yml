@@ -4,7 +4,7 @@
 name: 'ghls'
 description: 'A model heavily inspired by "The Emprirical Implications of the Interest-Rate Lower Bound" (Gust et al., Fed WP 2012-083)'
 variables: [ p, y_prod, g, pi, pitilde, lamda, y, mc, w, n, rk, cap_util, k , c, R, i, rp, piw, piwtilde, q, cap_util_costs, Rn]
-parameters: [ kappa, beta , epsilonp, phip, alpha, a, h, epsilonw, phiw, chi, eta, aw, delta, phii, sigmaa , rho_r, rho_rp, phi_pi, phi_y]
+parameters: [ kappa, beta , epsilonp, phip, alpha, a, h, epsilonw, phiw, chi, sigma_l, aw, delta, phii, sigmaa , rho_r, rho_rp, phi_pi, phi_y]
 shocks: [ e_rp ]
 
 equations:
@@ -19,7 +19,7 @@ equations:
     # Households
     ~ lamda = 1/(c-h*cLag) - beta*h/(cPrime-h*c) # stochastic discount factor
     ~ lamda = beta*R*rp*(1/piPrime)*lamdaPrime # Euler equation
-    ~ phiw*(piw/piwtilde - 1)*piw/piwtilde = beta*phiw*((piwPrime/piwtildePrime - 1)*piwPrime/piwtildePrime)+n*lamda*epsilonw*(chi*((n**eta)/lamda)-(epsilonw-1)/epsilonw*w/p) # wage Phillips curve
+    ~ phiw*(piw/piwtilde - 1)*piw/piwtilde = beta*phiw*((piwPrime/piwtildePrime - 1)*piwPrime/piwtildePrime)+n*lamda*epsilonw*(chi*((n**sigma_l)/lamda)-(epsilonw-1)/epsilonw*w/p) # wage Phillips curve
     ~ piw = w/wLag*pi # wage inflation
     ~ piwtilde = piSS**aw*piLag**(1-aw) # wage inflation indexation
     ~ q = beta*lamdaPrime/lamda*rkPrime*cap_utilPrime-cap_util_costsPrime+(1-delta)*qPrime # HH optimal choice of physical capital
@@ -54,7 +54,7 @@ steady_state:
         phi_y: 0.1 # Taylor rule coefficient on output
         h: 0.52 # habit formation parameter
         rho_r: .8 # persistence in (notional) nominal interest rate
-        eta: 0.33 # inverse of Frisch elasticity of labour supply
+        sigma_l: 2. # inverse of Frisch elasticity of labour supply
         rho_rp: .8 # persistence of risk premium shock
         a: .44 # coefficient on inflation target in price indexation
         aw: .55 # coefficient on inflation target in wage inflation indexation

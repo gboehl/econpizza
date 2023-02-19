@@ -20,7 +20,7 @@ definitions: |
 
 # these lists define the relevant models objects
 variables: [ div, y, y_prod, w, pi, R, Rn, Rr, Rstar, tax, z, beta, C, n, B, Top10C, Top10A ]
-parameters: [ sigma_c, eta, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_z ]
+parameters: [ sigma_c, sigma_l, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_z ]
 shocks: [ e_beta, e_rstar, e_z ]
 
 # this defines all distribution objects (so far, only one distribution is supported)
@@ -58,7 +58,7 @@ decisions:
     # these functions are defined in functions_file
     trans = transfers(skills_stationary, div, tax, skills_grid)
     VaPrimeExp = skills_transition @ VaPrime
-    Va, a, c = hh(VaPrimeExp, a_grid, skills_grid, w, n, trans, Rr, beta, sigma_c, eta)
+    Va, a, c = hh(VaPrimeExp, a_grid, skills_grid, w, n, trans, Rr, beta, sigma_c, sigma_l)
   # the 'outputs' values are stored for the following stages
   # NOTE: each output must have the same shape as the distribution (here: 4,40)
   outputs: [a,c]
@@ -106,7 +106,7 @@ equations:
     # clearings
     ~ C = y # market clearing
     ~ B = aggr_a # bond market clearing
-    ~ w**eta = n # labor market clearing
+    ~ w**sigma_l = n # labor market clearing
 
     # exogenous
     ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # exogenous beta
@@ -116,8 +116,8 @@ equations:
 steady_state:
     fixed_values:
         # parameters:
-        sigma_c: 0.5
-        eta: 0.5
+        sigma_c: 2.
+        sigma_l: 1.5
         theta: 6.
         psi: 96
         phi_pi: 1.5
@@ -136,7 +136,7 @@ steady_state:
         B: 5.6
         # definitions can be recursive: theta is defined above
         w: (theta-1)/theta
-        n: w**eta
+        n: w**sigma_l
         div: 1 - w*n
         z: y/n
 

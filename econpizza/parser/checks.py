@@ -21,25 +21,27 @@ def check_if_defined(evars, eqns, skipped_vars):
     return
 
 
-def check_dublicates_and_determinancy(evars, eqns):
-    """Check if there are dublicates and the numbers of eqns/vars match.
+def check_dublicates(evars):
+    """Check if there are dublicates
     """
-
     dubs = [x for i, x in enumerate(evars) if x in evars[:i]]
     dubmess = (
         " The variables list contains dublicate(s): %s" % ", ".join(
             dubs) if dubs else ""
     )
+    if dubs:
+        print("(parse:) Warning%s" % dubmess)
+    return
 
+
+def check_determinancy(evars, eqns):
+    """Check if the numbers of eqns/vars match.
+    """
     sorted_evars = evars[:] = sorted(list(set(evars)), key=str.lower)
-
     if len(sorted_evars) != len(eqns):
         raise Exception(
             f"Model has {len(sorted_evars)} variables but {len(eqns)} equations." + dubmess
         )
-    elif dubs:
-        print("(parse:) Warning%s" % dubmess)
-
     return sorted_evars
 
 

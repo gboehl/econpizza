@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """functions for the one-asset HANK model with labor choice. Heavily inspired by https://github.com/shade-econ/sequence-jacobian/#sequence-space-jacobian
 """
 
@@ -14,11 +15,11 @@ def hh_init(a_grid, we, R, sigma_c, T):
 
     coh = R * a_grid[None, :] + \
         we[:, None] + T[:, None]
-    Va = R * (0.1 * coh) ** (-1 / sigma_c)
+    Va = R * (0.1 * coh) ** (-sigma_c)
     return Va
 
 
-def hh(Va_p, a_grid, we, T, R, beta, sigma_c, eta, vphi):
+def hh(Va_p, a_grid, we, T, R, beta, sigma_c, sigma_l, vphi):
     """A single backward step via EGM
     """
 
@@ -26,38 +27,38 @@ def hh(Va_p, a_grid, we, T, R, beta, sigma_c, eta, vphi):
     uc_nextgrid = beta * Va_p
     # back out consumption and labor supply from MUC
     c_nextgrid, n_nextgrid = cn(
-        uc_nextgrid, we[:, None], sigma_c, eta, vphi)
+        uc_nextgrid, we[:, None], sigma_c, sigma_l, vphi)
 
     # get consumption and labor supply in grid space
     lhs = c_nextgrid - we[:, None] * n_nextgrid + \
-        a_grid[None, :] - T[:, None]
+        a_grid[None, :] - transfers[:, None]
     rhs = R * a_grid
 
     c = interpolate(lhs, rhs, c_nextgrid)
     n = interpolate(lhs, rhs, n_nextgrid)
 
     # get todays distribution of assets
-    a = rhs + we[:, None] * n + T[:, None] - c
+    a = rhs + we[:, None] * n + transfers[:, None] - c
     # fix consumption and labor for constrained households
     c, n = jnp.where(a < a_grid[0], solve_cn(
-        we[:, None], rhs + T[:, None] - a_grid[0], sigma_c, eta, vphi, Va_p), jnp.array((c, n)))
+        we[:, None], rhs + transfers[:, None] - a_grid[0], sigma_c, sigma_l, vphi, Va_p), jnp.array((c, n)))
     a = jnp.where(a > a_grid[0], a, a_grid[0])
 
     # calculate new MUC
-    Va = R * c ** (-1 / sigma_c)
+    Va = R * c ** (-sigma_c)
 
     return Va, a, c, n
 
 
-def cn(uc, w, sigma_c, eta, vphi):
+def cn(uc, w, sigma_c, sigma_l, vphi):
     """Return optimal c, n as function of u'(c) given parameters
     """
-    return jnp.array((uc ** (-sigma_c), (w * uc / vphi) ** eta))
+    return jnp.array((uc ** (-1/sigma_c), (w * uc / vphi) ** (1/sigma_l)))
 
 
-def solve_cn(w, T, sigma_c, eta, vphi, uc_seed):
-    uc = solve_uc(w, T, sigma_c, eta, vphi, uc_seed)
-    return cn(uc, w, sigma_c, eta, vphi)
+def solve_cn(w, transfers, sigma_c, sigma_l, vphi, uc_seed):
+    uc = solve_uc(w, transfers, sigma_c, sigma_l, vphi, uc_seed)
+    return cn(uc, w, sigma_c, sigma_l, vphi)
 
 
 def solve_uc_cond(carry):
@@ -72,27 +73,26 @@ def solve_uc_body(carry):
     return ne, log_uc, pars
 
 
-def solve_uc(w, T, sigma_c, eta, vphi, uc_seed):
+def solve_uc(w, transfers, sigma_c, sigma_l, vphi, uc_seed):
     """Solve for optimal uc given in log uc space.
-
-    max_{c, n} c**(1-1/sigma_c) + vphi*n**(1+1/eta) s.t. c = w*n + T
+    max_{c, n} c**(1-sigma_c) + vphi*n**(1+sigma_l) s.t. c = w*n + T
     """
     log_uc = jnp.log(uc_seed)
-    pars = w, T, sigma_c, eta, vphi
+    pars = w, transfers, sigma_c, sigma_l, vphi
     _, log_uc, _ = jax.lax.while_loop(
         solve_uc_cond, solve_uc_body, (uc_seed, log_uc, pars))
     return jnp.exp(log_uc)
 
 
-def netexp(log_uc, w, T, sigma_c, eta, vphi):
+def netexp(log_uc, w, transfers, sigma_c, sigma_l, vphi):
     """Return net expenditure as a function of log uc and its derivative
     """
-    c, n = cn(jnp.exp(log_uc), w, sigma_c, eta, vphi)
-    ne = c - w * n - T
+    c, n = cn(jnp.exp(log_uc), w, sigma_c, sigma_l, vphi)
+    ne = c - w * n - transfers
 
-    # c and n have elasticities of -sigma_c and eta wrt log u'(c)
-    c_loguc = -sigma_c * c
-    n_loguc = eta * n
+    # c and n have elasticities of -1/sigma_c and 1/sigma_l wrt log u'(c)
+    c_loguc = -1/sigma_c * c
+    n_loguc = 1/sigma_l * n
     netexp_loguc = c_loguc - w * n_loguc
 
     return ne, netexp_loguc

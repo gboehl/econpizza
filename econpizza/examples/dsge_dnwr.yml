@@ -4,7 +4,7 @@
 name: 'dsge_dnwr'
 description: 'A medium scale NK model with capital, capital adjustement costs, capital utilization costs, habits and downward nominal wage rigidity [DNWR].'
 variables: [y, c, pi, R, Rn, beta, w, q, mc, k, i, n, hhdf, g, eps_g, MPK, cap_util, cap_util_costs, y_prod, a, u]
-parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, rho_beta, chi, par_cap_util, rho_a, iota, rho_g, rho_u ]
+parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, sigma_l, rho_beta, chi, par_cap_util, rho_a, iota, rho_g, rho_u ]
 shocks: [e_beta, e_a, e_g, e_u]
 
 equations:
@@ -13,7 +13,7 @@ equations:
     ~ hhdf = betaPrime*(c - h*cLag)/(cPrime - h*c)
 
       # DWNR
-    ~ w = max(iota*wLag/pi, chi*n**eta*(c - h*cLag))
+    ~ w = max(iota*wLag/pi, chi*n**sigma_l*(c - h*cLag))
 
       # capital
     ~ 1 = q*(1 - Phi/2*(i/iLag - 1)**2 - Phi*(i/iLag - 1)*i/iLag) + hhdf*qPrime*Phi*(iPrime/i - 1)*(iPrime/i)**2
@@ -58,11 +58,11 @@ steady_state:
         phi_y: 0.1
         h: .44
         rho: 0.8
-        eta: .33
+        sigma_l: 1.5
         rho_beta: .8
         par_cap_util: 0.8
         rho_a: 0.8
-        iota: 1
+        iota: 1.
         rho_g: 0.8
         rho_u: 0.8
 
@@ -78,7 +78,6 @@ steady_state:
         Rn: R
         cap_util: 1
 
-
     init_guesses:
-        chi: 1e+1
+        chi: 5e+1
         MPK: alpha*mc/20

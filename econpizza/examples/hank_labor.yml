@@ -1,3 +1,4 @@
+
 # Author: Gregor Boehl [mail@gregorboehl.com]
 ---
 
@@ -9,9 +10,8 @@ functions_file: 'hank_labor_functions.py'
 definitions: |
     from jax.numpy import log, maximum
     from econpizza.tools import percentile, jax_print
-
 variables: [ div, y, y_prod, w, pi, R, Rn, Rr, Rstar, tax, z, beta, C, N, B, Top10C, Top10A ]
-parameters: [ sigma_c, eta, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_z, vphi ]
+parameters: [ sigma_c, sigma_l, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_z, vphi ]
 shocks: [ e_beta, e_rstar, e_z ]
 
 distributions:
@@ -35,7 +35,7 @@ decisions:
     trans = transfers(skills_stationary, div, tax, skills_grid)
     we = wages(w, skills_grid)
     VaPrimeExp = skills_transition @ VaPrime
-    Va, a, c, n = hh(VaPrimeExp, a_grid, we, trans, Rr, beta, sigma_c, eta, vphi)
+    Va, a, c, n = hh(VaPrimeExp, a_grid, we, trans, Rr, beta, sigma_c, sigma_l, vphi)
     n = labor_supply(n, skills_grid)
   outputs: [a,c,n]
 
@@ -47,7 +47,6 @@ aux_equations: |
     # calculate consumption and wealth share of top-10% cumsumers
     top10c = 1 - percentile(c, dist, .9)
     top10a = 1 - percentile(a, dist, .9)
-
 equations:
     # definitions
     ~ C = aggr_c
@@ -79,8 +78,8 @@ equations:
 steady_state:
     fixed_values:
         # parameters
-        sigma_c: 0.5
-        eta: 0.5
+        sigma_c: 2.
+        sigma_l: 2.
         theta: 6.
         psi: 96
         phi_pi: 2

@@ -5,20 +5,20 @@ name: 'tank'
 Description: 'A medium-scale two-agent NK model (TANK) with (among others) capital, capital adjustement costs, capital utilization costs, habits and
  hand-to-mouth (h2m) households'
 variables: [y, c, pi, R, Rn, Rk, beta, w, q, mc, k, i, n, hhdf, g, b, qb, t, ds, bprof, dd, MPK, cap_util, cap_util_costs, y_prod, c_h2m, n_h2m, c_unc, n_unc, z, pitilde, RR, prof]
-parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, eta, chi, par_cap_util, omega, lam, rho_beta, rho_z]
+parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, sigma_l, chi, par_cap_util, omega, lam, rho_beta, rho_z]
 shocks: [ e_beta, e_z ]
 
 equations:
       # HOUSEHOLD BLOCK
       # unconstrained households
-    ~ w = chi*n_unc**eta*(c_unc - h*cLag) # labour supply
+    ~ w = chi*n_unc**sigma_l*(c_unc - h*cLag) # labour supply
     ~ 1 = RR*hhdf # Euler equation
     ~ RR = R/piPrime # real interest rate
     ~ hhdf = betaPrime*(c_unc - h*cLag)/(c_uncPrime - h*c) # stochastic discount factor
     ~ dd + (1-lam)*c_unc + t + Phi/2*(i/iLag - 1)**2*i = (1-lam)*w*n_unc + RLag/pi*ddLag + prof + (q*(1 - Phi/2*(i/iLag - 1)**2) - 1)*i + bprof # budget constraint
 
      # hand-to-mouth households
-    ~ w = chi*n_h2m**eta*(c_h2m - h*cLag) # labour supply
+    ~ w = chi*n_h2m**sigma_l*(c_h2m - h*cLag) # labour supply
     ~ c_h2m = w*n_h2m # budget constraint
 
      # aggregation
@@ -37,10 +37,10 @@ equations:
     ~ MPK = alpha*mc*y_prod/(cap_util*kLag) # marginal product of capital
     ~ qLag*Rk/pi = MPK*cap_util + (1-delta)*q - cap_util_costs # return to capital
     ~ w = (1-alpha)*mc*y_prod/n # real marginal costs
-    ~ psi*(pi/pitildeLag - 1)*pi/pitildeLag = (1-theta) + theta*mc + psi*hhdf*(piPrime/pitilde - 1)*piPrime/pitilde*y_prodPrime/y_prod # price Phillips Curve
-    ~ pitilde = piSS**omega * pi**(1-omega) # price indexation
+    ~ psi*(pi/pitilde - 1)*pi/pitilde = (1-theta) + theta*mc + psi*hhdf*(piPrime/pitildePrime - 1)*piPrime/pitildePrime*y_prodPrime/y_prod # price Phillips Curve
+    ~ pitilde = piSS**omega * piLag**(1-omega) # price indexation
     ~ y_prod = (kLag*cap_util)**alpha*(z*n)**(1-alpha) # production function
-    ~ prof = (1 - mc - psi/2*(pi/pitildeLag - 1)**2)*y_prod # firm profits
+    ~ prof = (1 - mc - psi/2*(pi/pitilde - 1)**2)*y_prod # firm profits
     ~ 1 = q*(1 - Phi/2*(i/iLag - 1)**2 - Phi*(i/iLag - 1)*i/iLag) + hhdf*qPrime*Phi*(iPrime/i - 1)*(iPrime/i)**2 # investment Euler equation
     ~ k = (1-delta)*kLag + (1 - Phi/2*(i/iLag - 1)**2)*i # law of motion for capital
 
@@ -52,7 +52,7 @@ equations:
     ~ R = max(1, Rn) # (actual) nominal interest rate, subject to ZLB
 
       # MARKET CLEARING BLOCK
-    ~ c + i + g + Phi/2*(i/iLag - 1)**2*i + cap_util_costs*kLag = (1-psi*(pi/pitildeLag - 1)**2/2)*y_prod # goods market clearing
+    ~ c + i + g + Phi/2*(i/iLag - 1)**2*i + cap_util_costs*kLag = (1-psi*(pi/pitilde - 1)**2/2)*y_prod # goods market clearing
     ~ c + i + g = y # definition of "effective" output
 
       # EXOGENOUS BLOCK
@@ -72,7 +72,7 @@ steady_state:
         phi_y: 0.1 # Taylor rule coefficient on output
         h: 0.44 # habit formation parameter
         rho: 0.8 # persistence in (notional) nominal interest rate
-        eta: .33 # inverse of Frisch elasticity of labour supply
+        sigma_l: 2. # inverse of Frisch elasticity of labour supply
         par_cap_util: 0.8 # second parameter on the capital utilisation costs
         omega: 0.44 # coefficient on inflation target in inflation indexation
         lam: 0.3 # fraction of hand-to-mouth agents

@@ -255,7 +255,9 @@ def load(
     eqns = model["equations"].copy()
 
     # check if there are dublicate variables
-    evars = check_dublicates_and_determinancy(model["variables"], eqns)
+    check_dublicates(model["variables"])
+    check_dublicates(model["parameters"])
+    evars = check_determinancy(model["variables"], eqns)
     # check if each variable is defined in time t (only defining xSS does not give a valid root)
     check_if_defined(evars, eqns, model.get('skip_check_if_defined'))
 

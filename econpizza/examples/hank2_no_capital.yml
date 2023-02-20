@@ -14,7 +14,7 @@ definitions: |
     kappa_grid = log_grid(amax=1., n=4)[::-1]
 
 variables: [ C, mc, y, pi, div, equity, n, z, w, Rr, R, Rn, Rstar, tax, g, Rb, Ra, wealth, A, B, beta ]
-parameters: [ sigma_c, sigma_l, psi_p, psi_a0, psi_a1, psi_a2, Bgov, zeta, phi_pi, phi_y, rho, rho_beta, rho_r, rho_g, rho_z, alpha, theta, chi ]
+parameters: [ sigma_c, sigma_l, psi_p, psi_a0, psi_a1, psi_a2, Bgov, zeta, phi_pi, phi_y, rho, rho_beta, rho_r, rho_g, rho_z, theta, chi ]
 shocks: [ e_beta ]
 
 distributions:

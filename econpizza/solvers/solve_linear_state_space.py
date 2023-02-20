@@ -112,14 +112,14 @@ def solve_linear_state_space(
     return model["ABC"]
 
 
-def find_path_linear_state_space(model, x0=None, shock=None, T=30, verbose=True):
+def find_path_linear_state_space(model, init_state=None, shock=None, T=30, verbose=True):
     """Solves the expected trajectory given the linear model.
 
     Parameters
     ----------
     model : dict
         model dict or PizzaModel instance
-    x0 : array
+    init_state : array
         initial state
     shock : tuple, optional
         shock in period 0 as in `(shock_name_as_str, shock_size)`. NOTE: Not (yet) implemented.
@@ -139,7 +139,7 @@ def find_path_linear_state_space(model, x0=None, shock=None, T=30, verbose=True)
     stst = jnp.array(list(model["stst"].values()))
     sel = jnp.isclose(stst, 0)
 
-    x0 = jnp.array(list(x0)) if x0 is not None else stst
+    x0 = jnp.array(list(init_state)) if init_state is not None else stst
     x0 = x0.at[~sel].set(x0[~sel] / stst[~sel] - 1)
 
     shocks = model.get("shocks") or ()

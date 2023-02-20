@@ -7,14 +7,14 @@ from ..utilities.jacobian import get_stst_jacobian
 from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 
 
-def find_path_linear(model, shock=None, x0=None, horizon=300, verbose=True):
+def find_path_linear(model, shock=None, init_state=None, horizon=300, verbose=True):
     """Find the linear expected trajectory given an initial state.
 
     Parameters
     ----------
     model : dict
         model dict or PizzaModel instance
-    x0 : array
+    init_state : array
         initial state
     shock : tuple, optional
         shock in period 0 as in `(shock_name_as_str, shock_size)`. NOTE: Not (yet) implemented.
@@ -51,7 +51,7 @@ def find_path_linear(model, shock=None, x0=None, horizon=300, verbose=True):
     # deal with shocks
     zero_shocks = jnp.zeros((horizon-1, len(shocks))).T
 
-    x0 = jnp.array(list(x0)) if x0 is not None else stst
+    x0 = jnp.array(list(init_state)) if init_state is not None else stst
 
     if model['new_model_horizon'] != horizon:
         # get derivatives via AD and compile functions

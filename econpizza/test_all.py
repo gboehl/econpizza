@@ -80,8 +80,8 @@ def test_hank(create=False):
     x0 = mod['stst'].copy()
     x0['beta'] *= 1.01  # setting a shock on the discount factor
 
-    x, flag = mod.find_path(x0=x0.values())
-    x_lin, _ = mod.find_path_linear(x0=x0.values())
+    x, flag = mod.find_path(init_state=x0.values())
+    x_lin, _ = mod.find_path_linear(init_state=x0.values())
     het_vars = mod.get_distributions(x)
     dist = het_vars['dist']
 
@@ -134,7 +134,7 @@ def test_hank2(create=False):
     x0 = mod['stst'].copy()
     x0['beta'] *= 1.005  # setting a shock on the discount factor
 
-    x, flag = mod.find_path(x0=x0.values())
+    x, flag = mod.find_path(init_state=x0.values())
 
     path = os.path.join(filepath, "test_storage", "hank2.npy")
 

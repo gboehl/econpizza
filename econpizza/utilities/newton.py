@@ -11,7 +11,7 @@ def iteration_step(carry):
     (y, dampening, cnt), (x, f, jvp_func, jacobian, factor), (_, tol, maxit) = carry
     _, v = jvp_func(x, y)
     v = jax.scipy.linalg.lu_solve(jacobian, v)
-    dampening = jnp.minimum(dampening, factor*(y.T@y)/(v.T@y))
+    dampening = jnp.minimum(dampening, factor*jnp.abs((y.T@y)/(v.T@y)))
     diff = f-v
     y += dampening*diff
     eps = amax(diff)

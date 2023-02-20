@@ -42,7 +42,7 @@ def get_stst_dist_objs(model, res, maxit_backwards, maxit_forwards):
     return mess
 
 
-def solve_stst(model, tol=1e-8, maxit=30, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, raise_errors=True, check_rank=False, verbose=True, **newton_kwargs):
+def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, raise_errors=True, check_rank=False, verbose=True, **newton_kwargs):
     """Solves for the steady state.
 
     Parameters
@@ -50,15 +50,15 @@ def solve_stst(model, tol=1e-8, maxit=30, tol_backwards=None, maxit_backwards=20
     tol : float, optional
         tolerance of the Newton method, defaults to 1e-8
     maxit : int, optional
-        maximum of iterations for the Newton method, defaults to 30
+        maximum of iterations for the Newton method, defaults to 15
     tol_backwards : float, optional
         tolerance required for backward iteration. Defaults to tol
     maxit_backwards : int, optional
-        maximum of iterations for the backward iteration. Defaults to maxit
+        maximum of iterations for the backward iteration. Defaults to 2000
     tol_forwards : float, optional
         tolerance required for forward iteration. Defaults to tol
     maxit_forwards : int, optional
-        maximum of iterations for the forward iteration. Defaults to maxit
+        maximum of iterations for the forward iteration. Defaults to 5000
     force : bool, optional
         force recalculation of steady state, even if it is already evaluated. Defaults to False
     verbose : bool, optional

@@ -29,13 +29,13 @@ distributions:
       type: endogenous
       grid_variables: b_grid
       min: 0.0
-      max: 50
+      max: 20
       n: 10
     a:
       type: endogenous
       grid_variables: a_grid
       min: 0.0
-      max: 200
+      max: 90
       n: 20
 
 decisions:
@@ -118,22 +118,24 @@ steady_state:
         Rb: Rr - zeta # bond return
         Rn: Rstar # notional interest rate
         R: Rstar # nominal interest
-        wealth: 14 # total wealth
         g: 0.2 # government spending
+        z: 1 # technology
+        wealth: 14 # total wealth
         B: 1.04 # bond supply
+        A: wealth - B
         Bgov: 2.8 # government bond supply
         equity: wealth - Bgov
+        div: equity*(Rr - 1)
         mc: (theta-1)/theta # marginal costs
-        z: 1 # technology
         w: mc # wages
+        y: div/(1 - w)
+        n: y
+        tax: ((Rr-1)*Bgov + g)/w/n
 
     init_guesses:
-        div: .14
-        chi: 2. # utility weight of labor disutility
+        chi: 4. # utility weight of labor disutility
         beta: 0.98 # discount factor
-        psi_a1: 5. # parameter on portfolio adjustment no.2
-        tax: 0.3
-        n: 3.
+        psi_a1: 4. # parameter on portfolio adjustment no.2
 
         # get rough idea on initial value functions
         z_grid: income(skills_grid, tax, w, n)

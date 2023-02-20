@@ -13,8 +13,9 @@ from ..utilities.newton import newton_for_jvp, newton_for_banded_jac
 def find_path_stacking(
     model,
     shock=None,
-    x0=None,
-    horizon=300,
+    init_state=None,
+    init_dist=None,
+    horizon=200,
     use_solid_solver=False,
     verbose=True,
     raise_errors=True,
@@ -28,8 +29,10 @@ def find_path_stacking(
         model dict or PizzaModel instance
     shock : tuple, optional
         shock in period 0 as in `(shock_name_as_str, shock_size)`
-    x0 : array, optional
-        initial state
+    init_state : array, optional
+        tial state
+    init_dist : array, optional
+        tial distribution
     horizon : int, optional
         number of periods until the system is assumed to be back in the steady state. Defaults to 300
     verbose : bool, optional
@@ -56,7 +59,9 @@ def find_path_stacking(
     shocks = model.get("shocks") or ()
 
     # get initial guess
-    x0 = jnp.array(list(x0)) if x0 is not None else stst
+    x0 = jnp.array(list(init_state)) if init_state is not None else stst
+    dist0 = jnp.array(init_dist) if init_dist is not None else jnp.array(
+        model['steady_state'].get('distributions'))
     x_stst = jnp.ones((horizon + 1, nvars)) * stst
     x_init = x_stst.at[0].set(x0)
 
@@ -105,7 +110,7 @@ def find_path_stacking(
 
         # get jvp function and steady state jacobian
         jvp_partial = jax.tree_util.Partial(
-            model['context']['jvp_func'], x0=x0, shocks=shock_series.T)
+            model['context']['jvp_func'], x0=x0, dist0=dist0, shocks=shock_series.T)
         if not use_solid_solver:
             jacobian = model['jac_factorized']
             # actual newton iterations

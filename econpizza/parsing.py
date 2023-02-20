@@ -275,16 +275,9 @@ def load(
     if isinstance(par, dict):
         raise TypeError(f'parameters must be a list and not {type(par)}.')
     model["parameters"] = par
-    model["root_options"] = {}
 
-    # collect number of foward and backward looking variables
-    model["no_fwd"] = sum(
-        var + "Prime" in "".join(model["equations"]) for var in evars)
-    model["no_bwd"] = sum(var + "Lag" in "".join(model["equations"])
-                          for var in evars)
-
-    tmpf_names = ()
     # initialize storage for all function strings
+    tmpf_names = ()
     model['func_strings'] = {}
 
     # NOTE: currently disabled

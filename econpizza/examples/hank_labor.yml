@@ -11,7 +11,7 @@ definitions: |
     from jax.numpy import log, maximum
     from econpizza.tools import percentile, jax_print
 variables: [ div, y, y_prod, w, pi, R, Rn, Rr, Rstar, tax, z, beta, C, N, B, Top10C, Top10A ]
-parameters: [ sigma_c, sigma_l, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_rstar, rho_z, vphi ]
+parameters: [ sigma_c, sigma_l, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_r, rho_z, chi ]
 shocks: [ e_beta, e_rstar, e_z ]
 
 distributions:
@@ -35,7 +35,7 @@ decisions:
     trans = transfers(skills_stationary, div, tax, skills_grid)
     we = wages(w, skills_grid)
     VaPrimeExp = skills_transition @ VaPrime
-    Va, a, c, n = hh(VaPrimeExp, a_grid, we, trans, Rr, beta, sigma_c, sigma_l, vphi)
+    Va, a, c, n = hh(VaPrimeExp, a_grid, we, trans, Rr, beta, sigma_c, sigma_l, chi)
     n = labor_supply(n, skills_grid)
   outputs: [a,c,n]
 
@@ -72,38 +72,38 @@ equations:
 
     # exogenous
     ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # exogenous beta
-    ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_rstar*exp(e_rstar) # exogenous rstar
+    ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_r*exp(e_rstar) # exogenous rstar
     ~ z = zSS*(zLag/zSS)**rho_z*exp(e_z) # exogenous technology
 
 steady_state:
     fixed_values:
-        # parameters
-        sigma_c: 2.
-        sigma_l: 2.
-        theta: 6.
-        psi: 96
-        phi_pi: 2
-        phi_y: .25
-        rho: .8
-        rho_beta: .9
-        rho_rstar: .9
-        rho_z: .8
+        sigma_c: 2. # intertemporal elasticity of substitution
+        sigma_l: 2. # inverse Frisch elasticity of labour supply
+        theta: 6. # elasticity of substitution
+        psi: 96. # parameter on the costs of price adjustment
+        phi_pi: 1.5 # Taylor rule coefficient on inflation
+        phi_y: 0.1 # Taylor rule coefficient on output
+        rho: 0.8 # persistence in (notional) nominal interest rate
+        rho_beta: 0.9 # persistence of discount factor shock
+        rho_r: 0.9 # persistence of MP shock
+        rho_z: 0.9 # persistence of technology shocks
 
         # steady state
-        y: 1.0
-        z: 1.0
-        pi: 1.0
-        Rstar: 1.002
-        B: 5.6
-        L: 1.0
+        y: 1.0 # effective output
+        N: 1. # labor supply
+        z: 1. # technology
+        pi: 1.0 # inflation
+        B: 5.6 # bond supply
+        w: (theta-1)/theta # wages
+        div: 1 - w*N # dividends
+        Rstar: 1.002 # steady stat target rate
 
     init_guesses:
-        beta: 0.98
-        vphi: 0.8
-        w: (theta-1)/theta
-        div: 1 - w
+        beta: 0.98 # discount factor
+        chi: 0.8 # utility weight on disutility of labor
         tax: 0.028
-        Rr: Rstar
+        # guess initial values
+        Rr: Rstar # real rate
         we: wages(w, skills_grid)
         T: transfers(skills_stationary, div, tax, skills_grid)
         VaPrime: hh_init(a_grid, we, Rr, sigma_c, T)

@@ -13,8 +13,8 @@ definitions: |
     from econpizza.tools import jax_print
     kappa_grid = log_grid(amax=1., n=4)[::-1]
 
-variables: [ C, mc, y, pi, pitilde, div, shares, n, z, w, k, q, Rr, R, Rn, Rstar, tax, g, Rb, Ra, wn, piwn, piwntilde, wealth, A, B, i, beta, price_markup, wage_markup, eps_i, MPK, cap_util, cap_util_costs ]
-parameters: [ sigma_c, sigma_l, psi, psi_w, delta, Bg, xi0, xi1, xi2, Phi, zeta, phi_pi, phi_y, rho, rho_beta, rho_r, rho_g, rho_z, theta_w, alpha, theta, chi, omega, omega_w, cap_util_param, iota_w ]
+variables: [ C, mc, y, pi, pitilde, div, equity, n, z, w, k, q, Rr, R, Rn, Rstar, tax, g, Rb, Ra, wn, piwn, piwntilde, wealth, A, B, i, beta, price_markup, wage_markup, eps_i, MPK, cap_util, cap_util_costs, ucee ]
+parameters: [ sigma_c, sigma_l, psi_p, psi_w, delta, Bg, psi_a0, psi_a1, psi_a2, psi_i, zeta, phi_pi, phi_y, rho, rho_beta, rho_r, rho_g, rho_z, theta_w, alpha, theta, chi, omega_p, omega_w, cap_util_param, iota_w ]
 shocks: [ e_beta, e_p, e_w, e_i, e_z, e_g, e_r ]
 
 distributions:
@@ -42,10 +42,10 @@ decisions:
   inputs: [VaPrime,VbPrime]
   calls: |
     z_grid = income(skills_grid, tax, w, n)
-    Psi1 = marginal_cost_grid(a_grid, Ra-1, xi0, xi1, xi2)
+    Psi = marginal_cost_grid(a_grid, Ra-1, psi_a0, psi_a1, psi_a2)
     VaPrimeExp = expect_transition(skills_transition, VaPrime)
     VbPrimeExp = expect_transition(skills_transition, VbPrime)
-    Va, Vb, a, b, c, uce = hh(VaPrimeExp, VbPrimeExp, a_grid, b_grid, z_grid, skills_grid, kappa_grid, beta, sigma_c, Rb-1, Ra-1, xi0, xi1, xi2, Psi1)
+    Va, Vb, a, b, c, uce = hh(VaPrimeExp, VbPrimeExp, a_grid, b_grid, z_grid, skills_grid, kappa_grid, beta, sigma_c, Rb-1, Ra-1, psi_a0, psi_a1, psi_a2, Psi)
   outputs: [a,b,c,uce]
 
 aux_equations: |
@@ -58,126 +58,124 @@ aux_equations: |
     # misc definitions
     dI = i/iLag
     dIPrime = iPrime/i
-    assetshareLag = sharesLag / ALag
+    assetshareLag = equityLag / ALag
 
 equations:
-  # definitions that should be tracked
-  ~ A = aggr_a
-  ~ B = aggr_b
-  ~ C = aggr_c
-  ~ wealth = A + B
-  ~ shares + Bg = wealth
+    # definitions block
+    ~ ucee = UCE
+    ~ A = aggr_a
+    ~ B = aggr_b
+    ~ C = aggr_c
+    ~ wealth = A + B
+    ~ equity + Bg = wealth
 
-  # firms
-  ~ psi*(pi/pitilde - 1)*pi/pitilde = 1/(1-price_markup) + price_markup/(price_markup-1)*mc + psi/RrPrime*(piPrime/pitildePrime - 1)*piPrime/pitildePrime*yPrime/y # price Phillips curve
-  ~ pitilde = piSS**omega*piLag**(1-omega) # price indexation
-  ~ divPrime + sharesPrime = shares * RrPrime
-  ~ y = (kLag*cap_util)**alpha*(z*n)**(1-alpha) # production function
-  ~ mc = w * n / (1 - alpha) / y # real marginal costs
-  ~ MPK = alpha*mc*y/(cap_util*kLag) # marginal product of capital
-  ~ q*RrPrime = MPKPrime*cap_utilPrime + (1-delta)*qPrime - cap_util_costsPrime # return to capital
-  ~ k = (1-delta)*kLag + eps_i*(1 - Phi/2*(i/iLag - 1)**2)*i # law of motion for capital
-  ~ 1 = q*eps_i*(1 - Phi/2*(i/iLag - 1)**2 - Phi*(i/iLag - 1)*i/iLag) + eps_iPrime/RrPrime*qPrime*Phi*(iPrime/i - 1)*(iPrime/i)**2 # investment Euler equation
-  ~ cap_util_costs = MPKSS*(cap_util - 1) + cap_util_param/(1-cap_util_param)/2*(cap_util - 1)**2 # capital utilisation costs
-  ~ (1-cap_util_param)*(MPK - MPKSS) = cap_util_param*(cap_util - 1) # cap_util utilisation
-  ~ div = (1 - psi/2*(pi/pitilde - 1)**2)*y - w * n - i
+    # unions block
+    # (IRFs of wages are "ragged" because they are affected by the real rate via taxes)
+    ~ piwn = wn/wnLag*pi # wage inflation
+    ~ w = max(iota_w*wLag/pi, wn) # dowards nominal wage rigidity
+    ~ psi_w*(piwn/piwntilde - 1)*piwn/piwntilde = wage_markup/(wage_markup-1)*chi*n**(1+sigma_l) + 1/(1-wage_markup)*(1 - tax)*w*n*UCE + psi_w*beta*(piwnPrime/piwntildePrime - 1)*piwnPrime/piwntildePrime # wage Phillips curve
+    ~ piwntilde = piwnSS**omega_w*piwn**(1-omega_w) # wage indexation
 
-  # government
-  ~ Rn = (Rstar*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho)*RnLag**rho # Taylor rule for the notional nominal interest rate
-  ~ R = max(1,Rn) # ZLB
-  ~ Rb = Rr - zeta # real bond returns
-  ~ Ra = assetshareLag * (div + shares) / sharesLag + (1 - assetshareLag) * Rr # real asset returns
-  ~ Rr = RLag/pi # ex-post real rate
-  ~ tax = ((Rr-1) * Bg + g) / w / n # government budget
+    # firms
+    ~ psi_p*(pi/pitilde - 1)*pi/pitilde = 1/(1-price_markup) + price_markup/(price_markup-1)*mc + psi_p/RrPrime*(piPrime/pitildePrime - 1)*piPrime/pitildePrime*yPrime/y # price Phillips curve
+    ~ pitilde = piSS**omega_p*piLag**(1-omega_p) # price indexation
+    ~ y = (kLag*cap_util)**alpha*(z*n)**(1-alpha) # production function
+    ~ k = (1-delta)*kLag + eps_i*(1 - psi_i/2*(i/iLag - 1)**2)*i # law of motion for capital
+    ~ 1 = q*eps_i*(1 - psi_i/2*(i/iLag - 1)**2 - psi_i*(i/iLag - 1)*i/iLag) + eps_iPrime/RrPrime*qPrime*psi_i*(iPrime/i - 1)*(iPrime/i)**2 # investment Euler equation
+    ~ q*RrPrime = MPKPrime*cap_utilPrime + (1-delta)*qPrime - cap_util_costsPrime # return to capital
+    ~ mc = w * n / (1 - alpha) / y # real marginal costs
+    ~ MPK = alpha*mc*y/(cap_util*kLag) # marginal product of capital
+    ~ cap_util_costs = MPKSS*(cap_util - 1) + cap_util_param/(1-cap_util_param)/2*(cap_util - 1)**2 # capital utilisation costs
+    ~ (1-cap_util_param)*(MPK - MPKSS) = cap_util_param*(cap_util - 1) # cap_util utilisation
 
-  # unions
-  ~ piwn = wn/wnLag*pi # wage inflation
-  ~ w = max(iota_w*wLag/pi, wn) # dowards nominal wage rigidity
-  ~ psi_w*(piwn/piwntilde - 1)*piwn/piwntilde = wage_markup/(1-wage_markup)*chi*n**(1+sigma_l) + 1/(1-wage_markup)*(1 - tax)*w*n*UCE + psi_w*beta*(piwnPrime/piwntildePrime - 1)*piwnPrime/piwntildePrime # wage Phillips curve
-  ~ piwntilde = piwnSS**omega_w*piwn**(1-omega_w) # wage indexation
+    ## "finance" block
+    ~ Rb = Rr - zeta # real bond returns
+    ~ Ra = assetshareLag * (div + equity) / equityLag + (1 - assetshareLag) * Rr # real asset returns
+    ~ div = (1 - psi_p/2*(pi/pitilde - 1)**2)*y - w * n - i
+    ~ divPrime + equityPrime = equity * RrPrime
 
-  # exogenous process
-  ~ log(Rstar) = (1-rho_r)*log(RstarSS) + rho_r*log(RstarLag) + e_r # shock to the natural rate of interest
-  ~ log(eps_i) = rho_i*log(eps_iLag) + e_i # shock to marginal efficiency of investment
-  ~ log(price_markup) = (1-rho_p)*log(price_markupSS) + rho_p*log(price_markupLag) + e_p # price markup shock
-  ~ log(wage_markup) = (1-rho_w)*log(wage_markupSS) + rho_w*log(wage_markupLag) + e_w # wage markup shock
-  ~ g = (gSS)**(1-rho_g)*gLag**rho_g*exp(e_g) # level of government spending
-  ~ log(z) = (1-rho_z)*log(zSS) + rho_z*log(zLag) + e_z # technology shock
-  ~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta # discount factor shock
+    ## policy block
+    ~ Rn = (Rstar*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho)*RnLag**rho # Taylor rule for the notional nominal interest rate
+    ~ R = max(1,Rn) # ZLB
+    ~ Rr = RLag/pi # ex-post real rate
+    ~ tax = ((Rr-1) * Bg + g) / w / n # government budget
+
+    # exogenous block
+    ~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta # discount factor shock
+    ~ log(Rstar) = (1-rho_r)*log(RstarSS) + rho_r*log(RstarLag) + e_r # shock to the natural rate of interest
+    ~ log(eps_i) = rho_i*log(eps_iLag) + e_i # shock to marginal efficiency of investment
+    ~ log(price_markup) = (1-rho_p)*log(price_markupSS) + rho_p*log(price_markupLag) + e_p # price markup shock
+    ~ log(wage_markup) = (1-rho_w)*log(wage_markupSS) + rho_w*log(wage_markupLag) + e_w # wage markup shock
+    ~ log(z) = (1-rho_z)*log(zSS) + rho_z*log(zLag) + e_z # technology shock
+    ~ g = (gSS)**(1-rho_g)*gLag**rho_g*exp(e_g) # level of government spending
 
 steady_state:
     fixed_values:
+        # parameters:
+        sigma_c: 2. # intertemporal elasticity of substitution
+        sigma_l: 2. # inverse Frisch elasticity of labour supply
+        theta_w: 11. # elasticity of substitution for wages
+        delta: 0.025 # depreciation rate
+        h: 0.74 # habit formation parameter
+        psi_i: 5.6 # parameter on the costs of investment adjustment
+        psi_p: 60. # parameter on the costs of price adjustment
+        psi_w: 96. # parameter on the costs of price adjustment
+        psi_a0: 0.25 # parameter on portfolio adjustment no.1
+        psi_a2: 2 # parameter on portfolio adjustment no.3
+        phi_pi: 1.5 # Taylor rule coefficient on inflation
+        zeta: 0.005 # liquidity premium
+        phi_y: 0.1 # Taylor rule coefficient on output
+        rho: 0.8 # persistence in (notional) nominal interest rate
+        cap_util_param: 0.8 # parameter on the capital utilisation costs
+        omega_p: 0.66 # coefficient on steady state inflation in price indexation
+        omega_w: 0.66 # coefficient on steady state wage inflation in wage indexation
+        iota_w: 1. # degree of dowards nominal wage rigidity
+        rho_beta: 0.8 # persistence of discount factor shock
+        rho_z: 0.8 # persistence of technology shocks
+        rho_p: 0.8 # persistence of price MU shock
+        rho_w: 0.8 # persistence of wage MU shock
+        rho_g: 0.8 # persistence of government spending shock
+        rho_i: 0.8 # persistence of MEI shock
+        rho_r: 0.8 # persistence of MP shock
 
-      # parameters
-      sigma_c: 2.
-      sigma_l: 2.
-      psi: 96
-      psi_w: 96
-      delta: 0.02
-      Bg: 2.8
-      xi0: 0.25
-      xi2: 2
-      Phi: 5.6 # parameter on the costs of investment adjustment
-      zeta: 0.005
-      phi_pi: 1.5
-      phi_y: 1.5
-      rho: 0.8
-      rho_beta: 0.8
-      rho_r: 0.8
-      rho_g: 0.8
-      rho_z: 0.8
-      rho_w: 0.8
-      rho_p: 0.8
-      rho_i: 0.8
-      theta_w: 11. # elasticity of substitution for wages
-      omega_w: 0.66 # coefficient on steady state wage inflation in wage indexation
-      omega: 0.44 # coefficient on steady state inflation in price indexation
-      cap_util_param: 0.8 # parameter on the capital utilisation costs
-      iota_w: 1. # degree of dowards nominal wage rigidity
-
-      # steady state
-      wage_markup: theta_w/(theta_w-1)
-      cap_util: 1.
-      cap_util_costs: 0.
-      pi: 1.02^.25 # steady state inflation
-      piw: pi
-      pitilde: pi
-      piwntilde: pi
-      eps_i: 1.
-      y: 1.
-      n: 1.
-      q: 1.
-      k: 10.
-      i: 0.2
-      Rr: 1.0125
-      Rstar: Rr*pi
-      Rn: Rstar
-      Ra: Rr
-      Rb: Rr - zeta
-      g: 0.2
-      wealth: 14
-      B: 1.04
-
-      # 1. Solve for markup to hit total wealth
-      shares: wealth - Bg
-      mc: 1 - (Rr - 1) * (shares - k) / y
-      theta: 1/(1-mc)
-      price_markup: theta/(theta-1)
-      # 2. Solve for capital share to hit k
-      alpha: (Rr - 1 + delta) * k / y / mc
-      # 3. Solve for TFP to hit y
-      z: 1/n*y**(1/(1-alpha))*k**(-alpha/(1-alpha))
-      # 4. Solve for w such that piw = pi
-      w: mc * (1 - alpha) * y / n
+        # steady state
+        eps_i: 1. # investment technology shock
+        cap_util: 1.
+        cap_util_costs: 0.
+        y: 1. # ouput
+        n: 1. # labor
+        q: 1. # value of capital in consumption units
+        Bg: 2.8 # government bonds
+        wage_markup: theta_w/(theta_w-1)
+        pi: 1.02^.25 # steady state inflation
+        piw: pi # wage inflation
+        pitilde: pi
+        piwntilde: pi
+        k: 10. # capital
+        i: delta*k # investment
+        Rr: 1.0125 # real rate
+        Rstar: Rr*pi # target nominal rate
+        Rn: Rstar # nominal rate
+        Ra: Rr # asset return
+        Rb: Rr - zeta # bond return
+        g: 0.2 # government spending
+        B: 1.04 # bonds
+        wealth: 14 # total wealth
+        equity: wealth - Bg # equity shares
+        mc: 1 - (Rr - 1) * (equity - k) / y # marginal costs
+        alpha: (Rr - 1 + delta) * k / y / mc # labor share
+        z: 1/n*y**(1/(1-alpha))*k**(-alpha/(1-alpha)) # TFP
+        w: mc * (1 - alpha) * y / n # wages
+        div: y - w * n - i # dividents
+        price_markup: 1/mc
 
     init_guesses:
-      div: .14
-      chi: 2.
-      beta: 0.98
-      xi1: 5.
-      tax: 0.3
+        chi: 2. # utility weight of labor disutility
+        beta: 0.98 # discount factor
+        psi_a1: 5. # parameter on portfolio adjustment no.2
+        tax: 0.3
 
-      # get rough idea on initial value functions
-      z_grid: income(skills_grid, tax, w, n)
-      VaPrime: hh_init_Va(b_grid, a_grid, z_grid, sigma_c)
-      VbPrime: hh_init_Vb(b_grid, a_grid, z_grid, sigma_c)
+        # get rough idea on initial value functions
+        z_grid: income(skills_grid, tax, w, n)
+        VaPrime: hh_init_Va(b_grid, a_grid, z_grid, sigma_c)
+        VbPrime: hh_init_Vb(b_grid, a_grid, z_grid, sigma_c)

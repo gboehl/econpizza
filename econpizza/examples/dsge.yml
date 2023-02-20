@@ -4,8 +4,8 @@
 
 name: 'nk_capital'
 description: 'A medium scale NK model with capital, capital adjustement costs, capital utilization costs, and habits'
-variables: [ y, c, pi, R, Rn, Rk, beta, w, q, mc, k, i, n, z, eps_i, eps_u, lamda, g, b, qb, t, ds, bprof, dd, MPK, cap_util, cap_util_costs, y_prod, pitilde, piwntilde, piwn, price_markup, wage_markup, Rstar, wn ]
-parameters: [ theta, kappa, psi, delta, alpha, Phi, phi_pi, phi_y, h, rho, sigma_l, chi, cap_util_param, psi_w, omega, omega_w, theta_w, iota_w, rho_beta, rho_z, rho_g, rho_p, rho_w, rho_i, rho_r ]
+variables: [ y, c, pi, R, Rn, Rk, beta, w, q, mc, k, i, n, z, eps_i, eps_u, lamda, g, b, qb, t, ds, bprof, dd, MPK, cap_util, cap_util_costs, y_prod, pitilde, piwntilde, piwn, price_markup, wage_markup, Rstar, wn, div ]
+parameters: [ theta, kappa, delta, alpha, h, psi_i, psi_p, psi_w, phi_pi, phi_y, rho, sigma_l, chi, cap_util_param, omega_p, omega_w, theta_w, iota_w, rho_beta, rho_z, rho_g, rho_p, rho_w, rho_i, rho_r ]
 shocks: [ e_beta, e_z, e_g, e_p, e_w, e_i, e_r, e_u ]
 
 equations:
@@ -16,29 +16,30 @@ equations:
     ~ w = max(iota_w*wLag/pi, wn) # dowards nominal wage rigidity
     ~ psi_w*(piwn/piwntilde - 1)*piwn/piwntilde = psi_w*beta*(piwnPrime/piwntildePrime - 1)*piwnPrime/piwntildePrime + n*wage_markup/(wage_markup-1)*(chi*n**sigma_l - lamda*w/wage_markup) # wage Phillips curve
     ~ piwntilde = piwnSS**omega_w*piwn**(1-omega_w) # wage indexation
-    ~ dd + c + t + Phi/2*(i/iLag - 1)**2*i + psi_w/2*(piwn/piwntilde-1)**2 = w*n + RLag/pi*ddLag + (1 - mc - psi/2*(pi/pitilde - 1)**2)*y_prod + (q*(1 - Phi/2*(i/iLag - 1)**2) - 1)*i + bprof # deposits demand via HH budget constraint
+    ~ dd + c + t + psi_w/2*(piwn/piwntilde-1)**2 = w*n + RLag/pi*ddLag + div + bprof
 
-    ## "banks" block
+    ### "banks" block
     ~ ds = qb*b + q*k # deposits supply via the "banks" balance sheet
     ~ R = (1 + kappa*qbPrime)/qb # no arbitrage condition for the bond price
-    ~ R*eps_u = Rk # no arbitrage condition for the return to capital (Rk is the return to capital as in BGG)
-    ~ bprof = ((1+kappa*qb)*bLag + RkLag*qLag*kLag - RLag*ddLag)/pi # "bank' profits
+    ~ R*eps_u = RkPrime # no arbitrage condition for the return to capital (Rk is the return to capital as in BGG)
+    ~ bprof = ((1+kappa*qb)*bLag + Rk*qLag*kLag - RLag*ddLag)/pi # "bank' profits
 
     ## market clearing block
-    ~ c + i + g + Phi/2*(i/iLag - 1)**2*i + cap_util_costs*kLag + psi_w/2*(piwn/piwntilde-1)**2 = (1-psi*(pi/piSS - 1)**2/2)*y_prod # goods market clearing
+    ~ c + i + g + cap_util_costs*kLag + psi_w/2*(piwn/piwntilde-1)**2 = (1-psi_p/2*(pi/piSS - 1)**2/2)*y_prod # goods market clearing
     ~ c + i + g = y # definition of "effective" output
 
     ## firms block
-    ~ psi*(pi/pitilde - 1)*pi/pitilde = 1/(1-price_markup) + price_markup/(price_markup-1)*mc + psi*beta*lamdaPrime/lamda*(piPrime/pitildePrime - 1)*piPrime/pitildePrime*y_prodPrime/y_prod # price Phillips curve
-    ~ pitilde = piSS**omega*piLag**(1-omega) # price indexation
+    ~ psi_p*(pi/pitilde - 1)*pi/pitilde = 1/(1-price_markup) + price_markup/(price_markup-1)*mc + psi_p*beta*lamdaPrime/lamda*(piPrime/pitildePrime - 1)*piPrime/pitildePrime*y_prodPrime/y_prod # price Phillips curve
+    ~ pitilde = piSS**omega_p*piLag**(1-omega_p) # price indexation
     ~ y_prod = (kLag*cap_util)**alpha*(z*n)**(1-alpha) # production function
-    ~ k = (1-delta)*kLag + eps_i*(1 - Phi/2*(i/iLag - 1)**2)*i # law of motion for capital
-    ~ 1 = q*eps_i*(1 - Phi/2*(i/iLag - 1)**2 - Phi*(i/iLag - 1)*i/iLag) + beta*eps_iPrime*lamdaPrime/lamda*qPrime*Phi*(iPrime/i - 1)*(iPrime/i)**2 # investment Euler equation
+    ~ k = (1-delta)*kLag + eps_i*(1 - psi_i/2*(i/iLag - 1)**2)*i # law of motion for capital
+    ~ 1 = q*eps_i*(1 - psi_i/2*(i/iLag - 1)**2 - psi_i*(i/iLag - 1)*i/iLag) + beta*eps_iPrime*lamdaPrime/lamda*qPrime*psi_i*(iPrime/i - 1)*(iPrime/i)**2 # investment Euler equation
+    ~ qLag*Rk/pi = MPK*cap_util + (1-delta)*q - cap_util_costs # return to capital
+    ~ w = (1-alpha)*mc*y_prod/n # real marginal costs
+    ~ MPK = alpha*mc*y_prod/(cap_util*kLag) # marginal product of capital
     ~ cap_util_costs = MPKSS*(cap_util - 1) + cap_util_param/(1-cap_util_param)/2*(cap_util - 1)**2 # capital utilisation costs
     ~ (1-cap_util_param)*(MPK - MPKSS) = cap_util_param*(cap_util - 1) # cap_util utilisation
-    ~ MPK = alpha*mc*y_prod/(cap_util*kLag) # marginal product of capital
-    ~ q*Rk/piPrime = MPKPrime*cap_utilPrime + (1-delta)*qPrime - cap_util_costsPrime # return to capital
-    ~ w = (1-alpha)*mc*y_prod/n # real marginal costs
+    ~ div = (1 - mc - psi_p/2*(pi/piSS - 1)**2/2)*y_prod - (1 - q*(1 - psi_i/2*(i/iLag - 1)**2))*i
 
     ## policy block
     ~ g + (1+kappa*qb)/pi*bLag = qb*b + t # government budget constraint
@@ -59,39 +60,41 @@ equations:
 steady_state:
     fixed_values:
         # parameters:
+        sigma_l: 2. # inverse Frisch elasticity of labour supply
         theta: 6. # elasticity of substitution
         theta_w: 6. # elasticity of substitution for wages
         kappa: 0.975 # decay parameter for coupon payments of perpetual bonds
-        psi: 60. # parameter on the costs of price adjustment
-        psi_w: 90. # parameter on the costs of price adjustment
         delta: 0.025 # depreciation rate
+        h: 0.74 # habit formation parameter
+        psi_i: 5.6 # parameter on the costs of investment adjustment
+        psi_p: 60. # parameter on the costs of price adjustment
+        psi_w: 96. # parameter on the costs of price adjustment
         alpha: 0.33 # capital income share
-        Phi: 5.6 # parameter on the costs of investment adjustment
         phi_pi: 1.5 # Taylor rule coefficient on inflation
         phi_y: 0.1 # Taylor rule coefficient on output
-        h: 0.74 # habit formation parameter
         rho: 0.8 # persistence in (notional) nominal interest rate
-        sigma_l: 2. # inverse Frisch elasticity of labour supply
         cap_util_param: 0.8 # parameter on the capital utilisation costs
-        omega: 0.44 # coefficient on steady state inflation in price indexation
+        omega_p: 0.44 # coefficient on steady state inflation in price indexation
         omega_w: 0.66 # coefficient on steady state wage inflation in wage indexation
         iota_w: 1. # degree of dowards nominal wage rigidity
         rho_beta: 0.9 # persistence of discount factor shock
         rho_z: 0.9 # persistence of technology shocks
         rho_p: 0.9 # persistence of price MU shock
         rho_w: 0.9 # persistence of wage MU shock
-        rho_g: 0.9 # persistence of wage MU shock
-        rho_i: 0.9 # persistence of wage MU shock
-        rho_r: 0.9 # persistence of wage MU shock
+        rho_g: 0.9 # persistence of government spending shock
+        rho_i: 0.9 # persistence of MEI shock
+        rho_r: 0.9 # persistence of MP shock
         rho_u: 0.9 # persistence of wage MU shock
 
         # steady state
-        wage_markup: theta_w/(theta_w - 1) # wage markup
-        price_markup: theta/(theta-1) # price markup
         eps_i: 1. # investment technology shock
         eps_u: 1. # risk premium shock
         q: 1. # steady state value of capital in consumption units
         z: 1. # steady state technology
+        cap_util: 1. # steady state capital utilisation
+        cap_util_costs: 0. # steady state capital utilisation costs
+        wage_markup: theta_w/(theta_w - 1) # wage markup
+        price_markup: theta/(theta-1) # price markup
         beta: 0.995 # steady state discount factor
         pi: 1.02^.25 # steady state inflation
         piwn: 1.02^.25 # steady state wage inflation
@@ -103,7 +106,6 @@ steady_state:
         mc: (theta-1)/theta # steady state marginal costs
         pitilde: pi # steady state price indexed inflation
         piwntilde: pi # steady state price indexed inflation
-        cap_util: 1. # steady state capital utilisation share
 
     init_guesses:
         chi: 1e+1 # parameter on the disutility of labour

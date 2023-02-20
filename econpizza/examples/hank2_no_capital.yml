@@ -1,0 +1,141 @@
+# Author: Gregor Boehl [mail@gregorboehl.com]
+---
+
+name: 'hank2'
+description: 'A HANK model with two assets and portfolio choice'
+functions_file: 'hank2_functions.py'
+# NOTE: the file hank_with_comments.yaml contains a detailed explanation of the objects defined here
+
+definitions: |
+    from jax.numpy import log, maximum
+    from econpizza.utilities.grids import log_grid
+    from econpizza.utilities.dists import expect_transition
+    from econpizza.tools import jax_print
+    kappa_grid = log_grid(amax=1., n=4)[::-1]
+
+variables: [ C, mc, y, pi, div, equity, n, z, w, Rr, R, Rn, Rstar, tax, g, Rb, Ra, wealth, A, B, beta ]
+parameters: [ sigma_c, sigma_l, psi_p, psi_a0, psi_a1, psi_a2, Bgov, zeta, phi_pi, phi_y, rho, rho_beta, rho_r, rho_g, rho_z, alpha, theta, chi ]
+shocks: [ e_beta ]
+
+distributions:
+  dist:
+    skills:
+      type: exogenous
+      grid_variables: [skills_grid, skills_stationary, skills_transition]
+      rho: 0.966
+      sigma: 0.92
+      n: 3
+    b:
+      type: endogenous
+      grid_variables: b_grid
+      min: 0.0
+      max: 50
+      n: 10
+    a:
+      type: endogenous
+      grid_variables: a_grid
+      min: 0.0
+      max: 200
+      n: 20
+
+decisions:
+  inputs: [VaPrime,VbPrime]
+  calls: |
+      z_grid = income(skills_grid, tax, w, n)
+      Psi1 = marginal_cost_grid(a_grid, Ra-1, psi_a0, psi_a1, psi_a2)
+      VaPrimeExp = expect_transition(skills_transition, VaPrime)
+      VbPrimeExp = expect_transition(skills_transition, VbPrime)
+      Va, Vb, a, b, c, uce = hh(VaPrimeExp, VbPrimeExp, a_grid, b_grid, z_grid, skills_grid, kappa_grid, beta, sigma_c, Rb-1, Ra-1, psi_a0, psi_a1, psi_a2, Psi1)
+  outputs: [a,b,c,uce]
+
+aux_equations: |
+      # aggregation
+      aggr_a = jnp.sum(dist*a, axis=(0,1,2))
+      aggr_b = jnp.sum(dist*b, axis=(0,1,2))
+      aggr_c = jnp.sum(dist*c, axis=(0,1,2))
+      UCE = jnp.sum(dist*uce, axis=(0,1,2))
+
+      # misc definitions
+      price_adj_cost = psi_p*(pi/piSS - 1)**2/2*y
+      assetshareLag = equityLag / ALag
+
+equations:
+    # definitions that should be tracked
+    ~ A = aggr_a
+    ~ B = aggr_b
+    ~ C = aggr_c
+    ~ wealth = A + B # total wealth equals all assets
+    ~ equity + Bgov = wealth # total wealth equals outstanding firm shares and government bonds
+
+    # firms
+    ~ psi_p*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*mc + psi_p*piPrime/R*(piPrime/piSS - 1)*piPrime/piSS*yPrime/y # NKPC
+    ~ divPrime + equityPrime = equity * RrPrime # define equity via no arbitrage
+    ~ z*n = y # production function
+    ~ mc = w/z # marginal costs
+    ~ div = y - w*n - price_adj_cost # dividents
+
+    # government
+    ~ Rn = (Rstar*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*RnLag**rho # MP rule
+    ~ R = max(1,Rn) # ZLB
+    ~ Rb = Rr - zeta # bond return
+    ~ Ra = assetshareLag * (div + equity) / equityLag + (1 - assetshareLag) * Rr # illiquid bonds' return
+    ~ Rr = RLag/pi # ex-post real rate
+    ~ tax = ((Rr-1) * Bgov + g) / w / n # government budget
+
+    # unions
+    ~ w = max(wLag/pi, chi*n**sigma_l/(1 - tax)/UCE) # dnwr
+
+    # exogenous process
+    ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_r # exogenous Rstar
+    ~ g = gSS*(gLag/gSS)**rho_g # exogenous gov. spending
+    ~ z = zSS*(zLag/zSS)**rho_z # exogenous technology
+    ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # exogenous discount factor
+
+steady_state:
+    fixed_values:
+
+      # parameters
+        sigma_c: 2. # intertemporal elasticity of substitution
+        sigma_l: 2. # inverse Frisch elasticity of labour supply
+        psi_p: 60. # parameter on the costs of price adjustment
+        psi_a0: 0.25 # parameter on portfolio adjustment no.1
+        psi_a2: 2 # parameter on portfolio adjustment no.3
+        phi_pi: 1.5 # Taylor rule coefficient on inflation
+        phi_y: 0.1 # Taylor rule coefficient on output
+        zeta: 0.005 # liquidity premium
+        rho: 0.8 # persistence in (notional) nominal interest rate
+        rho_beta: 0.8 # persistence of discount factor shock
+        rho_z: 0.8 # persistence of technology shocks
+        rho_g: 0.8 # persistence of government spending shock
+        rho_r: 0.8 # persistence of MP shock
+        theta: 6. # elasticity of substitution
+
+        # steady state
+        pi: 1.02^.25 # steady state inflation
+        Rr: 1.0125 # real interest rate
+        Rstar: Rr*pi # target interest rate
+        Ra: Rr # asset return
+        Rb: Rr - zeta # bond return
+        Rn: Rstar # notional interest rate
+        R: Rstar # nominal interest
+        wealth: 14 # total wealth
+        g: 0.2 # government spending
+        B: 1.04 # bond supply
+        Bgov: 2.8 # government bond supply
+        equity: wealth - Bgov
+        mc: (theta-1)/theta # marginal costs
+        z: 1 # technology
+        w: mc # wages
+
+    init_guesses:
+        div: .14
+        chi: 2. # utility weight of labor disutility
+        beta: 0.98 # discount factor
+        psi_a1: 5. # parameter on portfolio adjustment no.2
+        tax: 0.3
+        n: 3.
+
+        # get rough idea on initial value functions
+        z_grid: income(skills_grid, tax, w, n)
+        VaPrime: hh_init_Va(b_grid, a_grid, z_grid, sigma_c)
+        VbPrime: hh_init_Vb(b_grid, a_grid, z_grid, sigma_c)

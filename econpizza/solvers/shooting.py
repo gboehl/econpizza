@@ -20,13 +20,12 @@ def find_path_shooting(
     model,
     x0=None,
     shock=None,
-    T=30,
+    horizon=30,
     init_path=None,
     max_horizon=200,
     max_loops=100,
     max_iter=None,
     tol=1e-5,
-    root_options={},
     raise_error=False,
     verbose=True,
 ):
@@ -42,7 +41,7 @@ def find_path_shooting(
         initial state
     shock : tuple, optional
         shock in period 0 as in `(shock_name_as_str, shock_size)`
-    T : int, optional
+    horizon : int, optional
         number of periods to simulate
     init_path : array, optional
         a first guess on the trajectory. Normally not necessary
@@ -54,8 +53,6 @@ def find_path_shooting(
         number of iterations. Default is `max_horizon`. It should not be lower than that (and will raise an error). Normally it should not be higher, better use `max_loops` instead.
     tol : float, optional
         convergence criterion
-    root_options : dict, optional
-        dictionary with solver-specific options to be passed on to `scipy.optimize.root`
     verbose : bool, optional
         degree of verbosity. 0/`False` is silent
 
@@ -85,17 +82,10 @@ def find_path_shooting(
     pars = jnp.array(list(model["parameters"].values()))
     func = jax.jit(model['context']["func_eqns"])
 
-    if root_options:
-        model["root_options"] = root_options
-
-    # precision of root finding should be some magnitudes higher than of solver
-    if "xtol" not in model["root_options"]:
-        model["root_options"]["xtol"] = min(tol / max_horizon, 1e-8)
-
-    x_fin = jnp.empty((T + 1, nvars))
+    x_fin = jnp.empty((horizon + 1, nvars))
     x_fin = x_fin.at[0].set(list(x0) if x0 is not None else stst)
 
-    x = jnp.ones((T + max_horizon + 1, nvars)) * stst
+    x = jnp.ones((horizon + max_horizon + 1, nvars)) * stst
     x = x.at[0].set(x_fin[0])
 
     if init_path is not None:
@@ -120,7 +110,7 @@ def find_path_shooting(
         return res[0], res[3]
 
     try:
-        for i in range(T):
+        for i in range(horizon):
 
             loop = 1
             cnt = 2

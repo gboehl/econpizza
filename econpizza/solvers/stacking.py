@@ -34,7 +34,7 @@ def find_path_stacking(
     init_dist : array, optional
         tial distribution
     horizon : int, optional
-        number of periods until the system is assumed to be back in the steady state. Defaults to 300
+        number of periods until the system is assumed to be back in the steady state. Defaults to 200
     verbose : bool, optional
         degree of verbosity. 0/`False` is silent
     raise_errors : bool, optional

@@ -16,7 +16,7 @@ def test_bh(create=False):
     state = state.at[:-1].set([0.1, 0.2, 0.0])
 
     x, flag = ep.find_path_shooting(
-        mod, state, T=50, max_horizon=500, tol=1e-8, verbose=2)
+        mod, state, horizon=50, max_horizon=500, tol=1e-8, verbose=2)
 
     path = os.path.join(filepath, "test_storage", "bh.npy")
 
@@ -37,7 +37,7 @@ def test_nk(create=False):
     state = mod["stst"].copy()
     state["beta"] *= 1.02
 
-    x, flag = ep.find_path_shooting(mod, state.values(), T=10,
+    x, flag = ep.find_path_shooting(mod, state.values(), horizon=10,
                                     max_horizon=10, verbose=2)
 
     path = os.path.join(filepath, "test_storage", "nk.npy")
@@ -58,7 +58,7 @@ def test_stacked(create=False):
 
     shk = ("e_beta", 0.02)
 
-    x, flag = ep.find_path_stacking(mod, shock=shk, horizon=250)
+    x, flag = ep.find_path_stacking(mod, shock=shk, horizon=50)
 
     path = os.path.join(filepath, "test_storage", "stacked.npy")
 
@@ -80,8 +80,8 @@ def test_hank(create=False):
     x0 = mod['stst'].copy()
     x0['beta'] *= 1.01  # setting a shock on the discount factor
 
-    x, flag = mod.find_path(init_state=x0.values())
-    x_lin, _ = mod.find_path_linear(init_state=x0.values())
+    x, flag = mod.find_path(init_state=x0.values(), horizon=50)
+    x_lin, _ = mod.find_path_linear(init_state=x0.values(), horizon=50)
     het_vars = mod.get_distributions(x)
     dist = het_vars['dist']
 
@@ -112,7 +112,7 @@ def test_hank_labor(create=False):
 
     shocks = ('e_beta', .005)
 
-    x, flag = mod.find_path(shocks)
+    x, flag = mod.find_path(shocks, horizon=50)
 
     path = os.path.join(filepath, "test_storage", "hank_labor.npy")
 
@@ -134,7 +134,7 @@ def test_hank2(create=False):
     x0 = mod['stst'].copy()
     x0['beta'] *= 1.005  # setting a shock on the discount factor
 
-    x, flag = mod.find_path(init_state=x0.values())
+    x, flag = mod.find_path(init_state=x0.values(), horizon=50)
 
     path = os.path.join(filepath, "test_storage", "hank2.npy")
 
@@ -170,6 +170,7 @@ def test_solid(create=False):
 
 
 def create_all():
+
     test_bh(create=True)
     test_nk(create=True)
     test_stacked(create=True)

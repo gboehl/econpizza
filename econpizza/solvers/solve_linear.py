@@ -7,7 +7,7 @@ from ..utilities.jacobian import get_stst_jacobian
 from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 
 
-def find_path_linear(model, shock=None, init_state=None, horizon=300, verbose=True):
+def find_path_linear(model, shock=None, init_state=None, horizon=200, verbose=True):
     """Find the linear expected trajectory given an initial state.
 
     Parameters

@@ -124,18 +124,11 @@ def get_Psi_and_deriv(ap, a, ra, chi0, chi1, chi2):
     return Psi, Psi1, Psi2
 
 
-def matrix_times_first_dim(A, X):
-    """Take matrix A times vector X[:, i1, i2, i3, ... , in] separately
-    for each i1, i2, i3, ..., in. Same output as A @ X if X is 1D or 2D"""
-    # flatten all dimensions of X except first, then multiply, then restore shape
-    return (A @ X.reshape(X.shape[0], -1)).reshape(X.shape)
-
-
 def addouter(z, b, a):
     """Take outer sum of three arguments: result[i, j, k] = z[i] + b[j] + a[k]"""
     return z[:, None, None] + b[:, None] + a
 
 
-def income(e_grid, tax, w, N):
-    z_grid = (1 - tax) * w * N * e_grid
+def income(e_grid, tax, w, N, transfers=0.):
+    z_grid = (1 - tax) * w * N * e_grid + transfers
     return z_grid

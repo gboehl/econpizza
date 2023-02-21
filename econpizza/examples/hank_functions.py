@@ -8,8 +8,8 @@ from grgrjax import jax_print
 from econpizza.utilities.interp import interpolate
 
 
-def hh_init(a_grid, e_grid):
-    return jnp.ones((e_grid.shape[0], a_grid.shape[0]))*1e-2
+def hh_init(a_grid, skills_grid):
+    return jnp.ones((skills_grid.shape[0], a_grid.shape[0]))*1e-2
 
 
 def hh(Va_p, a_grid, skills_grid, w, n, T, R, beta, sigma_c, sigma_l):
@@ -43,9 +43,9 @@ def hh(Va_p, a_grid, skills_grid, w, n, T, R, beta, sigma_c, sigma_l):
     return Va, a, c
 
 
-def transfers(skills_stationary, Div, Tax, e_grid):
+def transfers(skills_stationary, Div, Tax, skills_grid):
     # hardwired incidence rules are proportional to skill; scale does not matter
-    rule = e_grid
+    rule = skills_grid
     div = Div / jnp.sum(skills_stationary * rule) * rule
     tax = Tax / jnp.sum(skills_stationary * rule) * rule
     T = div - tax

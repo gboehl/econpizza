@@ -4,7 +4,7 @@
 import jax
 import time
 import jax.numpy as jnp
-from grgrjax import callback_func, amax
+from grgrjax import callback_func, amax, newton_jax_jit
 
 
 def iteration_step(carry):
@@ -125,3 +125,23 @@ def newton_for_banded_jac(jav_func, nvars, horizon, X, shocks, verbose, maxit=30
         mess += f" Max. error is {err:1.2e}."
 
     return X, False, ''
+
+
+def newton_jax_jit_wrapper(func, init, **args):
+    """Wrapper around grgrjax.newton.newton_jax_jit to return flag and message
+    """
+
+    if 'tol' not in args:
+        args['tol'] = 1e-8
+    if 'maxit' not in args:
+        args['maxit'] = 30
+
+    x, (f, _), cnt, flag = newton_jax_jit(func, init, **args)
+    err = amax(f)
+    _, (success, mess) = check_status(err, cnt, args['maxit'], args['tol'])
+    flag |= not success
+
+    # compile error/report message
+    if not success and not jnp.isnan(err):
+        mess += f" Max. error is {err:1.2e}."
+    return x, flag, mess

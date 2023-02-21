@@ -13,9 +13,9 @@ definitions: |
     from econpizza.tools import jax_print
     kappa_grid = log_grid(amax=1., n=4)[::-1]
 
-variables: [ C, mc, y, pi, div, equity, n, z, w, Rr, R, Rn, Rstar, tax, g, Rb, Ra, wealth, A, B, beta ]
-parameters: [ sigma_c, sigma_l, psi_p, psi_a0, psi_a1, psi_a2, Bgov, zeta, phi_pi, phi_y, rho, rho_beta, rho_r, rho_g, rho_z, theta, chi ]
-shocks: [ e_beta ]
+variables: [ C, mc, y, pi, div, equity, n, z, w, wn, Rr, R, Rn, Rstar, tax, g, Rb, Ra, wealth, A, B, beta, transfers ]
+parameters: [ sigma_c, sigma_l, psi_p, psi_a0, psi_a1, psi_a2, Bgov, phi_pi, phi_y, rho, zeta, rho_beta, rho_r, rho_g, rho_z, rho_t, theta, chi, iota, elb ]
+shocks: [ e_beta, e_z, e_g, e_r, e_t ]
 
 distributions:
   dist:
@@ -41,7 +41,7 @@ distributions:
 decisions:
   inputs: [VaPrime,VbPrime]
   calls: |
-      z_grid = income(skills_grid, tax, w, n)
+      z_grid = income(skills_grid, tax, w, n, transfers)
       Psi1 = marginal_cost_grid(a_grid, Ra-1, psi_a0, psi_a1, psi_a2)
       VaPrimeExp = expect_transition(skills_transition, VaPrime)
       VbPrimeExp = expect_transition(skills_transition, VbPrime)
@@ -76,20 +76,22 @@ equations:
 
     # government
     ~ Rn = (Rstar*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*RnLag**rho # MP rule
-    ~ R = max(1,Rn) # ZLB
+    ~ R = max(elb,Rn) # ELB
     ~ Rb = Rr - zeta # bond return
     ~ Ra = assetshareLag * (div + equity) / equityLag + (1 - assetshareLag) * Rr # illiquid bonds' return
     ~ Rr = RLag/pi # ex-post real rate
-    ~ tax = ((Rr-1) * Bgov + g) / w / n # government budget
+    ~ tax = ((Rr-1) * Bgov + g + transfers) / w / n # government budget
 
     # unions
-    ~ w = max(wLag/pi, chi*n**sigma_l/(1 - tax)/UCE) # dnwr
+    ~ wn = chi*n**sigma_l/(1 - tax)/UCE # notional wage
+    ~ w = max(iota*wLag/pi, wn) # dnwr
 
     # exogenous process
-    ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_r # exogenous Rstar
-    ~ g = gSS*(gLag/gSS)**rho_g # exogenous gov. spending
-    ~ z = zSS*(zLag/zSS)**rho_z # exogenous technology
+    ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_r*exp(e_r) # exogenous Rstar
+    ~ g = gSS*(gLag/gSS)**rho_g*exp(e_g) # exogenous gov. spending
+    ~ z = zSS*(zLag/zSS)**rho_z*exp(e_z) # exogenous technology
     ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # exogenous discount factor
+    ~ transfers = transfersSS**(1-rho_t)*transfersLag**rho_t*exp(e_t) # exogenous discount factor
 
 steady_state:
     fixed_values:
@@ -101,24 +103,28 @@ steady_state:
         psi_a0: 0.25 # parameter on portfolio adjustment no.1
         psi_a2: 2 # parameter on portfolio adjustment no.3
         phi_pi: 1.5 # Taylor rule coefficient on inflation
-        phi_y: 0.1 # Taylor rule coefficient on output
-        zeta: 0.005 # liquidity premium
+        phi_y: 0.25 # Taylor rule coefficient on output
         rho: 0.8 # persistence in (notional) nominal interest rate
         rho_beta: 0.8 # persistence of discount factor shock
+        rho_t: 0.8 # persistence of transfer shock
         rho_z: 0.8 # persistence of technology shocks
         rho_g: 0.8 # persistence of government spending shock
         rho_r: 0.8 # persistence of MP shock
         theta: 6. # elasticity of substitution
+        zeta: 0.005 # liquidity premium
+        iota: .9
+        elb: 1.
 
         # steady state
         pi: 1.02^.25 # steady state inflation
-        Rr: 1.0125 # real interest rate
+        Rr: 1.011 # real interest rate
         Rstar: Rr*pi # target interest rate
         Ra: Rr # asset return
         Rb: Rr - zeta # bond return
         Rn: Rstar # notional interest rate
         R: Rstar # nominal interest
         g: 0.2 # government spending
+        transfers: .1 # government transfers
         z: 1 # technology
         wealth: 14 # total wealth
         B: 1.04 # bond supply
@@ -128,9 +134,10 @@ steady_state:
         div: equity*(Rr - 1)
         mc: (theta-1)/theta # marginal costs
         w: mc # wages
+        wn: mc # notional wages
         y: div/(1 - w)
         n: y
-        tax: ((Rr-1)*Bgov + g)/w/n
+        tax: ((Rr-1)*Bgov + g + transfers)/w/n
 
     init_guesses:
         chi: 4. # utility weight of labor disutility
@@ -138,6 +145,6 @@ steady_state:
         psi_a1: 4. # parameter on portfolio adjustment no.2
 
         # get rough idea on initial value functions
-        z_grid: income(skills_grid, tax, w, n)
+        z_grid: income(skills_grid, tax, w, n, transfers)
         VaPrime: hh_init_Va(b_grid, a_grid, z_grid, sigma_c)
         VbPrime: hh_init_Vb(b_grid, a_grid, z_grid, sigma_c)

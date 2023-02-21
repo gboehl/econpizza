@@ -52,10 +52,10 @@ def _forwards_step(carry, i):
     return (dist, decisions_output_storage, func_dist), dist_old
 
 
-def forwards_sweep(decisions_output_storage, distSS, horizon, func_dist):
+def forwards_sweep(decisions_output_storage, dist0, horizon, func_dist):
 
     _, dists_storage = jax.lax.scan(
-        _forwards_step, (distSS, decisions_output_storage, func_dist), jnp.arange(horizon-1))
+        _forwards_step, (dist0, decisions_output_storage, func_dist), jnp.arange(horizon-1))
     dists_storage = jnp.moveaxis(dists_storage, 0, -1)
 
     return dists_storage

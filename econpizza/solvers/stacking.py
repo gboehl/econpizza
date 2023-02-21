@@ -4,10 +4,10 @@ import os
 import jax
 import time
 import jax.numpy as jnp
-from grgrjax import newton_jax_jit, val_and_jacrev
+from grgrjax import val_and_jacrev
 from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 from ..utilities.jacobian import get_stst_jacobian, get_jac_and_value_sliced
-from ..utilities.newton import newton_for_jvp, newton_for_banded_jac
+from ..utilities.newton import newton_for_jvp, newton_for_banded_jac, newton_jax_jit_wrapper
 
 
 def find_path_stacking(
@@ -120,9 +120,8 @@ def find_path_stacking(
             # define function returning value and jacobian calculated in slices
             value_and_jac_func = get_jac_and_value_sliced(
                 (horizon-1)*nvars, jvp_partial, newton_args)
-            x, _, _, flag = newton_jax_jit(
+            x, flag, mess = newton_jax_jit_wrapper(
                 value_and_jac_func, x_init[1:-1].flatten(), **newton_args)
-            mess = ''
         x_out = x_init.at[1:-1].set(x.reshape((horizon - 1, nvars)))
 
     # some informative print messages

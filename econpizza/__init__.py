@@ -27,7 +27,10 @@ class PizzaModel(dict):
         super(PizzaModel, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
-    def get_distributions(model, xst, init_dist=None, shock=None):
+    find_path = find_path_stacking
+    solve_stst = solve_stst
+
+    def get_distributions(model, init_state, init_dist=None, shock=None):
         """Get all disaggregated variables for a given trajectory of aggregate variables.
 
         Parameters
@@ -35,8 +38,12 @@ class PizzaModel(dict):
 
         self : PizzaModel
             the model instance
-        xst : array
+        init_state : array
             a _full_ trajectory of aggregate variables
+        init_dist : array, optional
+            the initial distribution. Defaults to the steady state distribution
+        shock : array, optional
+            shock in period 0 as in `(shock_name_as_str, shock_size)`. Defaults to no shock
 
         Returns
         -------
@@ -49,11 +56,11 @@ class PizzaModel(dict):
         shocks = model.get("shocks") or ()
         dist_names = list(model['distributions'].keys())
         decisions_outputs = model['decisions']['outputs']
-        x = xst[1:-1].flatten()
-        x0 = xst[0]
+        x = init_state[1:-1].flatten()
+        x0 = init_state[0]
 
         # deal with shocks if any
-        shock_series = jnp.zeros((len(xst)-2, len(shocks)))
+        shock_series = jnp.zeros((len(init_state)-2, len(shocks)))
         if shock is not None:
             shock_series = shock_series.at[0,
                                            shocks.index(shock[0])].set(shock[1])
@@ -72,13 +79,10 @@ class PizzaModel(dict):
 
         return rdict
 
+    find_path_linear = find_path_linear
+    find_path_shooting = find_path_shooting
+    find_path_linear_state_space = find_path_linear_state_space
+    solve_linear_state_space = solve_linear_state_space
 
-PizzaModel.solve_stst = solve_stst
-PizzaModel.solve_linear_state_space = solve_linear_state_space
-PizzaModel.find_path = find_path_stacking
-PizzaModel.find_path_stacking = find_path_stacking
-PizzaModel.find_path_linear = find_path_linear
-PizzaModel.find_path_linear_state_space = find_path_linear_state_space
-PizzaModel.find_path_shooting = find_path_shooting
 
 logging.basicConfig(level=logging.WARNING)

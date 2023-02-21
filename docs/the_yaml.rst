@@ -80,7 +80,7 @@ Finally, the ``steady_state`` block allows to fix parameters and, if desired, so
 Heterogeneous agent models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Let us have a look of the yaml of a hank model we will discuss in `the tutorial <https://econpizza.readthedocs.io/en/latest/tutorial.html>`_. The file, which also contains exhaustive additional comments, can be found `here <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/hank.yaml>`_. The first line reads:
+Let us have a look of the yaml of a hank model we will discuss in `the tutorial <https://econpizza.readthedocs.io/en/latest/tutorial.html>`_. `The file <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/hank.yaml>`_ also contains exhaustive additional comments. The first line reads:
 
 .. code-block::
 

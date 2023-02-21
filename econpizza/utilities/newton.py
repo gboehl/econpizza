@@ -30,7 +30,9 @@ def jvp_while_body(carry):
     f, _ = jvp_func(x, jnp.zeros_like(x))
     f = jax.scipy.linalg.lu_solve(jacobian, f)
     # other iterations
-    init = ((f, 1., 0), (x, f, jvp_func, jacobian, factor), (1e8, 1e-5, nsteps))
+    iteration_tol = jnp.minimum(1e-5, 1e-1*amax(f))
+    init = ((f, 1., 0), (x, f, jvp_func, jacobian, factor),
+            (1e8, iteration_tol, nsteps))
     (y, dampening, cnt_inner), _, _ = jax.lax.while_loop(
         iteration_cond, iteration_step, init)
     return (x-y, amax(f), dampening, cnt+cnt_inner), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)

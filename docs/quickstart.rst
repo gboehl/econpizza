@@ -77,14 +77,13 @@ The resulting plots will look somewhat similar to this:
   :width: 600
   :alt: Linear vs. nonlinear IRFs
 
-The folder `yaml files <https://github.com/gboehl/econpizza/tree/master/econpizza/examples>`_ also contains a medium scale New Keynesian DSGE model as an example file (``med_scale_nk.yaml``, see `here <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/med_scale_nk.yaml>`_). It can be imported with:
+The folder `yaml files <https://github.com/gboehl/econpizza/tree/master/econpizza/examples>`_ also contains a medium scale New Keynesian DSGE model as an `example file <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/med_scale_nk.yaml>`_ (``med_scale_nk.yaml``). It can be imported with:
 
 .. code-block:: python
 
     from econpizza import example_dsge
 
     mod = ep.load(example_dsge)
-
 
 
 .. include:: the_yaml.rst

@@ -13,7 +13,7 @@ def solver(jval, fval):
     return jnp.linalg.pinv(jval) @ fval
 
 
-def get_stst_dist_objs(model, res, maxit_backwards, maxit_forwards):
+def _get_stst_dist_objs(model, res, maxit_backwards, maxit_forwards):
     """Get the steady state distribution and decision outputs, which is an auxilliary output of the steady state function. Compile error messages if things go wrong.
     """
 
@@ -136,8 +136,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     model["parameters"] = dict(zip(par, par_vals))
 
     # calculate dist objects and compile message
-    mess = get_stst_dist_objs(model, res, maxit_backwards,
-                              maxit_forwards) if model.get('distributions') else ''
+    mess = _get_stst_dist_objs(model, res, maxit_backwards,
+                               maxit_forwards) if model.get('distributions') else ''
     # calculate error
     err = amax(res['fun'])
 

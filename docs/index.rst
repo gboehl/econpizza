@@ -6,7 +6,6 @@
     Content
     -------
 
-
 .. only:: latex
 
     Intro
@@ -23,4 +22,3 @@
    tutorial.ipynb
    method.ipynb
    modules
-   indices

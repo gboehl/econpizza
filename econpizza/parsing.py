@@ -25,7 +25,7 @@ cached_mdicts = ()
 cached_models = ()
 
 
-def load_as_module(path, add_to_path=True):
+def _load_as_module(path, add_to_path=True):
     """load a file as a module
     """
 
@@ -42,7 +42,17 @@ def load_as_module(path, add_to_path=True):
 
 
 def parse(mfile):
-    """parse from yaml file
+    """Parse model dictionary from yaml file. This can be desirable if values should be exchanged before loading the model.
+
+    Parameters
+    ----------
+    mfile : string
+        path to a yaml file to be parsed
+
+    Returns
+    -------
+    mdict : dict
+        the parsed yaml as a dictionary
     """
 
     f = open(mfile)
@@ -57,16 +67,16 @@ def parse(mfile):
     mtxt = mtxt.replace("   ~ ", "   - ")
 
     # get dict
-    model = yaml.safe_load(mtxt)
+    mdict = yaml.safe_load(mtxt)
     # create nice shortcuts
-    model['path'] = mfile
-    model["pars"] = model.get("parameters")
-    model["vars"] = model["variables"]
+    mdict['path'] = mfile
+    mdict["pars"] = mdict.get("parameters")
+    mdict["vars"] = mdict["variables"]
 
-    return model
+    return mdict
 
 
-def eval_strs(vdict, context={}):
+def _eval_strs(vdict, context={}):
     """Evaluate a dictionary of strings into a given context
     """
 
@@ -85,10 +95,9 @@ def eval_strs(vdict, context={}):
     return vdict
 
 
-def parse_external_functions_file(model):
+def _parse_external_functions_file(model):
     """Parse the functions file.
     """
-
     try:
         # prepare path
         if not os.path.isabs(model["functions_file"]):
@@ -107,7 +116,7 @@ def parse_external_functions_file(model):
     return
 
 
-def initialize_context():
+def _initialize_context():
     context = globals().copy()
     default_funcs = {'log': jnp.log,
                      'exp': jnp.exp,
@@ -119,13 +128,13 @@ def initialize_context():
     return context
 
 
-def load_external_functions_file(model, context):
+def _load_external_functions_file(model, context):
     """Load the functions file as a module.
     """
 
     try:
         # load as a module
-        module = load_as_module(model["functions_file"])
+        module = _load_as_module(model["functions_file"])
 
         def func_or_compiled(func): return isinstance(
             func, jaxlib.xla_extension.CompiledFunction) or isfunction(func)
@@ -138,7 +147,7 @@ def load_external_functions_file(model, context):
     return False
 
 
-def compile_init_values(evars, pars, initvals, stst):
+def _compile_init_values(evars, pars, initvals, stst):
     """Combine all available information in initial guesses.
     """
 
@@ -158,7 +167,7 @@ def compile_init_values(evars, pars, initvals, stst):
     return init
 
 
-def define_subdict_if_absent(parent, sub):
+def _define_subdict_if_absent(parent, sub):
     try:
         return parent[sub]
     except KeyError:
@@ -166,7 +175,7 @@ def define_subdict_if_absent(parent, sub):
         return parent[sub]
 
 
-def define_function(func_str, context):
+def _define_function(func_str, context):
     """Define functions from string. Writes the function into a temporary file in order to get meaningful debug traces.
     """
 
@@ -181,7 +190,7 @@ def define_function(func_str, context):
     return tmpf.name
 
 
-def get_exog_grid_var_names(distributions):
+def _get_exog_grid_var_names(distributions):
     """WIP. So far unused.
     """
     # NOTE: this will be important when implementing that grid parameters are endogenous variables
@@ -219,7 +228,7 @@ def load(
 
     Returns
     -------
-    model : PizzaModel instance
+    model : PizzaModel
         The parsed model
     """
 
@@ -235,7 +244,7 @@ def load(
     model = PizzaModel(model)
 
     # load file with additional functions as module (if it exists)
-    parse_external_functions_file(model)
+    _parse_external_functions_file(model)
     mdict_raw = deepcopy(model)
 
     # check if model is already cached
@@ -244,8 +253,8 @@ def load(
         print("(parse:) Loading cached model.")
         return model
 
-    model['context'] = initialize_context()
-    load_external_functions_file(model, model['context'])
+    model['context'] = _initialize_context()
+    _load_external_functions_file(model, model['context'])
 
     defs = model.get("definitions")
     defs = '' if defs is None else defs
@@ -265,13 +274,13 @@ def load(
     grids.create_grids(model.get('distributions'), model["context"])
 
     shocks = model.get("shocks") or ()
-    _ = define_subdict_if_absent(model, "steady_state")
-    fixed_values = define_subdict_if_absent(
+    _ = _define_subdict_if_absent(model, "steady_state")
+    fixed_values = _define_subdict_if_absent(
         model["steady_state"], "fixed_values")
-    stst = eval_strs(fixed_values, context=model['context'])
+    stst = _eval_strs(fixed_values, context=model['context'])
     model["steady_state"]['fixed_evalued'] = stst
 
-    par = define_subdict_if_absent(model, "parameters")
+    par = _define_subdict_if_absent(model, "parameters")
     if isinstance(par, dict):
         raise TypeError(f'parameters must be a list and not {type(par)}.')
     model["parameters"] = par
@@ -281,7 +290,7 @@ def load(
     model['func_strings'] = {}
 
     # NOTE: currently disabled
-    exog_grid_var_names = get_exog_grid_var_names(model.get('distributions'))
+    exog_grid_var_names = _get_exog_grid_var_names(model.get('distributions'))
 
     # get function strings for decisions and distributions, if they exist
     if model.get('decisions'):
@@ -289,8 +298,8 @@ def load(
         decisions_inputs = model['decisions']['inputs']
         model['func_strings']["func_backw"] = compile_backw_func_str(
             evars, par, shocks, decisions_inputs, decisions_outputs, model['decisions']['calls'], exog_grid_var_names)
-        tmpf_names += define_function(model['func_strings']
-                                      ['func_backw'], model['context']),
+        tmpf_names += _define_function(model['func_strings']
+                                       ['func_backw'], model['context']),
     else:
         decisions_outputs = []
         decisions_inputs = []
@@ -303,15 +312,15 @@ def load(
         model['func_strings']["func_stst_dist"] = func_stst_dist_str
         model['func_strings']["func_dist"] = func_dist_str
         # execute them
-        tmpf_names += define_function(func_stst_dist_str, model['context']),
-        tmpf_names += define_function(func_dist_str, model['context']),
+        tmpf_names += _define_function(func_stst_dist_str, model['context']),
+        tmpf_names += _define_function(func_dist_str, model['context']),
     else:
         dist_names = []
 
     # collect initial guesses
-    init_guesses = eval_strs(model["steady_state"].get(
+    init_guesses = _eval_strs(model["steady_state"].get(
         "init_guesses"), context=model['context'])
-    model["init"] = init = compile_init_values(evars, par, init_guesses, stst)
+    model["init"] = init = _compile_init_values(evars, par, init_guesses, stst)
 
     # get strings that contains the function definitions
     model['func_strings']["func_pre_stst"] = compile_stst_func_str(
@@ -320,10 +329,10 @@ def load(
         'aux_equations'), shocks=shocks, distributions=dist_names, decisions_outputs=decisions_outputs)
 
     # test if model works. Writing to tempfiles helps to get nice debug traces if not
-    tmpf_names += define_function(model['func_strings']
-                                  ["func_eqns"], model['context']),
-    tmpf_names += define_function(model['func_strings']
-                                  ['func_pre_stst'], model['context']),
+    tmpf_names += _define_function(model['func_strings']
+                                   ["func_eqns"], model['context']),
+    tmpf_names += _define_function(model['func_strings']
+                                   ['func_pre_stst'], model['context']),
 
     # get the initial decision functions
     if model.get('decisions'):

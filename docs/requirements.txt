@@ -1,9 +1,5 @@
 sphinx-book-theme
 ipykernel
-ipython_genutils
 nbsphinx
-jax
-jaxlib
-grgrlib>=0.1.19
-econpizza
+grgrjax
 pyyaml

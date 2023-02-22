@@ -47,6 +47,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
     Parameters
     ----------
+    model : PizzaModel
+        PizzaModel instance
     tol : float, optional
         tolerance of the Newton method, defaults to 1e-8
     maxit : int, optional

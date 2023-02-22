@@ -12,8 +12,8 @@ def find_path_linear(model, shock=None, init_state=None, horizon=200, verbose=Tr
 
     Parameters
     ----------
-    model : dict
-        model dict or PizzaModel instance
+    model : PizzaModel
+        PizzaModel instance
     init_state : array
         initial state
     shock : tuple, optional

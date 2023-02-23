@@ -49,6 +49,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
     Parameters
     ----------
+    model : PizzaModel
+        PizzaModel instance
     tol : float, optional
         tolerance of the Newton method, defaults to 1e-8
     maxit : int, optional
@@ -70,8 +72,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
     Returns
     -------
-    res : dict
-        results dictionary from the Newton method
+    rdict : dict
+        a dictionary containing information about the root finding result. Note that the results are added to the model (PizzaModel instance) automatically, `rdict` is hence only useful for model debugging.
     """
 
     st = time.time()

@@ -27,8 +27,8 @@ def find_path_stacking(
 
     Parameters
     ----------
-    model : dict
-        model dict or PizzaModel instance
+    model : PizzaModel
+        PizzaModel instance
     shock : tuple, optional
         shock in period 0 as in `(shock_name_as_str, shock_size)`
     init_state : array, optional

@@ -35,8 +35,8 @@ def find_path_shooting(
 
     Parameters
     ----------
-    model : dict
-        model dict or PizzaModel instance
+    model : PizzaModel
+        PizzaModel instance
     x0 : array
         initial state
     shock : tuple, optional

@@ -29,8 +29,8 @@ class PizzaModel(dict):
         super(PizzaModel, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
-    find_path = find_path_stacking
     solve_stst = solve_stst
+    find_path = find_path_stacking
 
     def get_distributions(model, init_state, init_dist=None, shock=None):
         """Get all disaggregated variables for a given trajectory of aggregate variables.
@@ -40,7 +40,7 @@ class PizzaModel(dict):
         Parameters
         ----------
 
-        self : PizzaModel
+        model : PizzaModel
             the model instance
         init_state : array
             a _full_ trajectory of aggregate variables

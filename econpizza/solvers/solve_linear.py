@@ -4,10 +4,11 @@ import jax
 import time
 import jax.numpy as jnp
 from ..utilities.jacobian import get_stst_jacobian
+from ..parser.checks import check_if_compiled, write_compiled_objects
 from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 
 
-def find_path_linear(model, shock=None, init_state=None, horizon=200, verbose=True):
+def find_path_linear(model, shock=None, init_state=None, parameters=None, horizon=200, verbose=True):
     """Find the linear expected trajectory given an initial state.
 
     Parameters
@@ -16,6 +17,8 @@ def find_path_linear(model, shock=None, init_state=None, horizon=200, verbose=Tr
         PizzaModel instance
     init_state : array
         initial state
+    parameters : dict, optional
+        alternative parameters. Warning: do only change those parameters that are invariant to the steady state.
     shock : tuple, optional
         shock in period 0 as in `(shock_name_as_str, shock_size)`. NOTE: Not (yet) implemented.
     horizon : int, optional
@@ -44,7 +47,8 @@ def find_path_linear(model, shock=None, init_state=None, horizon=200, verbose=Tr
     # get model variables
     stst = jnp.array(list(model['stst'].values()))
     nvars = len(model["variables"])
-    pars = jnp.array(list(model["parameters"].values()))
+    pars = jnp.array(
+        list((parameters if parameters is not None else model["parameters"]).values()))
     shocks = model.get("shocks") or ()
     x_stst = jnp.ones((horizon + 1, nvars)) * stst
 
@@ -53,7 +57,7 @@ def find_path_linear(model, shock=None, init_state=None, horizon=200, verbose=Tr
 
     x0 = jnp.array(list(init_state)) if init_state is not None else stst
 
-    if model['new_model_horizon'] != horizon:
+    if not check_if_compiled(model, horizon, pars):
         # get derivatives via AD and compile functions
         build_aggr_het_agent_funcs(
             model, nvars, pars, stst, zero_shocks, horizon)
@@ -62,7 +66,7 @@ def find_path_linear(model, shock=None, init_state=None, horizon=200, verbose=Tr
 
         # accumulate steady stat jacobian
         get_stst_jacobian(model, derivatives, horizon, nvars, verbose)
-        model['new_model_horizon'] = horizon
+        write_compiled_objects(model, horizon, pars)
 
     jacobian = model['jac']
 

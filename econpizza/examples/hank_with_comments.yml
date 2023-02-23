@@ -79,7 +79,7 @@ aux_equations: |
     # `dist` here corresponds to the dist *at the beginning of the period*
     aggr_a = jnp.sum(dist*a, axis=(0,1))
     aggr_c = jnp.sum(dist*c, axis=(0,1))
-    # calculate consumption and wealth share of top-10% cumsumers
+    # calculate consumption and wealth share of top-10%
     top10c = 1 - percentile(c, dist, .9)
     top10a = 1 - percentile(a, dist, .9)
 

@@ -89,7 +89,6 @@ def find_path_stacking(
                 jav_func_eqns, XSS=stst, pars=pars, distributions=[], decisions_outputs=[])
             model['jav_func'] = jav_func_eqns_partial
             # mark as compiled
-            model['new_model_horizon'] = horizon
             write_compiled_objects(model, horizon, pars)
 
         # actual newton iterations

@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import logging
+import os
+import jax
+import jax.numpy as jnp
+from copy import deepcopy as copy
+
 from . import examples
 from .solvers.steady_state import solve_stst
 from .solvers.stacking import find_path_stacking
@@ -8,10 +14,6 @@ from .solvers.solve_linear_state_space import solve_linear_state_space, find_pat
 from .solvers.shooting import find_path_shooting
 from .parsing import parse, load
 
-import logging
-import os
-import jax
-import jax.numpy as jnp
 
 # set number of cores for XLA
 os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
@@ -32,6 +34,8 @@ class PizzaModel(dict):
 
     def get_distributions(model, init_state, init_dist=None, shock=None):
         """Get all disaggregated variables for a given trajectory of aggregate variables.
+
+        Note that the output objects do, other than the result from `find_path` with stacking, not include the time-0 and time-T objects and that the given distribution is as from the beginning of each period.
 
         Parameters
         ----------

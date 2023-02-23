@@ -66,7 +66,7 @@ def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, ver
 
     distSS = jnp.array(model['steady_state']['distributions'])
     decisions_outputSS = jnp.array(
-        model['steady_state']['decisions_output'])[..., None]
+        list(model['steady_state']['decisions'].values()))[..., None]
 
     # basis for steady state jacobian construction
     basis = jnp.zeros((nvars*(horizon-1), nvars))
@@ -125,7 +125,7 @@ def build_aggr_het_agent_funcs(model, nvars, pars, stst, zshocks, horizon):
     func_dist = model['context'].get('func_dist')
 
     # get stuff for het-agent models
-    vfSS = model['steady_state'].get('decisions')
+    vfSS = model['steady_state'].get('value_functions')
     distSS = jnp.array(model['steady_state']['distributions'])
 
     # get actual functions

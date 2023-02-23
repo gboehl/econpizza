@@ -20,6 +20,7 @@ def _get_stst_dist_objs(model, res, maxit_backwards, maxit_forwards):
     res_backw, res_forw = res['aux']
     vfSS, decisions_output, exog_grid_vars, cnt_backwards = res_backw
     distSS, cnt_forwards = res_forw
+    decisions_output_names = model['decisions']['outputs']
 
     # compile informative message
     mess = ''
@@ -36,8 +37,9 @@ def _get_stst_dist_objs(model, res, maxit_backwards, maxit_forwards):
 
     # TODO: this should loop over the objects in distSS/vfSS and store under the name of the distribution/decisions (i.e. 'D' or 'Va')
     model['steady_state']["distributions"] = distSS
-    model['steady_state']['decisions'] = vfSS
-    model['steady_state']['decisions_output'] = decisions_output
+    model['steady_state']['value_functions'] = vfSS
+    model['steady_state']['decisions'] = {
+        oput: decisions_output[i] for i, oput in enumerate(decisions_output_names)}
 
     return mess
 
@@ -96,7 +98,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
             return model['stst_used_res']
     except KeyError:
-        model['new_model_horizon'] = -1
+        model['compiled_objects']['compiled_model_flag'] = False
         pass
 
     # reset for recalculation

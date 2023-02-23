@@ -99,20 +99,32 @@ def check_initial_values(model, shocks, par):
 
     if mess:
         raise Exception(mess + ' for initial values.')
-
     return
 
 
 def check_shapes(distributions, init_decisions, dist_names):
-
     decisions_shape = init_decisions.shape
     dist_shape = tuple([d.get('n')
                        for d in distributions[dist_names[0]].values()])
     check = [(ds == decisions_shape[-len(dist_shape):][i] or ds is None)
              for i, ds in enumerate(dist_shape)]
-
     if not all(check):
         raise Exception(
             f"Initial decisions and the distribution have different shapes in last dimensions: {decisions_shape}, {dist_shape}")
+    return
 
+
+def check_if_compiled(model, horizon, pars):
+    try:
+        assert model['compiled_objects']['compiled_model_flag']
+        assert model['compiled_objects']['horizon'] == horizon
+        return jnp.allclose(model['compiled_objects']['pars'], pars)
+    except:
+        return False
+
+
+def write_compiled_objects(model, horizon, pars):
+    model['compiled_objects']['compiled_model_flag'] = True
+    model['compiled_objects']['horizon'] = horizon
+    model['compiled_objects']['pars'] = pars
     return

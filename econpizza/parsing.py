@@ -254,6 +254,7 @@ def load(
         return model
 
     model['context'] = _initialize_context()
+    model['compiled_objects'] = {}
     _load_external_functions_file(model, model['context'])
 
     defs = model.get("definitions")

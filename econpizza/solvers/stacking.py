@@ -6,6 +6,7 @@ import time
 import jax.numpy as jnp
 from grgrjax import val_and_jacrev
 from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
+from ..parser.checks import check_if_compiled, write_compiled_objects
 from ..utilities.jacobian import get_stst_jacobian, get_jac_and_value_sliced
 from ..utilities.newton import newton_for_jvp, newton_for_banded_jac, newton_jax_jit_wrapper
 
@@ -15,6 +16,7 @@ def find_path_stacking(
     shock=None,
     init_state=None,
     init_dist=None,
+    parameters=None,
     horizon=200,
     use_solid_solver=False,
     verbose=True,
@@ -33,6 +35,8 @@ def find_path_stacking(
         tial state
     init_dist : array, optional
         tial distribution
+    parameters : dict, optional
+        alternative parameters. Warning: do only change those parameters that are invariant to the steady state.
     horizon : int, optional
         number of periods until the system is assumed to be back in the steady state. Defaults to 200
     verbose : bool, optional
@@ -55,7 +59,8 @@ def find_path_stacking(
     # get variables
     stst = jnp.array(list(model["stst"].values()))
     nvars = len(model["variables"])
-    pars = jnp.array(list(model["parameters"].values()))
+    pars = jnp.array(
+        list((parameters if parameters is not None else model["parameters"]).values()))
     shocks = model.get("shocks") or ()
 
     # get initial guess
@@ -76,7 +81,7 @@ def find_path_stacking(
 
     if not model.get('distributions'):
 
-        if model['new_model_horizon'] != horizon:
+        if not check_if_compiled(model, horizon, pars):
             # get transition function
             func_eqns = model['context']["func_eqns"]
             jav_func_eqns = val_and_jacrev(func_eqns, (0, 1, 2))
@@ -85,6 +90,7 @@ def find_path_stacking(
             model['jav_func'] = jav_func_eqns_partial
             # mark as compiled
             model['new_model_horizon'] = horizon
+            write_compiled_objects(model, horizon, pars)
 
         # actual newton iterations
         jav_func_eqns_partial = model['jav_func']
@@ -92,7 +98,7 @@ def find_path_stacking(
             jav_func_eqns_partial, nvars, horizon, x_init, shock_series, verbose, **newton_args)
 
     else:
-        if model['new_model_horizon'] != horizon:
+        if not check_if_compiled(model, horizon, pars):
             # get derivatives via AD and compile functions
             zero_shocks = jnp.zeros_like(shock_series).T
             build_aggr_het_agent_funcs(
@@ -104,9 +110,8 @@ def find_path_stacking(
                     model, nvars, pars, stst, x_stst, zero_shocks, horizon, verbose)
                 # accumulate steady stat jacobian
                 get_stst_jacobian(model, derivatives, horizon, nvars, verbose)
-
             # mark as compiled
-            model['new_model_horizon'] = horizon
+            write_compiled_objects(model, horizon, pars)
 
         # get jvp function and steady state jacobian
         jvp_partial = jax.tree_util.Partial(

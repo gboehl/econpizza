@@ -84,8 +84,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     shocks = model.get("shocks") or ()
     fixed_vals = model['steady_state']['fixed_evalued']
 
-    tol_backwards = tol if tol_backwards is None else tol_backwards
-    tol_forwards = 1e-2*tol if tol_forwards is None else tol_forwards
+    tol_backwards = 1e-8 if tol_backwards is None else tol_backwards
+    tol_forwards = 1e-10 if tol_forwards is None else tol_forwards
 
     # check if steady state was already calculated
     try:
@@ -120,18 +120,25 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     # get the actual steady state function
     func_stst_raw = get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init,
                                       exog_grid_vars_init, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
-
-    # define jitted stst function that returns jacobian and func. value
-    func_stst = jax.jit(val_and_jacfwd(func_stst_raw, has_aux=True))
-    # store functions
+    # store function
     model["context"]['func_stst_raw'] = func_stst_raw
-    model["context"]['func_stst'] = func_stst
-
-    # actual root finding
     x_init = jnp.array(list(model['init'].values()))
 
-    res = newton_jax(func_stst, x_init, maxit, tol,
-                     solver=solver, verbose=verbose, **newton_kwargs)
+    if not model['steady_state'].get('skip'):
+        # define jitted stst function that returns jacobian and func. value
+        func_stst = jax.jit(val_and_jacfwd(func_stst_raw, has_aux=True))
+        model["context"]['func_stst'] = func_stst
+        # actual root finding
+        res = newton_jax(func_stst, x_init, maxit, tol,
+                         solver=solver, verbose=verbose, **newton_kwargs)
+    else:
+        f, aux = func_stst_raw(x_init)
+        res = {'x': x_init,
+               'fun': f,
+               'success': True,
+               'message': 'I blindly took the given values.',
+               'aux': aux,
+               }
 
     # exchange those values that are identified via stst_equations
     stst_vals, par_vals = func_pre_stst(res['x'])
@@ -145,7 +152,9 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     # calculate error
     err = amax(res['fun'])
 
-    if err > tol or not res['success'] or check_rank:
+    if err > tol and model['steady_state'].get('skip'):
+        mess += f"They do not satisfy the required tolerance."
+    elif err > tol or not res['success'] or check_rank:
         jac = res['jac']
         rank = jnp.linalg.matrix_rank(jac)
         if rank:

@@ -33,7 +33,7 @@ A `model parser <https://econpizza.readthedocs.io/en/latest/quickstart.html#the-
 Documentation
 -------------
 
-The documentation and some **tutorials** can be found `here <https://econpizza.readthedocs.io/en/latest/quickstart.html>`_.
+The documentation and some **tutorials** can be found `here <https://econpizza.readthedocs.io/en/stable/quickstart.html>`_.
 
 
 Installation
@@ -45,7 +45,7 @@ Installing the `repository version <https://pypi.org/project/econpizza/>`_ from 
 
    pip install econpizza
 
-in your terminal or Anaconda Prompt. 
+in your terminal or Anaconda Prompt.
 
 Installation on Windows
 ^^^^^^^^^^^^^^^^^^^^^^^

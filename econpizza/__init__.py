@@ -34,7 +34,7 @@ class PizzaModel(dict):
     def get_distributions(model, init_state, init_dist=None, shock=None):
         """Get all disaggregated variables for a given trajectory of aggregate variables.
 
-        Note that the output objects do, other than the result from `find_path` with stacking, not include the time-0 and time-T objects and that the given distribution is as from the beginning of each period.
+        Note that the output objects do, other than the result from `find_path` with stacking, not include the time-T objects and that the given distribution is as from the beginning of each period.
 
         Parameters
         ----------
@@ -74,11 +74,15 @@ class PizzaModel(dict):
         decisions_output_storage = backwards_sweep(x, x0, shock_series.T)
         dists_storage = forwards_sweep(decisions_output_storage, dist0)
 
+        # steady state objects for period 0
+        distSS = model['steady_state']['distributions']
+        dosSS = model['steady_state']['decisions']
+
         # store this
-        rdict = {oput: decisions_output_storage[i]
-                 for i, oput in enumerate(decisions_outputs)}
-        rdict.update({oput: dists_storage[i]
-                     for i, oput in enumerate(dist_names)})
+        rdict = {oput: jnp.concatenate(
+            (dosSS[oput][..., None], decisions_output_storage[i]), axis=-1) for i, oput in enumerate(decisions_outputs)}
+        rdict.update({oput: jnp.concatenate(
+            (distSS[i][..., None], dists_storage[i]), axis=-1) for i, oput in enumerate(dist_names)})
 
         return rdict
 

@@ -17,7 +17,7 @@ A parser allows to express economic models in a simple, high-level fashion as ya
 Generic and robust routines for steady state search are provided.
 
 The package can solve nonlinear models with heterogeneous agents, such as HANK models with one or two assets and portfolio choice. Steady state and nonlinear impulse responses (including, e.g., the ELB) can typically be found within a few seconds.
-The approach to deal with heterogeneity extends the `Sequence-Space Jacobian <https://github.com/shade-econ/sequence-jacobian>`_ method (`Auclert et al., 2022, ECMA <https://doi.org/10.3982/ECTA17434>`_) to fully nonlinear models by iteratively using `jacobian-vector producs <https://jax.readthedocs.io/en/latest/notebooks/autodiff_cookbook.html#how-it-s-made-two-foundational-autodiff-functions>`_ to construct the inverse jacobian during each Newton iteration. This not only allows to study the dynamics of aggregate variables, but also the complete nonlinear transition dynamics of the distribution of assets across agents.
+The method extends the `Sequence-Space Jacobian <https://github.com/shade-econ/sequence-jacobian>`_ method (`Auclert et al., 2022, ECMA <https://doi.org/10.3982/ECTA17434>`_) to fully nonlinear heterogeneous agent models models by iteratively using `jacobian-vector producs <https://jax.readthedocs.io/en/latest/notebooks/autodiff_cookbook.html#how-it-s-made-two-foundational-autodiff-functions>`_ to approximate the solution to the linear system of equations associated with each Newton iteration. This not only allows to study the dynamics of aggregate variables, but also the complete nonlinear transition dynamics of the cross-sectional distribution of assets and disaggregated objects.
 
 To solve models with representative agent the shooting methods of Laffargue (1990), Boucekkine (1995) and Juillard (1996) is implemented. It is faster and more reliable than the extended path method in dynare due to the use of automatic differentiation for the efficient jacobian decompositions during each Newton-step. Nonlinear perfect-foresight transition dynamics can - even for large-scale nonlinear models with several occassionally binding constraints - be computed in less than a second.
 
@@ -33,8 +33,9 @@ A `model parser <https://econpizza.readthedocs.io/en/latest/quickstart.html#the-
 Documentation
 -------------
 
-The documentation and some **tutorials** can be found `here <https://econpizza.readthedocs.io/en/stable/quickstart.html>`_.
-
+ * `Getting started <https://econpizza.readthedocs.io/en/stable/quickstart.html>`_
+ * `Tutorials <https://econpizza.readthedocs.io/en/stable/tutorial.html>`_
+ * `Module and functions documentation <https://econpizza.readthedocs.io/en/stable/modules.html>`_
 
 Installation
 ------------

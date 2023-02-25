@@ -55,6 +55,12 @@ def markov_rouwenhorst(rho, sigma, N=7):
     return y, pi, Pi
 
 
+def rouwenhorst_grid_from_stationary(sigma, stationary_distribution):
+    s = jnp.linspace(-1, 1, len(stationary_distribution))
+    s *= (sigma / jnp.sqrt(variance(s, stationary_distribution)))
+    return jnp.exp(s) / jnp.sum(stationary_distribution * jnp.exp(s))
+
+
 def create_grids(distributions, context):
     """Get the strings of functions that define the grids.
     """
@@ -68,21 +74,21 @@ def create_grids(distributions, context):
     for dist_name, dist in distributions.items():
         for grid_name, g in dist.items():
 
-            if g['type'] == 'exogenous':
+            # shortcuts
+            g['type'] = 'endogenous_log' if g['type'] == 'endogenous' else g['type']
+            g['type'] = 'exogenous_rouwenhorst' if g['type'] == 'exogenous' else g['type']
+
+            if 'exogenous' in g['type'] and 'transition_name' not in g:
+                g['transition_name'] = grid_name + '_transition'
+
+            if 'endogenous' in g['type'] and 'grid_name' not in g:
+                g['grid_name'] = grid_name + '_grid'
+
+            if g['type'] == 'exogenous_rouwenhorst':
                 grid_strings += f"{', '.join(v for v in g['grid_variables'])} = grids.markov_rouwenhorst(rho={g['rho']}, sigma={g['sigma']}, N={g['n']})",
 
-            elif g['type'] == 'custom_exogenous':
-                grid_strings += f"{', '.join(v for v in g['grid_variables'])} = {g['call']}",
-
-            elif g['type'] == 'time_varying_exogenous':
-                # in this case the grid must be defined in some stage in the yaml
-                # TODO: this is half-way implemented (during backward calls)
-                raise NotImplementedError
-
-            elif g['type'] == 'endogenous':
-                # as above
-                if not all([i not in g for i in ['min', 'max', 'n']]):
-                    grid_strings += f"{g['grid_variables']} = grids.log_grid(amin={g['min']}, amax={g['max']}, n={g['n']})",
+            if g['type'] == 'endogenous_log':
+                grid_strings += f"{g['grid_name']} = grids.log_grid(amin={g['min']}, amax={g['max']}, n={g['n']})",
 
     # execute all of them
     for grid_str in grid_strings:

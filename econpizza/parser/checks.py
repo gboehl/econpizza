@@ -59,7 +59,7 @@ def check_initial_values(model, shocks, par):
         # make a test backward and forward run
         init_vf = model['init_vf']
         try:
-            _, decisions_output_init, exog_grid_vars_init = model['context']['func_backw'](
+            _, decisions_output_init = model['context']['func_backw'](
                 init, init, init, init, init_vf, jnp.zeros(len(shocks)), par)
         except ValueError as e:
             if str(e) == "All input arrays must have the same shape.":
@@ -80,11 +80,10 @@ def check_initial_values(model, shocks, par):
         elif jnp.isinf(dists_init).any():
             mess = 'Distribution is not finite'
     else:
-        decisions_output_init = dists_init = exog_grid_vars_init = []
+        decisions_output_init = dists_init = []
 
     model['init_run']['decisions_output'] = decisions_output_init
     model['init_run']['dists'] = dists_init
-    model['init_run']['exog_grid_vars'] = exog_grid_vars_init
 
     # final test of main function
     test = model['context']['func_eqns'](init, init, init, init, jnp.zeros(len(shocks)), par, jnp.array(

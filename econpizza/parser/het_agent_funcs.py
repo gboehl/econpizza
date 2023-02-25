@@ -6,27 +6,27 @@ import jax.numpy as jnp
 
 
 def _backwards_stst_cond(carry):
-    _, (vf, _, _), (vf_old, cnt), (_, tol, maxit) = carry
+    _, (vf, _), (vf_old, cnt), (_, tol, maxit) = carry
     cond0 = jnp.abs(vf - vf_old).max() > tol
     cond1 = cnt < maxit
     return jnp.logical_and(cond0, cond1)
 
 
 def _backwards_stst_body(carry):
-    (x, par), (vf, _, _), (_, cnt), (func, tol, maxit) = carry
+    (x, par), (vf, _), (_, cnt), (func, tol, maxit) = carry
     return (x, par), func(x, x, x, x, vf, pars=par), (vf, cnt + 1), (func, tol, maxit)
 
 
 def backwards_sweep_stst(x, par, carry):
-    _, (vf, decisions_output, exog_grid_vars), (_, cnt), _ = jax.lax.while_loop(
+    _, (vf, decisions_output), (_, cnt), _ = jax.lax.while_loop(
         _backwards_stst_cond, _backwards_stst_body, ((x, par), *carry))
-    return vf, decisions_output, exog_grid_vars, cnt
+    return vf, decisions_output, cnt
 
 
 def _backwards_step(carry, i):
 
     vf, X, shocks, func_backw, stst = carry
-    vf, decisions_output, exog_grid_vars = func_backw(
+    vf, decisions_output = func_backw(
         X[:, i], X[:, i+1], X[:, i+2], VFPrime=vf, shocks=shocks[:, i])
 
     return (vf, X, shocks, func_backw, stst), decisions_output

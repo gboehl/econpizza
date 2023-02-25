@@ -190,26 +190,6 @@ def _define_function(func_str, context):
     return tmpf.name
 
 
-def _get_exog_grid_var_names(distributions):
-    """WIP. So far unused.
-    """
-    # NOTE: this will be important when implementing that grid parameters are endogenous variables
-    # NOTE: when activated, backward calls already return exogenous grid vars (exog_grid_var). They are not yet stacked, and not yet an input to forward calls
-
-    exog_grid_var_names = ()
-
-    if False:
-        # if distributions:
-        for dist_name in distributions:
-
-            dist = distributions[dist_name]
-            for v in dist:
-                if dist[v]['type'] in ('exogenous', 'custom_exogenous'):
-                    exog_grid_var_names += tuple(dist[v]['grid_variables'])
-
-    return exog_grid_var_names
-
-
 def load(
     model,
     raise_errors=True,
@@ -290,15 +270,12 @@ def load(
     tmpf_names = ()
     model['func_strings'] = {}
 
-    # NOTE: currently disabled
-    exog_grid_var_names = _get_exog_grid_var_names(model.get('distributions'))
-
     # get function strings for decisions and distributions, if they exist
     if model.get('decisions'):
         decisions_outputs = model['decisions']['outputs']
         decisions_inputs = model['decisions']['inputs']
         model['func_strings']["func_backw"] = compile_backw_func_str(
-            evars, par, shocks, decisions_inputs, decisions_outputs, model['decisions']['calls'], exog_grid_var_names)
+            evars, par, shocks, decisions_inputs, decisions_outputs, model['decisions']['calls'])
         tmpf_names += _define_function(model['func_strings']
                                        ['func_backw'], model['context']),
     else:

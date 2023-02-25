@@ -15,7 +15,7 @@ def compile_func_basics_str(evars, par, shocks):
     return func_str
 
 
-def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls, exog_grid_var_names):
+def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls):
     """Compile all information to a string that defines the backward function for 'decisions'.
     """
 
@@ -26,7 +26,7 @@ def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls, exog_grid
             {compile_func_basics_str(evars, par, shocks)}
             \n ({"".join(v + ", " for v in inputs)}) = VFPrime
             \n %s
-            \n return jnp.array(({"".join(v[:-5] + ", " for v in inputs)})), jnp.array(({", ".join(v for v in outputs)})), ({', '.join(v for v in exog_grid_var_names)})
+            \n return jnp.array(({"".join(v[:-5] + ", " for v in inputs)})), jnp.array(({", ".join(v for v in outputs)}))
             """ % '\n '.join(calls)
 
     return func_str
@@ -65,28 +65,35 @@ def compile_func_dist_str(distributions, decisions_outputs):
     for dist_name in distributions:
 
         dist = distributions[dist_name]
-        exog = [v for v in dist if dist[v]['type'] in (
-            'exogenous', 'custom_exogenous', 'time_varying_exogenous')]
-        endo = [v for v in dist if dist[v]['type'] == 'endogenous']
+        implemented_endo = ('exogenous_custom', 'exogenous_rouwenhorst')
+        implemented_exo = ('endogenous_custom', 'endogenous_log')
+        exog = [v for v in dist if dist[v]['type'] in implemented_endo]
+        endo = [v for v in dist if dist[v]['type'] in implemented_exo]
+        rest = [dist[v]['type'] for v in dist if dist[v]
+                ['type'] not in implemented_endo + implemented_exo]
+
+        if rest:
+            raise NotImplementedError(
+                f"Grid(s) of type {str(*rest)} not implemented.")
 
         if len(exog) > 1:
             raise NotImplementedError(
                 'Exogenous distributions with more than one dimension are not yet implemented.')
 
-        func_dist_str_tpl = f"\n endog_inds0, endog_probs0 = interp.interpolate_coord_robust({dist[endo[0]]['grid_variables']}, {endo[0]})",
+        func_dist_str_tpl = f"\n endog_inds0, endog_probs0 = interp.interpolate_coord_robust({dist[endo[0]]['grid_name']}, {endo[0]})",
 
         if len(endo) == 1:
             func_stst_dist_str_tpl = func_dist_str_tpl + \
-                (f"\n {dist_name}, {dist_name}_cnt = dists.stationary_distribution_forward_policy_1d(endog_inds0, endog_probs0, {dist[exog[0]]['grid_variables'][2]}, tol, maxit)",)
-            func_dist_str_tpl += f"\n {dist_name} = {dist[exog[0]]['grid_variables'][2]}.T @ dists.forward_policy_1d({dist_name}, endog_inds0, endog_probs0)",
+                (f"\n {dist_name}, {dist_name}_cnt = dists.stationary_distribution_forward_policy_1d(endog_inds0, endog_probs0, {dist[exog[0]]['transition_name']}, tol, maxit)",)
+            func_dist_str_tpl += f"\n {dist_name} = {dist[exog[0]]['transition_name']}.T @ dists.forward_policy_1d({dist_name}, endog_inds0, endog_probs0)",
 
         elif len(endo) == 2:
-            func_dist_str_tpl += f"\n endog_inds1, endog_probs1 = interp.interpolate_coord_robust({dist[endo[1]]['grid_variables']}, {endo[1]})",
+            func_dist_str_tpl += f"\n endog_inds1, endog_probs1 = interp.interpolate_coord_robust({dist[endo[1]]['grid_name']}, {endo[1]})",
             func_stst_dist_str_tpl = func_dist_str_tpl + \
-                (f"\n {dist_name}, {dist_name}_cnt = dists.stationary_distribution_forward_policy_2d(endog_inds0, endog_inds1, endog_probs0, endog_probs1, {dist[exog[0]]['grid_variables'][2]}, tol, maxit)",)
+                (f"\n {dist_name}, {dist_name}_cnt = dists.stationary_distribution_forward_policy_2d(endog_inds0, endog_inds1, endog_probs0, endog_probs1, {dist[exog[0]]['transition_name']}, tol, maxit)",)
             func_dist_str_tpl += f"""
                 \n forwarded_dist = dists.forward_policy_2d({dist_name}, endog_inds0, endog_inds1, endog_probs0, endog_probs1)
-                \n {dist_name} = expect_transition({dist[exog[0]]['grid_variables'][2]}.T, forwarded_dist)
+                \n {dist_name} = expect_transition({dist[exog[0]]['transition_name']}.T, forwarded_dist)
                 """,
 
         else:

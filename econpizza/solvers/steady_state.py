@@ -18,7 +18,7 @@ def _get_stst_dist_objs(model, res, maxit_backwards, maxit_forwards):
     """
 
     res_backw, res_forw = res['aux']
-    vfSS, decisions_output, exog_grid_vars, cnt_backwards = res_backw
+    vfSS, decisions_output, cnt_backwards = res_backw
     distSS, cnt_forwards = res_forw
     decisions_output_names = model['decisions']['outputs']
 
@@ -114,12 +114,11 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
     # get initial values for heterogenous agents
     decisions_output_init = model['init_run'].get('decisions_output')
-    exog_grid_vars_init = model['init_run'].get('exog_grid_vars')
     init_vf = model.get('init_vf')
 
     # get the actual steady state function
     func_stst_raw = get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init,
-                                      exog_grid_vars_init, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
+                                      tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
     # store function
     model["context"]['func_stst_raw'] = func_stst_raw
     x_init = jnp.array(list(model['init'].values()))

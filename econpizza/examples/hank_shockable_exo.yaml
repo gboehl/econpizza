@@ -1,0 +1,109 @@
+# Author: Gregor Boehl [mail@gregorboehl.com]
+---
+
+name: 'hank'
+description: 'A small example HANK model with one asset and shockable idiosyncratic risk'
+functions_file: 'hank_functions.py'
+
+definitions: |
+    from jax.numpy import log, maximum
+    from econpizza.tools import percentile, jax_print, markov_rouwenhorst, rouwenhorst_grid_from_stationary
+    # since in 'distributions' we are defining a custom grid, the actual grid nodes must be defined here to be accessible in all stages
+    _, skills_stationary, skills_transition = markov_rouwenhorst(rho=.966, sigma=.6, N=4)
+
+# these lists define the relevant models objects
+variables: [ div, y, y_prod, w, pi, R, Rn, Rr, Rstar, tax, z, beta, C, n, B, zeta ]
+parameters: [ sigma_c, sigma_l, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_r, rho_z ]
+shocks: [ e_beta, e_rstar, e_z, e_zeta ]
+
+distributions:
+  dist:
+    skills:
+      # this is a custom distribution that must be defined manually (in definitions and decision calls)
+      type: exogenous_custom
+      transition_name: skills_transition
+      n: 4
+    a:
+      type: endogenous
+      grid_name: a_grid
+      min: 0.0
+      max: 50
+      n: 50
+
+decisions:
+  inputs: [VaPrime]
+  calls: |
+    # the actual shockabel grid is defined here for each value function call
+    skills_grid = rouwenhorst_grid_from_stationary(zeta, skills_stationary)
+    trans = transfers(skills_stationary, div, tax, skills_grid)
+    VaPrimeExp = skills_transition @ VaPrime
+    Va, a, c = hh(VaPrimeExp, a_grid, skills_grid, w, n, trans, Rr, beta, sigma_c, sigma_l)
+  outputs: [a,c]
+
+aux_equations: |
+    aggr_a = jnp.sum(dist*a, axis=(0,1))
+    aggr_c = jnp.sum(dist*c, axis=(0,1))
+
+equations:
+    # definitions
+    ~ C = aggr_c
+
+    # firms
+    ~ n = y_prod/z # production function
+    ~ div = -w*n + (1 - psi*(pi/piSS - 1)**2/2)*y_prod # dividends
+    ~ y = (1 - psi*(pi/piSS - 1)**2/2)*y_prod # "effective" output
+    ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*piPrime/R*(piPrime/piSS - 1)*piPrime/piSS*y_prodPrime/y_prod # NKPC
+
+    # government
+    ~ tax = (Rr-1)*BLag # balanced budget
+    ~ Rr = RLag/pi # real ex-post bond return
+    ~ Rn = (Rstar*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*RnLag**rho # MP rule on shadow nominal rate
+    ~ R = maximum(1, Rn) # ZLB
+
+    # clearings
+    ~ C = y # market clearing
+    ~ B = aggr_a # bond market clearing
+    ~ w**sigma_l = n # labor market clearing
+
+    # exogenous
+    ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # exogenous beta
+    ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_r*exp(e_rstar) # exogenous rstar
+    ~ z = zSS*(zLag/zSS)**rho_z*exp(e_z) # exogenous technology
+    ~ zeta = zetaSS*(zetaLag/zetaSS)**rho_zeta*exp(e_zeta) # exogenous zeta
+
+steady_state:
+    fixed_values:
+        # parameters:
+        sigma_c: 2. # intertemporal elasticity of substitution
+        sigma_l: 1.5 # inverse Frisch elasticity of labour supply
+        theta: 6. # elasticity of substitution
+        psi: 96. # parameter on the costs of price adjustment
+        phi_pi: 1.5 # Taylor rule coefficient on inflation
+        phi_y: 0.1 # Taylor rule coefficient on output
+        rho: 0.8 # persistence in (notional) nominal interest rate
+        rho_beta: 0.9 # persistence of discount factor shock
+        rho_zeta: 0.9 # persistence of discount factor shock
+        rho_r: 0.9 # persistence of MP shock
+        rho_z: 0.9 # persistence of technology shocks
+
+        # steady state
+        y: 1.0 # effective output
+        y_prod: 1.0 # output
+        C: 1.0 # consumption
+        pi: 1.0 # inflation
+        beta: 0.98 # discount factor
+        zeta: 0.6 # idiosyncratic risk
+        B: 5.6 # bond supply
+        # definitions can be recursive: theta is defined above
+        w: (theta-1)/theta # wages
+        n: w**sigma_l # labor supply
+        div: 1 - w*n # dividends
+        z: y/n # technology
+
+    init_guesses:
+        Rstar: 1.002 # steady state target rage
+        Rr: Rstar # steady state real rage
+        Rn: Rstar # steady state notional rage
+        R: Rstar # steady state nominal rage
+        tax: 0.028
+        VaPrime: hh_init(a_grid, skills_stationary)

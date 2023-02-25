@@ -24,6 +24,9 @@ jax.config.update("jax_enable_x64", True)
 
 
 class PizzaModel(dict):
+    """Base class for models. Contains all necessary methods and informations.
+    """
+
     def __init__(self, *args, **kwargs):
         super(PizzaModel, self).__init__(*args, **kwargs)
         self.__dict__ = self

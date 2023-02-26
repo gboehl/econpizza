@@ -109,23 +109,21 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     init_vf = model.get('init_vf')
 
     # get the actual steady state function
-    func_stst_raw = get_func_stst_raw(func_pre_stst, func_backw, func_forw_stst, func_eqns, shocks, init_vf, decisions_output_init,
-                                      tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
-    # store function
-    model["context"]['func_stst_raw'] = func_stst_raw
+    func_stst = get_func_stst_raw(func_pre_stst, func_backw, func_forw_stst, func_eqns, shocks, init_vf, decisions_output_init,
+                                  tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
+    # store jitted stst function that returns jacobian and func. value
+    model["context"]['func_stst'] = func_stst
     x_init = jnp.array(list(model['init'].values()))
 
     if not model['steady_state'].get('skip'):
-        # define jitted stst function that returns jacobian and func. value
-        func_stst = jax.jit(val_and_jacfwd(func_stst_raw, has_aux=True))
-        model["context"]['func_stst'] = func_stst
         # actual root finding
         res = newton_jax(func_stst, x_init, maxit, tol,
                          solver=solver, verbose=verbose, **newton_kwargs)
     else:
-        f, aux = func_stst_raw(x_init)
+        f, jac, aux = func_stst_raw(x_init)
         res = {'x': x_init,
                'fun': f,
+               'jac': jac,
                'success': True,
                'message': 'I blindly took the given values.',
                'aux': aux,

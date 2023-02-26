@@ -140,6 +140,8 @@ def check_if_compiled_stst(model, fixed_vals, tol, maxit, tol_backwards, maxit_b
                 f"(solve_stst:) Steady state already {'known' if model['compiled_objects']['stst_used_success'] else 'FAILED'}.")
 
         return model["compiled_objects"]['stst_used_res']
+    else:
+        raise KeyError
 
 
 def write_compiled_objects_stst(model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, res):

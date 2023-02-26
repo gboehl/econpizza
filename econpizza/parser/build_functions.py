@@ -4,7 +4,7 @@
 import jax
 import time
 import jax.numpy as jnp
-from grgrjax import jvp_vmap, vjp_vmap
+from grgrjax import jvp_vmap, vjp_vmap, val_and_jacfwd
 from .het_agent_funcs import *
 from ..utilities import grids, dists, interp
 
@@ -70,6 +70,10 @@ def func_stst_het_agent(y, func_pre_stst, find_stat_vf, func_forw_stst, func_eqn
     return out, aux
 
 
+vaj_stst_het_agent = jax.jit(val_and_jacfwd(
+    func_stst_het_agent, argnums=0, has_aux=True))
+
+
 def get_func_stst_raw(func_pre_stst, func_backw, func_forw_stst, func_eqns, shocks, init_vf, decisions_output_init, tol_backw, maxit_backw, tol_forw, maxit_forw):
     """Get a function that evaluates the steady state
     """
@@ -88,7 +92,7 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_forw_stst, func_eqns, shoc
     forwards_stst = jax.tree_util.Partial(
         func_forw_stst, tol=tol_forw, maxit=maxit_forw)
 
-    return jax.tree_util.Partial(func_stst_het_agent, func_pre_stst=partial_pre_stst, find_stat_vf=backwards_stst, func_forw_stst=forwards_stst, func_eqns=partial_eqns)
+    return jax.tree_util.Partial(vaj_stst_het_agent, func_pre_stst=partial_pre_stst, find_stat_vf=backwards_stst, func_forw_stst=forwards_stst, func_eqns=partial_eqns)
 
 
 def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, verbose):

@@ -1,5 +1,7 @@
 """Functions that write other functions.
 """
+import jax
+from .build_functions import func_forw_generic, func_forw_stst_generic
 
 
 def compile_func_basics_str(evars, par, shocks):
@@ -49,71 +51,46 @@ def compile_stst_func_str(evars, par, stst, init):
     return func_pre_stst_str
 
 
-def compile_forw_func_str(distributions, decisions_outputs):
-    """Compiles the transition functions for distributions.
-    """
+def get_forw_funcs(model):
+
+    distributions = model['distributions']
 
     if len(distributions) > 1:
         raise NotImplementedError(
             'More than one distribution is not yet implemented.')
 
     # already prepare for more than one distributions
-    # each distribution gets an own string
-    func_forw_stst_str_tpl = ()
-    func_forw_str_tpl = ()
-
     for dist_name in distributions:
 
         dist = distributions[dist_name]
+
         implemented_endo = ('exogenous_custom', 'exogenous_rouwenhorst')
         implemented_exo = ('endogenous_custom', 'endogenous_log')
         exog = [v for v in dist if dist[v]['type'] in implemented_endo]
         endo = [v for v in dist if dist[v]['type'] in implemented_exo]
-        rest = [dist[v]['type'] for v in dist if dist[v]
-                ['type'] not in implemented_endo + implemented_exo]
-
-        if rest:
-            raise NotImplementedError(
-                f"Grid(s) of type {str(*rest)} not implemented.")
+        other = [dist[v]['type'] for v in dist if dist[v]
+                 ['type'] not in implemented_endo + implemented_exo]
 
         if len(exog) > 1:
             raise NotImplementedError(
                 'Exogenous distributions with more than one dimension are not yet implemented.')
-
-        func_forw_str_tpl = f"\n endog_inds0, endog_probs0 = interp.interpolate_coord_robust({dist[endo[0]]['grid_name']}, {endo[0]})",
-
-        if len(endo) == 1:
-            func_forw_stst_str_tpl = func_forw_str_tpl + \
-                (f"\n {dist_name}, {dist_name}_cnt = dists.stationary_distribution_forward_policy_1d(endog_inds0, endog_probs0, {dist[exog[0]]['transition_name']}, tol, maxit)",)
-            func_forw_str_tpl += f"\n {dist_name} = {dist[exog[0]]['transition_name']}.T @ dists.forward_policy_1d({dist_name}, endog_inds0, endog_probs0)",
-
-        elif len(endo) == 2:
-            func_forw_str_tpl += f"\n endog_inds1, endog_probs1 = interp.interpolate_coord_robust({dist[endo[1]]['grid_name']}, {endo[1]})",
-            func_forw_stst_str_tpl = func_forw_str_tpl + \
-                (f"\n {dist_name}, {dist_name}_cnt = dists.stationary_distribution_forward_policy_2d(endog_inds0, endog_inds1, endog_probs0, endog_probs1, {dist[exog[0]]['transition_name']}, tol, maxit)",)
-            func_forw_str_tpl += f"""
-                \n forwarded_dist = dists.forward_policy_2d({dist_name}, endog_inds0, endog_inds1, endog_probs0, endog_probs1)
-                \n {dist_name} = expect_transition({dist[exog[0]]['transition_name']}.T, forwarded_dist)
-                """,
-
-        else:
+        if len(endo) > 2:
             raise NotImplementedError(
                 'Endogenous distributions with more than two dimension are not yet implemented.')
+        if other:
+            raise NotImplementedError(
+                f"Grid(s) of type {str(*other)} not implemented.")
 
-    # join the tuples to strings that define the final functions
-    func_forw_stst_str = f"""def func_forw_stst(decisions_outputs, tol, maxit):
-        \n ({", ".join(decisions_outputs)},) = decisions_outputs
-        \n {"".join(func_forw_stst_str_tpl)}
-        \n max_cnt = jnp.max({"".join(d + '_cnt, ' for d in distributions.keys())})
-        \n return jnp.array(({"".join(d + ', ' for d in distributions.keys())})), max_cnt"""
+        transition = model['context'][dist[exog[0]]['transition_name']]
+        grids = [model['context'][dist[i]['grid_name']] for i in endo]
+        indices = [model['decisions']['outputs'].index(i) for i in endo]
 
-    func_forw_str = f"""def func_forw(distributions, decisions_outputs):
-        \n ({", ".join(decisions_outputs)},) = decisions_outputs
-        \n ({"".join(d+', ' for d in distributions)}) = distributions
-        \n {"".join(func_forw_str_tpl)}
-        \n return jnp.array(({"".join(d + ', ' for d in distributions.keys())}))"""
+        model['context']['func_forw'] = jax.tree_util.Partial(
+            func_forw_generic, grids=grids, transition=transition, indices=indices)
+        model['context']['func_forw_stst'] = jax.tree_util.Partial(
+            func_forw_stst_generic, grids=grids, transition=transition, indices=indices)
 
-    return func_forw_stst_str, func_forw_str
+    return
 
 
 def compile_eqn_func_str(evars, eqns, par, eqns_aux, shocks, distributions, decisions_outputs):

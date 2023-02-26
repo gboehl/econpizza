@@ -283,15 +283,9 @@ def load(
         decisions_inputs = []
 
     if model.get('distributions'):
+        # get names of distributions and the forward functions
         dist_names = list(model['distributions'].keys())
-        func_forw_stst_str, func_forw_str = compile_forw_func_str(
-            model['distributions'], decisions_outputs)
-        # store both strings
-        model['func_strings']["func_forw_stst"] = func_forw_stst_str
-        model['func_strings']["func_forw"] = func_forw_str
-        # execute them
-        tmpf_names += _define_function(func_forw_stst_str, model['context']),
-        tmpf_names += _define_function(func_forw_str, model['context']),
+        get_forw_funcs(model)
     else:
         dist_names = []
 

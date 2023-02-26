@@ -6,6 +6,42 @@ import time
 import jax.numpy as jnp
 from grgrjax import jvp_vmap, vjp_vmap
 from .het_agent_funcs import *
+from ..utilities import grids, dists, interp
+
+
+def func_forw_generic(distributions, decisions_outputs, grids, transition, indices):
+    # prototype for one distribution
+    # should be a for-loop for more than one distribution
+    (dist, ) = distributions
+    endog_inds0, endog_probs0 = interp.interpolate_coord_robust(
+        grids[0], decisions_outputs[indices[0]])
+    if len(indices) == 1:
+        grid = grids[0]
+        dist = transition.T @ dists.forward_policy_1d(
+            dist, endog_inds0, endog_probs0)
+    elif len(indices) == 2:
+        endog_inds1, endog_probs1 = interp.interpolate_coord_robust(
+            grids[1], decisions_outputs[indices[1]])
+        forwarded_dist = dists.forward_policy_2d(
+            dist, endog_inds0, endog_inds1, endog_probs0, endog_probs1)
+        dist = dists.expect_transition(transition.T, forwarded_dist)
+    return jnp.array((dist, ))
+
+
+def func_forw_stst_generic(decisions_outputs, tol, maxit, grids, transition, indices):
+    # prototype for one distribution, as with _func_forw
+    endog_inds0, endog_probs0 = interp.interpolate_coord_robust(
+        grids[0], decisions_outputs[indices[0]])
+    if len(indices) == 1:
+        dist, dist_cnt = dists.stationary_distribution_forward_policy_1d(
+            endog_inds0, endog_probs0, transition, tol, maxit)
+    elif len(indices) == 2:
+        endog_inds1, endog_probs1 = interp.interpolate_coord_robust(
+            grids[1], decisions_outputs[indices[1]])
+        dist, dist_cnt = dists.stationary_distribution_forward_policy_2d(
+            endog_inds0, endog_inds1, endog_probs0, endog_probs1, transition, tol, maxit)
+    max_cnt = jnp.max(dist_cnt, )
+    return jnp.array((dist, )), max_cnt
 
 
 def func_stst_rep_agent(y, func_pre_stst, func_eqns):

@@ -5,6 +5,7 @@ import time
 import jax.numpy as jnp
 from grgrjax import newton_jax, val_and_jacfwd, amax
 from ..parser.build_functions import get_func_stst_raw
+from ..parser.checks import check_if_compiled_stst, write_compiled_objects_stst
 
 
 def solver(jval, fval):
@@ -89,16 +90,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
     # check if steady state was already calculated
     try:
-        cond0 = jnp.allclose(model["stst_used_pars"], jnp.array(
-            list(fixed_vals.values())))
-        cond1 = model["stst_used_setup"] == (
-            model.get('functions_file_plain'), tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
-        if cond0 and cond1 and not force:
-            if verbose:
-                print(
-                    f"(solve_stst:) Steady state already {'known' if model['stst_used_success'] else 'FAILED'}.")
-
-            return model['stst_used_res']
+        return check_if_compiled_stst(model, fixed_vals, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, force, verbose)
     except KeyError:
         model['compiled_objects']['compiled_model_flag'] = False
         pass
@@ -110,14 +102,14 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     # get all necessary functions
     func_eqns = model['context']['func_eqns']
     func_backw = model['context'].get('func_backw')
-    func_stst_dist = model['context'].get('func_stst_dist')
+    func_forw_stst = model['context'].get('func_forw_stst')
 
     # get initial values for heterogenous agents
     decisions_output_init = model['init_run'].get('decisions_output')
     init_vf = model.get('init_vf')
 
     # get the actual steady state function
-    func_stst_raw = get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init,
+    func_stst_raw = get_func_stst_raw(func_pre_stst, func_backw, func_forw_stst, func_eqns, shocks, init_vf, decisions_output_init,
                                       tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
     # store function
     model["context"]['func_stst_raw'] = func_stst_raw
@@ -180,12 +172,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
             ' WARNING: ' + mess if mess else '')
 
     # cache everything if search was successful
-    model["stst_used_pars"] = jnp.array(
-        list(model['steady_state']['fixed_evalued'].values()))
-    model["stst_used_setup"] = model.get(
-        'functions_file_plain'), tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
-    model["stst_used_res"] = res
-    model["stst_used_success"] = res['success']
+    write_compiled_objects_stst(
+        model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, res)
 
     if mess:
         print(f"(solve_stst:) {mess}")

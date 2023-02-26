@@ -68,7 +68,7 @@ def check_initial_values(model, shocks, par):
             else:
                 raise
 
-        dists_init, _ = model['context']['func_stst_dist'](
+        dists_init, _ = model['context']['func_forw_stst'](
             decisions_output_init, 1e-8, 1)
 
         if jnp.isnan(decisions_output_init).any():
@@ -126,4 +126,27 @@ def write_compiled_objects(model, horizon, pars):
     model['compiled_objects']['compiled_model_flag'] = True
     model['compiled_objects']['horizon'] = horizon
     model['compiled_objects']['pars'] = pars
+    return
+
+
+def check_if_compiled_stst(model, fixed_vals, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, force, verbose):
+    cond0 = jnp.allclose(model["compiled_objects"]["stst_used_pars"], jnp.array(
+        list(fixed_vals.values())))
+    cond1 = model["compiled_objects"]["stst_used_setup"] == (
+        model.get('functions_file_plain'), tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
+    if cond0 and cond1 and not force:
+        if verbose:
+            print(
+                f"(solve_stst:) Steady state already {'known' if model['compiled_objects']['stst_used_success'] else 'FAILED'}.")
+
+        return model["compiled_objects"]['stst_used_res']
+
+
+def write_compiled_objects_stst(model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, res):
+    model["compiled_objects"]["stst_used_pars"] = jnp.array(
+        list(model['steady_state']['fixed_evalued'].values()))
+    model["compiled_objects"]["stst_used_setup"] = model.get(
+        'functions_file_plain'), tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
+    model["compiled_objects"]["stst_used_res"] = res
+    model["compiled_objects"]["stst_used_success"] = res['success']
     return

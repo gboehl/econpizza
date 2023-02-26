@@ -284,14 +284,14 @@ def load(
 
     if model.get('distributions'):
         dist_names = list(model['distributions'].keys())
-        func_stst_dist_str, func_dist_str = compile_func_dist_str(
+        func_forw_stst_str, func_forw_str = compile_forw_func_str(
             model['distributions'], decisions_outputs)
         # store both strings
-        model['func_strings']["func_stst_dist"] = func_stst_dist_str
-        model['func_strings']["func_dist"] = func_dist_str
+        model['func_strings']["func_forw_stst"] = func_forw_stst_str
+        model['func_strings']["func_forw"] = func_forw_str
         # execute them
-        tmpf_names += _define_function(func_stst_dist_str, model['context']),
-        tmpf_names += _define_function(func_dist_str, model['context']),
+        tmpf_names += _define_function(func_forw_stst_str, model['context']),
+        tmpf_names += _define_function(func_forw_str, model['context']),
     else:
         dist_names = []
 

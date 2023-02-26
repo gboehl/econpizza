@@ -46,16 +46,16 @@ def backwards_sweep(x, x0, shocks, stst, vfSS, horizon, func_backw):
 
 def _forwards_step(carry, i):
 
-    dist_old, decisions_output_storage, func_dist = carry
-    dist = func_dist(dist_old, decisions_output_storage[..., i])
+    dist_old, decisions_output_storage, func_forw = carry
+    dist = func_forw(dist_old, decisions_output_storage[..., i])
 
-    return (dist, decisions_output_storage, func_dist), dist_old
+    return (dist, decisions_output_storage, func_forw), dist_old
 
 
-def forwards_sweep(decisions_output_storage, dist0, horizon, func_dist):
+def forwards_sweep(decisions_output_storage, dist0, horizon, func_forw):
 
     _, dists_storage = jax.lax.scan(
-        _forwards_step, (dist0, decisions_output_storage, func_dist), jnp.arange(horizon-1))
+        _forwards_step, (dist0, decisions_output_storage, func_forw), jnp.arange(horizon-1))
     dists_storage = jnp.moveaxis(dists_storage, 0, -1)
 
     return dists_storage

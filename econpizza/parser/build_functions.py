@@ -14,14 +14,14 @@ def func_stst_rep_agent(y, func_pre_stst, func_eqns):
     return func_eqns(x, x, x, x, pars=par), None
 
 
-def func_stst_het_agent(y, func_pre_stst, find_stat_vf, func_stst_dist, func_eqns):
+def func_stst_het_agent(y, func_pre_stst, find_stat_vf, func_forw_stst, func_eqns):
 
     x, par = func_pre_stst(y)
     x = x[..., None]
 
     vf, decisions_output, cnt_backw = find_stat_vf(
         x, par)
-    dist, cnt_forw = func_stst_dist(decisions_output)
+    dist, cnt_forw = func_forw_stst(decisions_output)
 
     # TODO: for more than one dist this should be a loop...
     decisions_output_array = decisions_output[..., None]
@@ -34,7 +34,7 @@ def func_stst_het_agent(y, func_pre_stst, find_stat_vf, func_stst_dist, func_eqn
     return out, aux
 
 
-def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shocks, init_vf, decisions_output_init, tol_backw, maxit_backw, tol_forw, maxit_forw):
+def get_func_stst_raw(func_pre_stst, func_backw, func_forw_stst, func_eqns, shocks, init_vf, decisions_output_init, tol_backw, maxit_backw, tol_forw, maxit_forw):
     """Get a function that evaluates the steady state
     """
 
@@ -42,7 +42,7 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shoc
     partial_pre_stst = jax.tree_util.Partial(func_pre_stst)
     partial_eqns = jax.tree_util.Partial(func_eqns, shocks=zshock)
 
-    if not func_stst_dist:
+    if not func_forw_stst:
         return jax.tree_util.Partial(func_stst_rep_agent, func_pre_stst=partial_pre_stst, func_eqns=partial_eqns)
 
     partial_backw = jax.tree_util.Partial(func_backw, shocks=zshock)
@@ -50,9 +50,9 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_stst_dist, func_eqns, shoc
                                                1, 0), (partial_backw, tol_backw, maxit_backw)
     backwards_stst = jax.tree_util.Partial(backwards_sweep_stst, carry=carry)
     forwards_stst = jax.tree_util.Partial(
-        func_stst_dist, tol=tol_forw, maxit=maxit_forw)
+        func_forw_stst, tol=tol_forw, maxit=maxit_forw)
 
-    return jax.tree_util.Partial(func_stst_het_agent, func_pre_stst=partial_pre_stst, find_stat_vf=backwards_stst, func_stst_dist=forwards_stst, func_eqns=partial_eqns)
+    return jax.tree_util.Partial(func_stst_het_agent, func_pre_stst=partial_pre_stst, find_stat_vf=backwards_stst, func_forw_stst=forwards_stst, func_eqns=partial_eqns)
 
 
 def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, verbose):
@@ -91,28 +91,28 @@ def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, ver
     return f2X, f2do, do2x
 
 
-def get_stacked_func_het_agents(pars, func_backw, func_dist, func_eqns, stst, vfSS, horizon, nvars):
+def get_stacked_func_het_agents(pars, func_backw, func_forw, func_eqns, stst, vfSS, horizon, nvars):
     """Get a function that returns the (flattend) value and Jacobian of the stacked aggregate model equations.
     """
 
     nshpe = (nvars, horizon-1)
     # build partials of input functions
     partial_backw = jax.tree_util.Partial(func_backw, XSS=stst, pars=pars)
-    partial_dist = jax.tree_util.Partial(func_dist)
+    partial_forw = jax.tree_util.Partial(func_forw)
 
     # build partials of output functions
     backwards_sweep_local = jax.tree_util.Partial(
         backwards_sweep, stst=stst, vfSS=vfSS, horizon=horizon, func_backw=partial_backw)
     forwards_sweep_local = jax.tree_util.Partial(
-        forwards_sweep, horizon=horizon, func_dist=partial_dist)
+        forwards_sweep, horizon=horizon, func_forw=partial_forw)
     final_step_local = jax.tree_util.Partial(
         final_step, stst=stst, horizon=horizon, nshpe=nshpe, pars=pars, func_eqns=func_eqns)
     second_sweep_local = jax.tree_util.Partial(
         second_sweep, forwards_sweep=forwards_sweep_local, final_step=final_step_local)
-    stacked_func_dist_local = jax.tree_util.Partial(
+    stacked_func_forw_local = jax.tree_util.Partial(
         stacked_func_het_agents, backwards_sweep=backwards_sweep_local, second_sweep=second_sweep_local)
 
-    return stacked_func_dist_local, backwards_sweep_local, forwards_sweep_local, second_sweep_local
+    return stacked_func_forw_local, backwards_sweep_local, forwards_sweep_local, second_sweep_local
 
 
 def build_aggr_het_agent_funcs(model, nvars, pars, stst, zshocks, horizon):
@@ -121,7 +121,7 @@ def build_aggr_het_agent_funcs(model, nvars, pars, stst, zshocks, horizon):
     # get functions
     func_eqns = model['context']["func_eqns"]
     func_backw = model['context'].get('func_backw')
-    func_dist = model['context'].get('func_dist')
+    func_forw = model['context'].get('func_forw')
 
     # get stuff for het-agent models
     vfSS = model['steady_state'].get('value_functions')
@@ -129,7 +129,7 @@ def build_aggr_het_agent_funcs(model, nvars, pars, stst, zshocks, horizon):
 
     # get actual functions
     func_raw, backwards_sweep, forwards_sweep, second_sweep = get_stacked_func_het_agents(
-        pars, func_backw, func_dist, func_eqns, stst, vfSS, horizon, nvars)
+        pars, func_backw, func_forw, func_eqns, stst, vfSS, horizon, nvars)
 
     # store everything
     model['context']['func_raw'] = func_raw

@@ -33,7 +33,7 @@ def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls):
 
 
 def compile_stst_func_str(evars, par, stst, init):
-    """Compile all information from 'equations' section' to a string that defines the function.
+    """Compile all information from 'equations' section to a string that defines the function.
     """
 
     stst_str = '; '.join([f'{v} = {stst[v]}' for v in stst])
@@ -49,7 +49,7 @@ def compile_stst_func_str(evars, par, stst, init):
     return func_pre_stst_str
 
 
-def compile_func_dist_str(distributions, decisions_outputs):
+def compile_forw_func_str(distributions, decisions_outputs):
     """Compiles the transition functions for distributions.
     """
 
@@ -59,8 +59,8 @@ def compile_func_dist_str(distributions, decisions_outputs):
 
     # already prepare for more than one distributions
     # each distribution gets an own string
-    func_stst_dist_str_tpl = ()
-    func_dist_str_tpl = ()
+    func_forw_stst_str_tpl = ()
+    func_forw_str_tpl = ()
 
     for dist_name in distributions:
 
@@ -80,18 +80,18 @@ def compile_func_dist_str(distributions, decisions_outputs):
             raise NotImplementedError(
                 'Exogenous distributions with more than one dimension are not yet implemented.')
 
-        func_dist_str_tpl = f"\n endog_inds0, endog_probs0 = interp.interpolate_coord_robust({dist[endo[0]]['grid_name']}, {endo[0]})",
+        func_forw_str_tpl = f"\n endog_inds0, endog_probs0 = interp.interpolate_coord_robust({dist[endo[0]]['grid_name']}, {endo[0]})",
 
         if len(endo) == 1:
-            func_stst_dist_str_tpl = func_dist_str_tpl + \
+            func_forw_stst_str_tpl = func_forw_str_tpl + \
                 (f"\n {dist_name}, {dist_name}_cnt = dists.stationary_distribution_forward_policy_1d(endog_inds0, endog_probs0, {dist[exog[0]]['transition_name']}, tol, maxit)",)
-            func_dist_str_tpl += f"\n {dist_name} = {dist[exog[0]]['transition_name']}.T @ dists.forward_policy_1d({dist_name}, endog_inds0, endog_probs0)",
+            func_forw_str_tpl += f"\n {dist_name} = {dist[exog[0]]['transition_name']}.T @ dists.forward_policy_1d({dist_name}, endog_inds0, endog_probs0)",
 
         elif len(endo) == 2:
-            func_dist_str_tpl += f"\n endog_inds1, endog_probs1 = interp.interpolate_coord_robust({dist[endo[1]]['grid_name']}, {endo[1]})",
-            func_stst_dist_str_tpl = func_dist_str_tpl + \
+            func_forw_str_tpl += f"\n endog_inds1, endog_probs1 = interp.interpolate_coord_robust({dist[endo[1]]['grid_name']}, {endo[1]})",
+            func_forw_stst_str_tpl = func_forw_str_tpl + \
                 (f"\n {dist_name}, {dist_name}_cnt = dists.stationary_distribution_forward_policy_2d(endog_inds0, endog_inds1, endog_probs0, endog_probs1, {dist[exog[0]]['transition_name']}, tol, maxit)",)
-            func_dist_str_tpl += f"""
+            func_forw_str_tpl += f"""
                 \n forwarded_dist = dists.forward_policy_2d({dist_name}, endog_inds0, endog_inds1, endog_probs0, endog_probs1)
                 \n {dist_name} = expect_transition({dist[exog[0]]['transition_name']}.T, forwarded_dist)
                 """,
@@ -101,19 +101,19 @@ def compile_func_dist_str(distributions, decisions_outputs):
                 'Endogenous distributions with more than two dimension are not yet implemented.')
 
     # join the tuples to strings that define the final functions
-    func_stst_dist_str = f"""def func_stst_dist(decisions_outputs, tol, maxit):
+    func_forw_stst_str = f"""def func_forw_stst(decisions_outputs, tol, maxit):
         \n ({", ".join(decisions_outputs)},) = decisions_outputs
-        \n {"".join(func_stst_dist_str_tpl)}
+        \n {"".join(func_forw_stst_str_tpl)}
         \n max_cnt = jnp.max({"".join(d + '_cnt, ' for d in distributions.keys())})
         \n return jnp.array(({"".join(d + ', ' for d in distributions.keys())})), max_cnt"""
 
-    func_dist_str = f"""def func_dist(distributions, decisions_outputs):
+    func_forw_str = f"""def func_forw(distributions, decisions_outputs):
         \n ({", ".join(decisions_outputs)},) = decisions_outputs
         \n ({"".join(d+', ' for d in distributions)}) = distributions
-        \n {"".join(func_dist_str_tpl)}
+        \n {"".join(func_forw_str_tpl)}
         \n return jnp.array(({"".join(d + ', ' for d in distributions.keys())}))"""
 
-    return func_stst_dist_str, func_dist_str
+    return func_forw_stst_str, func_forw_str
 
 
 def compile_eqn_func_str(evars, eqns, par, eqns_aux, shocks, distributions, decisions_outputs):

@@ -47,17 +47,19 @@ def check_determinancy(evars, eqns):
 
 def check_initial_values(model, shocks, par):
 
-    init_mixed = jnp.array(list(model['init'].values()))
-    init, par = model['context']['func_pre_stst'](init_mixed)
+    init_mixed = jnp.array(list(model['steady_state']['init'].values()))
+    fixed_values = jnp.array(
+        list(model['steady_state']['fixed_evalued'].values()))
+    init, par = model['context']['func_pre_stst'](init_mixed, fixed_values)
     init = init[..., None]
 
     # collect some information needed later
-    model['init_run'] = {}
+    model['steady_state']['init_run'] = {}
 
     mess = ''
     if model.get('decisions'):
         # make a test backward and forward run
-        init_vf = model['init_vf']
+        init_vf = model['steady_state']['init_vf']
         try:
             _, decisions_output_init = model['context']['func_backw'](
                 init, init, init, init, init_vf, jnp.zeros(len(shocks)), par)
@@ -82,8 +84,8 @@ def check_initial_values(model, shocks, par):
     else:
         decisions_output_init = dists_init = []
 
-    model['init_run']['decisions_output'] = decisions_output_init
-    model['init_run']['dists'] = dists_init
+    model['steady_state']['init_run']['decisions_output'] = decisions_output_init
+    model['steady_state']['init_run']['dists'] = dists_init
 
     # final test of main function
     test = model['context']['func_eqns'](init, init, init, init, jnp.zeros(len(shocks)), par, jnp.array(
@@ -130,11 +132,12 @@ def write_compiled_objects(model, horizon, pars):
 
 
 def check_if_compiled_stst(model, fixed_vals, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, force, verbose):
-    cond0 = jnp.allclose(model["compiled_objects"]["stst_used_pars"], jnp.array(
-        list(fixed_vals.values())))
-    cond1 = model["compiled_objects"]["stst_used_setup"] == (
-        model.get('functions_file_plain'), tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
-    if cond0 and cond1 and not force:
+    cond = not model['compiled_objects']['reset_stst']
+    cond &= jnp.allclose(model["compiled_objects"]
+                         ["stst_used_pars"], fixed_vals)
+    cond &= model["compiled_objects"]["stst_used_setup"] == (model.get(
+        'functions_file_plain'), tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
+    if cond and not force:
         if verbose:
             print(
                 f"(solve_stst:) Steady state already {'known' if model['compiled_objects']['stst_used_success'] else 'FAILED'}.")
@@ -144,11 +147,11 @@ def check_if_compiled_stst(model, fixed_vals, tol, maxit, tol_backwards, maxit_b
         raise KeyError
 
 
-def write_compiled_objects_stst(model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, res):
-    model["compiled_objects"]["stst_used_pars"] = jnp.array(
-        list(model['steady_state']['fixed_evalued'].values()))
+def write_compiled_objects_stst(model, fixed_vals, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, res):
+    model["compiled_objects"]["stst_used_pars"] = fixed_vals
     model["compiled_objects"]["stst_used_setup"] = model.get(
         'functions_file_plain'), tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
     model["compiled_objects"]["stst_used_res"] = res
     model["compiled_objects"]["stst_used_success"] = res['success']
+    model['compiled_objects']['reset_stst'] = False
     return

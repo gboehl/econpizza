@@ -80,10 +80,10 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     st = time.time()
 
     evars = model["variables"]
-    func_pre_stst = model['context']["func_pre_stst"]
     par = model["parameters"]
     shocks = model.get("shocks") or ()
-    fixed_vals = model['steady_state']['fixed_evalued']
+    fixed_vals = jnp.array(
+        list(model['steady_state']['fixed_evalued'].values()))
 
     tol_backwards = 1e-8 if tol_backwards is None else tol_backwards
     tol_forwards = 1e-10 if tol_forwards is None else tol_forwards
@@ -103,17 +103,19 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     func_eqns = model['context']['func_eqns']
     func_backw = model['context'].get('func_backw')
     func_forw_stst = model['context'].get('func_forw_stst')
+    func_pre_stst = model['context']['func_pre_stst']
 
     # get initial values for heterogenous agents
-    decisions_output_init = model['init_run'].get('decisions_output')
-    init_vf = model.get('init_vf')
+    decisions_output_init = model['steady_state']['init_run'].get(
+        'decisions_output')
+    init_vf = model['steady_state'].get('init_vf')
 
     # get the actual steady state function
     func_stst = get_func_stst_raw(func_pre_stst, func_backw, func_forw_stst, func_eqns, shocks, init_vf, decisions_output_init,
-                                  tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
+                                  fixed_values=fixed_vals, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
     # store jitted stst function that returns jacobian and func. value
     model["context"]['func_stst'] = func_stst
-    x_init = jnp.array(list(model['init'].values()))
+    x_init = jnp.array(list(model['steady_state']['init'].values()))
 
     if not model['steady_state'].get('skip'):
         # actual root finding
@@ -130,7 +132,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
                }
 
     # exchange those values that are identified via stst_equations
-    stst_vals, par_vals = func_pre_stst(res['x'])
+    stst_vals, par_vals = func_pre_stst(res['x'], fixed_vals)
 
     model["stst"] = dict(zip(evars, stst_vals))
     model["parameters"] = dict(zip(par, par_vals))
@@ -154,7 +156,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
     # check if any of the fixed variables are neither a parameter nor variable
     if mess:
-        not_var_nor_par = list(set(fixed_vals) - set(evars) - set(par))
+        not_var_nor_par = list(
+            set(model['steady_state']['fixed_evalued']) - set(evars) - set(par))
         mess += f"Fixed value(s) ``{'``, ``'.join(not_var_nor_par)}`` not defined. " if not_var_nor_par else ''
 
     if err > tol or not res['success']:
@@ -170,8 +173,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
             ' WARNING: ' + mess if mess else '')
 
     # cache everything if search was successful
-    write_compiled_objects_stst(
-        model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, res)
+    write_compiled_objects_stst(model, fixed_vals, tol, maxit, tol_backwards,
+                                maxit_backwards, tol_forwards, maxit_forwards, res)
 
     if mess:
         print(f"(solve_stst:) {mess}")

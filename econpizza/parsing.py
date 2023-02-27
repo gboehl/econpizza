@@ -13,7 +13,7 @@ import jax
 import jaxlib
 import jax.numpy as jnp
 import importlib.util as iu
-from copy import deepcopy
+from copy import deepcopy, copy
 from inspect import getmembers, isfunction
 from jax.experimental.host_callback import id_print as jax_print
 from .utilities import grids, dists, interp
@@ -264,7 +264,7 @@ def load_model(model):
     _define_function(model['func_strings']["func_eqns"], model['context']),
     # add new model to cache
     cached_mdicts += (deepcopy(mdict_raw),)
-    cached_models += (model,)
+    cached_models += (copy(model),)
 
     return model, mdict_raw, True
 
@@ -273,8 +273,6 @@ def load_stst(model, mdict_with_stst, is_fresh, raise_errors, verbose):
 
     global cached_mdicts_with_stst, cached_models_with_stst
 
-    # print(mdict_with_stst['steady_state'])
-    # [print(d['steady_state']) for d in cached_mdicts_with_stst]
     # check if model is already cached
     if (not is_fresh) and mdict_with_stst in cached_mdicts_with_stst:
         model = cached_models_with_stst[cached_mdicts_with_stst.index(
@@ -294,31 +292,39 @@ def load_stst(model, mdict_with_stst, is_fresh, raise_errors, verbose):
     # collect fixed values
     fixed_values = _define_subdict_if_absent(
         model["steady_state"], "fixed_values")
-    stst = _eval_strs(fixed_values, context=model['context'])
-    model["steady_state"]['fixed_evalued'] = stst
+    fixed_evaluated = _eval_strs(fixed_values, context=model['context'])
 
     # collect initial guesses
     init_guesses = _eval_strs(model["steady_state"].get(
         "init_guesses"), context=model['context'])
-    model["init"] = init = _compile_init_values(evars, par, init_guesses, stst)
+    model["steady_state"]["init"] = init = _compile_init_values(
+        evars, par, init_guesses, fixed_evaluated)
 
-    # get strings that contains the function definitions
-    model['func_strings']["func_pre_stst"] = compile_stst_func_str(
-        evars, par, stst, init)
+    # ensure ordering and lenght of fixed values is fine
+    fixed_values_names = sorted(
+        [k for k in fixed_evaluated if k in par or k in evars])
+    model["steady_state"]['fixed_evalued'] = {
+        k: fixed_evaluated[k] for k in fixed_values_names}
 
-    _define_function(model['func_strings']['func_pre_stst'], model['context']),
+    # check, then get strings that contains the definition of func_pre_stst and compile
+    if fixed_values_names != model['compiled_objects'].get('fixed_values_names'):
+        model['func_strings']["func_pre_stst"] = compile_stst_func_str(
+            evars, par, fixed_values_names, init)
+        _define_function(model['func_strings']
+                         ['func_pre_stst'], model['context']),
+        model['compiled_objects']['fixed_values_names'] = fixed_values_names
 
     # get the initial decision functions
     if model.get('decisions'):
         init_vf_list = [init_guesses[dec_input]
-                        for dec_input in model['decisions']['inputs']]  # let us for now assume that this must be present
-        model['init_vf'] = jnp.array(init_vf_list)
+                        for dec_input in model['decisions']['inputs']]  # for now assume that this must be present
+        model["steady_state"]['init_vf'] = jnp.array(init_vf_list)
 
         # check if initial decision functions and the distribution have same shapes
-        check_shapes(model['distributions'], model['init_vf'], dist_names)
+        check_shapes(model['distributions'],
+                     model["steady_state"]['init_vf'], dist_names)
 
     # try if function works on initvals
-    model['init_run'] = {}
     try:
         check_initial_values(model, shocks, par)
     except:
@@ -327,11 +333,12 @@ def load_stst(model, mdict_with_stst, is_fresh, raise_errors, verbose):
 
     cached_mdicts_with_stst += (mdict_with_stst,)
     cached_models_with_stst += (model,)
+    model['compiled_objects']['reset_stst'] = True
 
     if verbose and is_fresh:
         print("(load:) Parsing done.")
     elif verbose and not is_fresh:
-        print("(load:) Loading cached model with new steady state section")
+        print("(load:) Loading cached model with changed fixed or initial values.")
 
     return model
 
@@ -365,7 +372,6 @@ def load(
         full_path = model
         model = parse(model)
         model['path'] = full_path
-
     # make it a model
     model = PizzaModel(model)
 
@@ -376,5 +382,4 @@ def load(
     # add steady state section again
     mdict['steady_state'] = model_stst
     # compile check if model with steady state section is cached
-    model = load_stst(model, mdict, is_fresh, raise_errors, verbose)
-    return model
+    return load_stst(model, mdict, is_fresh, raise_errors, verbose)

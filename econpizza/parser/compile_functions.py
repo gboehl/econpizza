@@ -38,10 +38,11 @@ def compile_stst_func_str(evars, par, stst, init):
     """Compile all information from 'equations' section to a string that defines the function.
     """
 
-    stst_str = '; '.join([f'{v} = {stst[v]}' for v in stst])
+    stst_str = '; '.join(
+        [f'{v} = INTERNAL_fixed_values[{i}]' for i, v in enumerate(stst)])
 
     # compile the final function string
-    func_pre_stst_str = f"""def func_pre_stst(INTERNAL_init):
+    func_pre_stst_str = f"""def func_pre_stst(INTERNAL_init, INTERNAL_fixed_values):
         \n ({"".join(v + ", " for v in init)}) = INTERNAL_init
         \n {stst_str}
         \n INTERNAL_vars = ({"".join(v + ", " for v in evars)})

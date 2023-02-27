@@ -72,6 +72,8 @@ def func_stst_het_agent(y, func_pre_stst, find_stat_vf, func_forw_stst, func_eqn
 
 vaj_stst_het_agent = jax.jit(val_and_jacfwd(
     func_stst_het_agent, argnums=0, has_aux=True))
+vaj_stst_rep_agent = jax.jit(val_and_jacfwd(
+    func_stst_rep_agent, argnums=0, has_aux=True))
 
 
 def get_func_stst_raw(func_pre_stst, func_backw, func_forw_stst, func_eqns, shocks, init_vf, decisions_output_init, tol_backw, maxit_backw, tol_forw, maxit_forw):
@@ -83,7 +85,7 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_forw_stst, func_eqns, shoc
     partial_eqns = jax.tree_util.Partial(func_eqns, shocks=zshock)
 
     if not func_forw_stst:
-        return jax.tree_util.Partial(func_stst_rep_agent, func_pre_stst=partial_pre_stst, func_eqns=partial_eqns)
+        return jax.tree_util.Partial(vaj_stst_rep_agent, func_pre_stst=partial_pre_stst, func_eqns=partial_eqns)
 
     partial_backw = jax.tree_util.Partial(func_backw, shocks=zshock)
     carry = (init_vf, decisions_output_init), (init_vf +

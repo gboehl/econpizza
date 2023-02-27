@@ -23,8 +23,6 @@ from .parser.checks import *
 # initialize model cache
 cached_mdicts = ()
 cached_models = ()
-cached_mdicts_with_stst = ()
-cached_models_with_stst = ()
 
 
 def _load_as_module(path, add_to_path=True):
@@ -130,6 +128,14 @@ def _initialize_context():
     return context
 
 
+def _initialize_cache():
+    cache = {}
+    cache['steady_state'] = ()
+    cache['func_pre_stst'] = {}
+    cache['steady_state_dicts'] = ()
+    return cache
+
+
 def _load_external_functions_file(model, context):
     """Load the functions file as a module.
     """
@@ -202,11 +208,11 @@ def load_model(model):
 
     # check if model is already cached
     if model in cached_mdicts:
-        cached_model = cached_models[cached_mdicts.index(model)]
-        return cached_model, model, False
+        model = cached_models[cached_mdicts.index(model)]
+        return model, False
 
     model['context'] = _initialize_context()
-    model['compiled_objects'] = {}
+    model['cache'] = _initialize_cache()
     _load_external_functions_file(model, model['context'])
 
     defs = model.get("definitions")
@@ -244,7 +250,7 @@ def load_model(model):
         model['func_strings']["func_backw"] = compile_backw_func_str(
             evars, par, shocks, decisions_inputs, decisions_outputs, model['decisions']['calls'])
         _define_function(model['func_strings']
-                         ['func_backw'], model['context']),
+                         ['func_backw'], model['context'])
     else:
         decisions_outputs = []
         decisions_inputs = []
@@ -261,27 +267,26 @@ def load_model(model):
         'aux_equations'), shocks=shocks, distributions=dist_names, decisions_outputs=decisions_outputs)
 
     # test if model works. Writing to tempfiles helps to get nice debug traces if not
-    _define_function(model['func_strings']["func_eqns"], model['context']),
+    _define_function(model['func_strings']["func_eqns"], model['context'])
     # add new model to cache
     cached_mdicts += (deepcopy(mdict_raw),)
-    cached_models += (copy(model),)
+    cached_models += (model,)
 
-    return model, mdict_raw, True
+    return model, True
 
 
-def load_stst(model, mdict_with_stst, is_fresh, raise_errors, verbose):
-
-    global cached_mdicts_with_stst, cached_models_with_stst
+def load_stst(model, is_fresh, raise_errors, verbose):
 
     # check if model is already cached
-    if (not is_fresh) and mdict_with_stst in cached_mdicts_with_stst:
-        model = cached_models_with_stst[cached_mdicts_with_stst.index(
-            mdict_with_stst)]
+    stst_dict = deepcopy(model['steady_state'])
+    cache = model['cache']
+    if stst_dict in model['cache']['steady_state_dicts']:
+        model['steady_state'] = cache['steady_state'][cache['steady_state_dicts'].index(
+            stst_dict)]
+        model['context']['func_pre_stst'] = model['steady_state']['func_pre_stst']
         if verbose:
             print("(load:) Loading cached model.")
         return model
-
-    model['steady_state'] = deepcopy(mdict_with_stst['steady_state'])
 
     shocks = model.get("shocks") or ()
     par = model["parameters"]
@@ -301,18 +306,19 @@ def load_stst(model, mdict_with_stst, is_fresh, raise_errors, verbose):
         evars, par, init_guesses, fixed_evaluated)
 
     # ensure ordering and lenght of fixed values is fine
-    fixed_values_names = sorted(
-        [k for k in fixed_evaluated if k in par or k in evars])
+    fixed_values_names = tuple(
+        sorted([k for k in fixed_evaluated if k in par or k in evars]))
     model["steady_state"]['fixed_evalued'] = {
         k: fixed_evaluated[k] for k in fixed_values_names}
 
     # check, then get strings that contains the definition of func_pre_stst and compile
-    if fixed_values_names != model['compiled_objects'].get('fixed_values_names'):
-        model['func_strings']["func_pre_stst"] = compile_stst_func_str(
-            evars, par, fixed_values_names, init)
-        _define_function(model['func_strings']
-                         ['func_pre_stst'], model['context']),
-        model['compiled_objects']['fixed_values_names'] = fixed_values_names
+    try:
+        model['context']['func_pre_stst'] = model['cache']['func_pre_stst'][fixed_values_names]
+    except KeyError:
+        _define_function(compile_stst_func_str(
+            evars, par, fixed_values_names, init), model['context'])
+        model['cache']['func_pre_stst'][fixed_values_names] = model['context']['func_pre_stst']
+    model['steady_state']['func_pre_stst'] = model['context']['func_pre_stst']
 
     # get the initial decision functions
     if model.get('decisions'):
@@ -331,9 +337,9 @@ def load_stst(model, mdict_with_stst, is_fresh, raise_errors, verbose):
         if raise_errors:
             raise
 
-    cached_mdicts_with_stst += (mdict_with_stst,)
-    cached_models_with_stst += (model,)
-    model['compiled_objects']['reset_stst'] = True
+    model['cache']['steady_state'] += model['steady_state'],
+    model['cache']['steady_state_dicts'] += stst_dict,
+    model['cache']['reset_stst'] = True
 
     if verbose and is_fresh:
         print("(load:) Parsing done.")
@@ -378,8 +384,8 @@ def load(
     # loading model and steady state are separated for efficient caching
     model_stst = model.pop('steady_state')
     # compile or check if model without steady state section is cached
-    model, mdict, is_fresh = load_model(model)
+    model, is_fresh = load_model(model)
     # add steady state section again
-    mdict['steady_state'] = model_stst
+    model['steady_state'] = model_stst
     # compile check if model with steady state section is cached
-    return load_stst(model, mdict, is_fresh, raise_errors, verbose)
+    return load_stst(model, is_fresh, raise_errors, verbose)

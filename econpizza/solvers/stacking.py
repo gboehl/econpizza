@@ -6,7 +6,7 @@ import time
 import jax.numpy as jnp
 from grgrjax import val_and_jacrev
 from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
-from ..parser.checks import check_if_compiled, write_compiled_objects
+from ..parser.checks import check_if_compiled, write_cache
 from ..utilities.jacobian import get_stst_jacobian, get_jac_and_value_sliced
 from ..utilities.newton import newton_for_jvp, newton_for_banded_jac, newton_jax_jit_wrapper
 
@@ -89,7 +89,7 @@ def find_path_stacking(
                 jav_func_eqns, XSS=stst, pars=pars, distributions=[], decisions_outputs=[])
             model['jav_func'] = jav_func_eqns_partial
             # mark as compiled
-            write_compiled_objects(model, horizon, pars)
+            write_cache(model, horizon, pars)
 
         # actual newton iterations
         jav_func_eqns_partial = model['jav_func']
@@ -110,7 +110,7 @@ def find_path_stacking(
                 # accumulate steady stat jacobian
                 get_stst_jacobian(model, derivatives, horizon, nvars, verbose)
             # mark as compiled
-            write_compiled_objects(model, horizon, pars)
+            write_cache(model, horizon, pars)
 
         # get jvp function and steady state jacobian
         jvp_partial = jax.tree_util.Partial(

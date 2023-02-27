@@ -4,7 +4,7 @@ import jax
 import time
 import jax.numpy as jnp
 from ..utilities.jacobian import get_stst_jacobian
-from ..parser.checks import check_if_compiled, write_compiled_objects
+from ..parser.checks import check_if_compiled, write_cache
 from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 
 
@@ -66,7 +66,7 @@ def find_path_linear(model, shock=None, init_state=None, parameters=None, horizo
 
         # accumulate steady stat jacobian
         get_stst_jacobian(model, derivatives, horizon, nvars, verbose)
-        write_compiled_objects(model, horizon, pars)
+        write_cache(model, horizon, pars)
 
     jacobian = model['jac']
 

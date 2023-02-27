@@ -117,41 +117,38 @@ def check_shapes(distributions, init_decisions, dist_names):
 
 def check_if_compiled(model, horizon, pars):
     try:
-        assert model['compiled_objects']['compiled_model_flag']
-        assert model['compiled_objects']['horizon'] == horizon
-        return jnp.allclose(model['compiled_objects']['pars'], pars)
+        assert model['cache']['compiled_model_flag']
+        assert model['cache']['horizon'] == horizon
+        return jnp.allclose(model['cache']['pars'], pars)
     except:
         return False
 
 
-def write_compiled_objects(model, horizon, pars):
-    model['compiled_objects']['compiled_model_flag'] = True
-    model['compiled_objects']['horizon'] = horizon
-    model['compiled_objects']['pars'] = pars
+def write_cache(model, horizon, pars):
+    model['cache']['compiled_model_flag'] = True
+    model['cache']['horizon'] = horizon
+    model['cache']['pars'] = pars
     return
 
 
-def check_if_compiled_stst(model, fixed_vals, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, force, verbose):
-    cond = not model['compiled_objects']['reset_stst']
-    cond &= jnp.allclose(model["compiled_objects"]
-                         ["stst_used_pars"], fixed_vals)
-    cond &= model["compiled_objects"]["stst_used_setup"] == (model.get(
-        'functions_file_plain'), tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
+def check_if_compiled_stst(model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, force, verbose):
+    cond = not model['cache']['reset_stst']
+    cond &= model["cache"]["last_stst"]["setup"] == (
+        tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
     if cond and not force:
         if verbose:
             print(
-                f"(solve_stst:) Steady state already {'known' if model['compiled_objects']['stst_used_success'] else 'FAILED'}.")
+                f"(solve_stst:) Steady state already {'known' if model['cache']['last_stst']['success'] else 'FAILED'}.")
 
-        return model["compiled_objects"]['stst_used_res']
+        return model["cache"]["last_stst"]['res']
     else:
         raise KeyError
 
 
-def write_compiled_objects_stst(model, fixed_vals, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, res):
-    model["compiled_objects"]["stst_used_pars"] = fixed_vals
-    model["compiled_objects"]["stst_used_setup"] = model.get(
-        'functions_file_plain'), tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
-    model["compiled_objects"]["stst_used_res"] = res
-    model["compiled_objects"]["stst_used_success"] = res['success']
-    model['compiled_objects']['reset_stst'] = False
+def write_cache_stst(model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, res):
+    model["cache"]["last_stst"] = {}
+    model["cache"]["last_stst"]["setup"] = tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
+    model["cache"]["last_stst"]["res"] = res
+    model["cache"]["last_stst"]["success"] = res['success']
+    model['cache']['reset_stst'] = False
     return

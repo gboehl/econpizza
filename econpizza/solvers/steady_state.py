@@ -5,7 +5,7 @@ import time
 import jax.numpy as jnp
 from grgrjax import newton_jax, val_and_jacfwd, amax
 from ..parser.build_functions import get_func_stst_raw
-from ..parser.checks import check_if_compiled_stst, write_compiled_objects_stst
+from ..parser.checks import check_if_compiled_stst, write_cache_stst
 
 
 def solver(jval, fval):
@@ -90,14 +90,11 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
     # check if steady state was already calculated
     try:
-        return check_if_compiled_stst(model, fixed_vals, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, force, verbose)
+        model["stst"], model["parameters"] = model['steady_state']["values_and_pars"]
+        return check_if_compiled_stst(model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, force, verbose)
     except KeyError:
-        model['compiled_objects']['compiled_model_flag'] = False
+        model['cache']['compiled_model_flag'] = False
         pass
-
-    # reset for recalculation
-    model['stst_jacobian'] = None
-    model['stacked_func'] = None
 
     # get all necessary functions
     func_eqns = model['context']['func_eqns']
@@ -136,6 +133,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
     model["stst"] = dict(zip(evars, stst_vals))
     model["parameters"] = dict(zip(par, par_vals))
+    model['steady_state']["values_and_pars"] = model["stst"], model["parameters"]
 
     # calculate dist objects and compile message
     mess = _get_stst_dist_objs(model, res, maxit_backwards,
@@ -173,8 +171,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
             ' WARNING: ' + mess if mess else '')
 
     # cache everything if search was successful
-    write_compiled_objects_stst(model, fixed_vals, tol, maxit, tol_backwards,
-                                maxit_backwards, tol_forwards, maxit_forwards, res)
+    write_cache_stst(model, tol, maxit, tol_backwards,
+                     maxit_backwards, tol_forwards, maxit_forwards, res)
 
     if mess:
         print(f"(solve_stst:) {mess}")

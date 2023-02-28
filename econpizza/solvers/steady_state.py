@@ -80,7 +80,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     st = time.time()
 
     evars = model["variables"]
-    par = model["parameters"]
+    par_names = model["parameters"]
     shocks = model.get("shocks") or ()
     fixed_vals = jnp.array(
         list(model['steady_state']['fixed_evalued'].values()))
@@ -90,7 +90,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
     # check if steady state was already calculated
     try:
-        model["stst"], model["parameters"] = model['steady_state']["values_and_pars"]
+        model["stst"], model["pars"] = model['steady_state']["values_and_pars"]
         return check_if_compiled_stst(model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, force, verbose)
     except KeyError:
         model['cache']['compiled_model_flag'] = False
@@ -132,8 +132,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     stst_vals, par_vals = func_pre_stst(res['x'], fixed_vals)
 
     model["stst"] = dict(zip(evars, stst_vals))
-    model["parameters"] = dict(zip(par, par_vals))
-    model['steady_state']["values_and_pars"] = model["stst"], model["parameters"]
+    model["pars"] = dict(zip(par_names, par_vals))
+    model['steady_state']["values_and_pars"] = model["stst"], model["pars"]
 
     # calculate dist objects and compile message
     mess = _get_stst_dist_objs(model, res, maxit_backwards,
@@ -147,7 +147,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
         jac = res['jac']
         rank = jnp.linalg.matrix_rank(jac)
         if rank:
-            nvars = len(evars)+len(par)
+            nvars = len(evars)+len(par_names)
             nfixed = len(fixed_vals)
             if rank != nvars - nfixed:
                 mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of freedom ({nvars} variables/parameters, {nfixed} fixed). "
@@ -155,7 +155,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     # check if any of the fixed variables are neither a parameter nor variable
     if mess:
         not_var_nor_par = list(
-            set(model['steady_state']['fixed_evalued']) - set(evars) - set(par))
+            set(model['steady_state']['fixed_evalued']) - set(evars) - set(par_names))
         mess += f"Fixed value(s) ``{'``, ``'.join(not_var_nor_par)}`` not defined. " if not_var_nor_par else ''
 
     if err > tol or not res['success']:

@@ -8,7 +8,7 @@ from ..parser.checks import check_if_compiled, write_cache
 from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 
 
-def find_path_linear(model, shock=None, init_state=None, parameters=None, horizon=200, verbose=True):
+def find_path_linear(model, shock=None, init_state=None, pars=None, horizon=200, verbose=True):
     """Find the linear expected trajectory given an initial state.
 
     Parameters
@@ -17,7 +17,7 @@ def find_path_linear(model, shock=None, init_state=None, parameters=None, horizo
         PizzaModel instance
     init_state : array
         initial state
-    parameters : dict, optional
+    pars : dict, optional
         alternative parameters. Warning: do only change those parameters that are invariant to the steady state.
     shock : tuple, optional
         shock in period 0 as in `(shock_name_as_str, shock_size)`. NOTE: Not (yet) implemented.
@@ -48,7 +48,7 @@ def find_path_linear(model, shock=None, init_state=None, parameters=None, horizo
     stst = jnp.array(list(model['stst'].values()))
     nvars = len(model["variables"])
     pars = jnp.array(
-        list((parameters if parameters is not None else model["parameters"]).values()))
+        list((pars if pars is not None else model["pars"]).values()))
     shocks = model.get("shocks") or ()
     x_stst = jnp.ones((horizon + 1, nvars)) * stst
 

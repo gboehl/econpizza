@@ -16,9 +16,10 @@ def find_path_stacking(
     shock=None,
     init_state=None,
     init_dist=None,
-    parameters=None,
+    pars=None,
     horizon=200,
     use_solid_solver=False,
+    skip_jacobian=False,
     verbose=True,
     raise_errors=True,
     **newton_args
@@ -35,7 +36,7 @@ def find_path_stacking(
         tial state
     init_dist : array, optional
         tial distribution
-    parameters : dict, optional
+    pars : dict, optional
         alternative parameters. Warning: do only change those parameters that are invariant to the steady state.
     horizon : int, optional
         number of periods until the system is assumed to be back in the steady state. Defaults to 200
@@ -60,7 +61,7 @@ def find_path_stacking(
     stst = jnp.array(list(model["stst"].values()))
     nvars = len(model["variables"])
     pars = jnp.array(
-        list((parameters if parameters is not None else model["parameters"]).values()))
+        list((pars if pars is not None else model["pars"]).values()))
     shocks = model.get("shocks") or ()
 
     # get initial guess
@@ -100,10 +101,10 @@ def find_path_stacking(
         if not check_if_compiled(model, horizon, pars):
             # get derivatives via AD and compile functions
             zero_shocks = jnp.zeros_like(shock_series).T
-            build_aggr_het_agent_funcs(
-                model, nvars, pars, stst, zero_shocks, horizon)
+            build_aggr_het_agent_funcs(model, jnp.zeros_like(
+                pars), nvars, stst, zero_shocks, horizon)
 
-            if not use_solid_solver:
+            if not use_solid_solver and not skip_jacobian:
                 # get steady state partial jacobians
                 derivatives = get_stst_derivatives(
                     model, nvars, pars, stst, x_stst, zero_shocks, horizon, verbose)
@@ -114,7 +115,7 @@ def find_path_stacking(
 
         # get jvp function and steady state jacobian
         jvp_partial = jax.tree_util.Partial(
-            model['context']['jvp_func'], x0=x0, dist0=dist0, shocks=shock_series.T)
+            model['context']['jvp_func'], x0=x0, dist0=dist0, shocks=shock_series.T, pars=pars)
         if not use_solid_solver:
             jacobian = model['jac_factorized']
             # actual newton iterations

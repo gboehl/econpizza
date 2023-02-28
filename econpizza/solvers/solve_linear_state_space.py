@@ -25,7 +25,7 @@ def solve_linear_state_space(
 
     evars = model["variables"]
     func = model['context']["func_eqns"]
-    par = jnp.array(list(model["parameters"].values()))
+    par = jnp.array(list(model["pars"].values()))
     shocks = model.get("shocks") or ()
     stst = jnp.array(list(model["stst"].values()))
     nshc = len(shocks)

@@ -34,7 +34,7 @@ class PizzaModel(dict):
     solve_stst = solve_stst
     find_path = find_path_stacking
 
-    def get_distributions(model, init_state, init_dist=None, shock=None):
+    def get_distributions(model, init_state, init_dist=None, shock=None, pars=None):
         """Get all disaggregated variables for a given trajectory of aggregate variables.
 
         Note that the output objects do, other than the result from `find_path` with stacking, not include the time-T objects and that the given distribution is as from the beginning of each period.
@@ -59,6 +59,8 @@ class PizzaModel(dict):
 
         dist0 = jnp.array(init_dist) if init_dist is not None else jnp.array(
             model['steady_state'].get('distributions'))
+        pars = jnp.array(list(model['pars'].values())
+                         ) if pars is None else pars
         shocks = model.get("shocks") or ()
         dist_names = list(model['distributions'].keys())
         decisions_outputs = model['decisions']['outputs']
@@ -74,7 +76,7 @@ class PizzaModel(dict):
         # get functions and execute
         backwards_sweep = model['context']['backwards_sweep']
         forwards_sweep = model['context']['forwards_sweep']
-        decisions_output_storage = backwards_sweep(x, x0, shock_series.T)
+        decisions_output_storage = backwards_sweep(x, x0, shock_series.T, pars)
         dists_storage = forwards_sweep(decisions_output_storage, dist0)
 
         # steady state objects for period 0

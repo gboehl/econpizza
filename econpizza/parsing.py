@@ -70,7 +70,6 @@ def parse(mfile):
     mdict = yaml.safe_load(mtxt)
     # create nice shortcuts
     mdict['path'] = mfile
-    mdict["pars"] = mdict.get("parameters")
     mdict["vars"] = mdict["variables"]
 
     return mdict
@@ -224,31 +223,29 @@ def load_model(model):
 
     # check if there are dublicate variables
     check_dublicates(model["variables"])
-    check_dublicates(model["parameters"])
+    check_dublicates(model.get("parameters"))
     evars = check_determinancy(model["variables"], eqns)
     # check if each variable is defined in time t (only defining xSS does not give a valid root)
     check_if_defined(evars, eqns, model.get('skip_check_if_defined'))
 
     # create fixed (time invariant) grids
     grids.create_grids(model.get('distributions'), model["context"])
-
     shocks = model.get("shocks") or ()
+
+    # initialize storages
+    _ = _define_subdict_if_absent(model, "func_strings")
     _ = _define_subdict_if_absent(model, "steady_state")
-
-    par = _define_subdict_if_absent(model, "parameters")
-    if isinstance(par, dict):
-        raise TypeError(f'parameters must be a list and not {type(par)}.')
-    model["parameters"] = par
-
-    # initialize storage for all function strings
-    model['func_strings'] = {}
+    par_names = _define_subdict_if_absent(model, "parameters")
+    if isinstance(par_names, dict):
+        raise TypeError(
+            f'parameters must be a list and not {type(par_names)}.')
 
     # get function strings for decisions and distributions, if they exist
     if model.get('decisions'):
         decisions_outputs = model['decisions']['outputs']
         decisions_inputs = model['decisions']['inputs']
         model['func_strings']["func_backw"] = compile_backw_func_str(
-            evars, par, shocks, decisions_inputs, decisions_outputs, model['decisions']['calls'])
+            evars, par_names, shocks, decisions_inputs, decisions_outputs, model['decisions']['calls'])
         _define_function(model['func_strings']
                          ['func_backw'], model['context'])
     else:
@@ -263,7 +260,7 @@ def load_model(model):
         dist_names = []
 
     # get strings that contains the function definitions
-    model['func_strings']["func_eqns"] = compile_eqn_func_str(evars, deepcopy(eqns), par, eqns_aux=model.get(
+    model['func_strings']["func_eqns"] = compile_eqn_func_str(evars, deepcopy(eqns), par_names, eqns_aux=model.get(
         'aux_equations'), shocks=shocks, distributions=dist_names, decisions_outputs=decisions_outputs)
 
     # test if model works. Writing to tempfiles helps to get nice debug traces if not
@@ -289,7 +286,7 @@ def load_stst(model, is_fresh, raise_errors, verbose):
         return model
 
     shocks = model.get("shocks") or ()
-    par = model["parameters"]
+    par_names = model["parameters"]
     evars = model["variables"]
     dist_names = list(model['distributions'].keys()
                       ) if model.get('distributions') else []
@@ -303,11 +300,11 @@ def load_stst(model, is_fresh, raise_errors, verbose):
     init_guesses = _eval_strs(model["steady_state"].get(
         "init_guesses"), context=model['context'])
     model["steady_state"]["init"] = init = _compile_init_values(
-        evars, par, init_guesses, fixed_evaluated)
+        evars, par_names, init_guesses, fixed_evaluated)
 
     # ensure ordering and lenght of fixed values is fine
     fixed_values_names = tuple(
-        sorted([k for k in fixed_evaluated if k in par or k in evars]))
+        sorted([k for k in fixed_evaluated if k in par_names or k in evars]))
     model["steady_state"]['fixed_evalued'] = {
         k: fixed_evaluated[k] for k in fixed_values_names}
 
@@ -316,7 +313,7 @@ def load_stst(model, is_fresh, raise_errors, verbose):
         model['context']['func_pre_stst'] = model['cache']['func_pre_stst'][fixed_values_names]
     except KeyError:
         _define_function(compile_stst_func_str(
-            evars, par, fixed_values_names, init), model['context'])
+            evars, par_names, fixed_values_names, init), model['context'])
         model['cache']['func_pre_stst'][fixed_values_names] = model['context']['func_pre_stst']
     model['steady_state']['func_pre_stst'] = model['context']['func_pre_stst']
 
@@ -332,7 +329,7 @@ def load_stst(model, is_fresh, raise_errors, verbose):
 
     # try if function works on initvals
     try:
-        check_initial_values(model, shocks, par)
+        check_initial_values(model, shocks, par_names)
     except:
         if raise_errors:
             raise

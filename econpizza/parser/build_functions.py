@@ -116,9 +116,9 @@ def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, ver
 
     # get steady state jacobians for dist transition
     doSS, do2x = jvp_vmap(backwards_sweep)(
-        (x_stst[1:-1].flatten(), stst, zshocks), (basis,))
+        (x_stst[1:-1].flatten(), stst, zshocks, pars), (basis,))
     _, (f2do,) = vjp_vmap(second_sweep, argnums=1)(
-        (x_stst[1:-1].flatten(), doSS, stst, distSS, zshocks), basis.T)
+        (x_stst[1:-1].flatten(), doSS, stst, distSS, zshocks, pars), basis.T)
     f2do = jnp.moveaxis(f2do, -1, 1)
 
     # get steady state jacobians for direct effects x on f
@@ -134,13 +134,13 @@ def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, ver
     return f2X, f2do, do2x
 
 
-def get_stacked_func_het_agents(pars, func_backw, func_forw, func_eqns, stst, vfSS, horizon, nvars):
+def get_stacked_func_het_agents(func_backw, func_forw, func_eqns, stst, vfSS, horizon, nvars):
     """Get a function that returns the (flattend) value and Jacobian of the stacked aggregate model equations.
     """
 
     nshpe = (nvars, horizon-1)
     # build partials of input functions
-    partial_backw = jax.tree_util.Partial(func_backw, XSS=stst, pars=pars)
+    partial_backw = jax.tree_util.Partial(func_backw, XSS=stst)
     partial_forw = jax.tree_util.Partial(func_forw)
 
     # build partials of output functions
@@ -149,16 +149,16 @@ def get_stacked_func_het_agents(pars, func_backw, func_forw, func_eqns, stst, vf
     forwards_sweep_local = jax.tree_util.Partial(
         forwards_sweep, horizon=horizon, func_forw=partial_forw)
     final_step_local = jax.tree_util.Partial(
-        final_step, stst=stst, horizon=horizon, nshpe=nshpe, pars=pars, func_eqns=func_eqns)
+        final_step, stst=stst, horizon=horizon, nshpe=nshpe, func_eqns=func_eqns)
     second_sweep_local = jax.tree_util.Partial(
         second_sweep, forwards_sweep=forwards_sweep_local, final_step=final_step_local)
-    stacked_func_forw_local = jax.tree_util.Partial(
+    stacked_func_local = jax.tree_util.Partial(
         stacked_func_het_agents, backwards_sweep=backwards_sweep_local, second_sweep=second_sweep_local)
 
-    return stacked_func_forw_local, backwards_sweep_local, forwards_sweep_local, second_sweep_local
+    return stacked_func_local, backwards_sweep_local, forwards_sweep_local, second_sweep_local
 
 
-def build_aggr_het_agent_funcs(model, nvars, pars, stst, zshocks, horizon):
+def build_aggr_het_agent_funcs(model, zpars, nvars, stst, zshocks, horizon):
 
     shocks = model.get("shocks") or ()
     # get functions
@@ -172,14 +172,14 @@ def build_aggr_het_agent_funcs(model, nvars, pars, stst, zshocks, horizon):
 
     # get actual functions
     func_raw, backwards_sweep, forwards_sweep, second_sweep = get_stacked_func_het_agents(
-        pars, func_backw, func_forw, func_eqns, stst, vfSS, horizon, nvars)
+        func_backw, func_forw, func_eqns, stst, vfSS, horizon, nvars)
 
     # store everything
     model['context']['func_raw'] = func_raw
     model['context']['backwards_sweep'] = backwards_sweep
     model['context']['forwards_sweep'] = forwards_sweep
     model['context']['second_sweep'] = second_sweep
-    model['context']['jvp_func'] = lambda primals, tangens, x0, dist0, shocks: jax.jvp(
-        func_raw, (primals, x0, dist0, shocks), (tangens, jnp.zeros(nvars), jnp.zeros_like(distSS), zshocks))
-    model['context']['vjp_func'] = lambda primals, tangens, x0, dist0, shocks: jax.vjp(
-        lambda x: func_raw(x, x0, dist0, shocks), primals)[1](tangens)[0]
+    model['context']['jvp_func'] = lambda primals, tangens, x0, dist0, shocks, pars: jax.jvp(
+        func_raw, (primals, x0, dist0, shocks, pars), (tangens, jnp.zeros(nvars), jnp.zeros_like(distSS), zshocks, zpars))
+    # model['context']['vjp_func'] = lambda primals, tangens, x0, dist0, shocks: jax.vjp(
+    # lambda x: func_raw(x, x0, dist0, shocks), primals)[1](tangens)[0]

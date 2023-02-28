@@ -79,7 +79,7 @@ def find_path_shooting(
     stst = jnp.array(list(model["stst"].values()))
     nvars = len(model["variables"])
     shocks = model.get("shocks") or ()
-    pars = jnp.array(list(model["parameters"].values()))
+    pars = jnp.array(list(model["pars"].values()))
     func = jax.jit(model['context']["func_eqns"])
 
     x_fin = jnp.empty((horizon + 1, nvars))

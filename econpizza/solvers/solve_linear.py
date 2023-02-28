@@ -57,7 +57,7 @@ def find_path_linear(model, shock=None, init_state=None, pars=None, horizon=200,
 
     x0 = jnp.array(list(init_state)) if init_state is not None else stst
 
-    if not check_if_compiled(model, horizon, pars):
+    if not check_if_compiled(model, horizon, pars, stst):
         # get derivatives via AD and compile functions
         build_aggr_het_agent_funcs(
             model, nvars, pars, stst, zero_shocks, horizon)
@@ -66,7 +66,7 @@ def find_path_linear(model, shock=None, init_state=None, pars=None, horizon=200,
 
         # accumulate steady stat jacobian
         get_stst_jacobian(model, derivatives, horizon, nvars, verbose)
-        write_cache(model, horizon, pars)
+        write_cache(model, horizon, pars, stst)
 
     jacobian = model['jac']
 

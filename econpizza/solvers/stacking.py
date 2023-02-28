@@ -6,9 +6,16 @@ import time
 import jax.numpy as jnp
 from grgrjax import val_and_jacrev
 from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
-from ..parser.checks import check_if_compiled, write_cache
+from ..parser.checks import check_if_compiled
 from ..utilities.jacobian import get_stst_jacobian, get_jac_and_value_sliced
 from ..utilities.newton import newton_for_jvp, newton_for_banded_jac, newton_jax_jit_wrapper
+
+
+def write_cache(model, horizon, pars, stst):
+    model['cache']['horizon'] = horizon
+    model['cache']['pars'] = pars
+    model['cache']['stst'] = stst
+    return
 
 
 def find_path_stacking(
@@ -25,7 +32,6 @@ def find_path_stacking(
     **newton_args
 ):
     """Find the expected trajectory given an initial state.
-
     Parameters
     ----------
     model : PizzaModel
@@ -46,7 +52,6 @@ def find_path_stacking(
         whether to raise errors as exceptions, or just inform about them. Defaults to `True`
     newton_args : optional
         any additional arguments to be passed on to the solver
-
     Returns
     -------
     x : array

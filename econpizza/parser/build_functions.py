@@ -5,7 +5,7 @@ import jax
 import time
 import jax.numpy as jnp
 from grgrjax import jvp_vmap, vjp_vmap, val_and_jacfwd
-from .het_agent_funcs import *
+from .het_agent_base_funcs import *
 from ..utilities import grids, dists, interp
 
 

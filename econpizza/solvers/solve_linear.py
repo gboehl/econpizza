@@ -3,8 +3,9 @@
 import jax
 import time
 import jax.numpy as jnp
+from .stacking import write_cache
 from ..utilities.jacobian import get_stst_jacobian
-from ..parser.checks import check_if_compiled, write_cache
+from ..parser.checks import check_if_compiled
 from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 
 

@@ -14,11 +14,8 @@ def accumulate(i_and_j, carry):
     return jac, horizon
 
 
-def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
-    """Calculate the steady state jacobian
-    """
-    st = time.time()
-
+@jax.jit
+def get_stst_jacobian_jit(derivatives, horizon, nvars):
     # load derivatives
     (jac_f2xLag, jac_f2x, jac_f2xPrime), jac_f2do, jac_do2x = derivatives
 
@@ -34,12 +31,19 @@ def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
 
     # accumulate and flatten
     jac, _ = jax.lax.fori_loop(0, (horizon-2)**2, accumulate, (jac, horizon))
-    jac = jac.reshape(((horizon-1)*nvars, (horizon-1)*nvars))
+    return jac
 
+
+def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
+    """Calculate the steady state jacobian
+    """
+    st = time.time()
+    # simply a wrapper
+    jac = get_stst_jacobian_jit(derivatives, horizon, nvars)
+    jac = jac.reshape(((horizon-1)*nvars, (horizon-1)*nvars))
     # store result
     model['jac'] = jac
     model['jac_factorized'] = jax.scipy.linalg.lu_factor(jac)
-
     if verbose:
         duration = time.time() - st
         print(

@@ -5,7 +5,7 @@ import time
 import jax.numpy as jnp
 from copy import deepcopy
 from grgrjax import newton_jax, val_and_jacfwd, amax
-from ..parsing import compile_stst_inputs
+from ..parser import compile_stst_inputs
 from ..parser.build_functions import get_func_stst_raw
 
 

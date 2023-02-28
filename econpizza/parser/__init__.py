@@ -3,7 +3,6 @@
 """Functions for model parsing yaml into a working model instance. Involves a lot of dynamic function definition...
 """
 
-from copy import copy
 import yaml
 import re
 import os
@@ -16,9 +15,9 @@ import importlib.util as iu
 from copy import deepcopy, copy
 from inspect import getmembers, isfunction
 from jax.experimental.host_callback import id_print as jax_print
-from .utilities import grids, dists, interp
-from .parser.compile_functions import *
-from .parser.checks import *
+from .write_dynamic_functions import *
+from .checks import *
+from ..utilities import grids, dists, interp
 
 # initialize model cache
 cached_mdicts = ()
@@ -266,7 +265,7 @@ def load(
     """
 
     global cached_mdicts, cached_models
-    from .__init__ import PizzaModel
+    from ..__init__ import PizzaModel
 
     # parse if this is a path to yaml file
     if isinstance(model, str):
@@ -284,6 +283,7 @@ def load(
     # check if model is already cached
     if mdict in cached_mdicts:
         model = cached_models[cached_mdicts.index(mdict)]
+        # always use the fresh current stst sec from yaml
         model['steady_state'] = stst_subdict
         if verbose:
             print("(load:) Loading cached model.")

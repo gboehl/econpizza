@@ -122,10 +122,3 @@ def check_if_compiled(model, horizon, pars, stst):
         return jnp.allclose(model['cache']['pars'], pars)
     except:
         return False
-
-
-def write_cache(model, horizon, pars, stst):
-    model['cache']['horizon'] = horizon
-    model['cache']['pars'] = pars
-    model['cache']['stst'] = stst
-    return

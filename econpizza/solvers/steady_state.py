@@ -79,18 +79,17 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     """
 
     st = time.time()
-
     evars = model["variables"]
     par_names = model["parameters"]
     shocks = model.get("shocks") or ()
 
+    # default setup
     tol_backwards = 1e-8 if tol_backwards is None else tol_backwards
     tol_forwards = 1e-10 if tol_forwards is None else tol_forwards
     setup = tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
 
-    init_vals_dict, fixed_vals_dict = compile_stst_inputs(model)
-    fixed_vals = jnp.array(list(fixed_vals_dict.values()))
-    init_vals = jnp.array(list(init_vals_dict.values()))
+    # parse and compile steady_state section from yaml
+    init_vals, fixed_vals, pre_stst_mapping = compile_stst_inputs(model)
 
     # check if model is already cached
     key = str(f'{setup};{fixed_vals},{init_vals}')
@@ -116,8 +115,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     init_vf = model['context'].get('init_vf')
 
     # get the actual steady state function
-    func_stst = get_func_stst_raw(func_pre_stst, func_backw, func_forw_stst, func_eqns, shocks, init_vf, decisions_output_init,
-                                  fixed_values=fixed_vals, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
+    func_stst = get_func_stst_raw(func_backw, func_forw_stst, func_eqns, shocks, init_vf, decisions_output_init,
+                                  fixed_values=fixed_vals, pre_stst_mapping=pre_stst_mapping, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
     # store jitted stst function that returns jacobian and func. value
     model["context"]['func_stst'] = func_stst
 
@@ -136,7 +135,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
                }
 
     # exchange those values that are identified via stst_equations
-    stst_vals, par_vals = func_pre_stst(res['x'], fixed_vals)
+    stst_vals, par_vals = func_pre_stst(res['x'], fixed_vals, pre_stst_mapping)
 
     model["stst"] = dict(zip(evars, stst_vals))
     model["pars"] = dict(zip(par_names, par_vals))

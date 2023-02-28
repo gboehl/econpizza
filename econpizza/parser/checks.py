@@ -3,6 +3,7 @@
 
 import sys
 import jax.numpy as jnp
+from .build_functions import func_pre_stst
 
 
 def check_if_defined(evars, eqns, skipped_vars):
@@ -45,12 +46,12 @@ def check_determinancy(evars, eqns):
     return sorted_evars
 
 
-def check_initial_values(model, init_guesses, fixed_values, shocks, par):
+def check_initial_values(model, shocks, init_guesses, fixed_values, pre_stst_mapping):
 
-    init_mixed = jnp.array(list(init_guesses.values()))
-    fixed_values = jnp.array(list(fixed_values.values()))
-    init, par = model['context']['func_pre_stst'](init_mixed, fixed_values)
-    init = init[..., None]
+    # run func_pre_stst to translate init values into vars & pars
+    init_vals, par = func_pre_stst(
+        init_guesses, fixed_values, pre_stst_mapping)
+    init_vals = init_vals[..., None]
 
     # collect some information needed later
     model['context']['init_run'] = {}
@@ -61,7 +62,7 @@ def check_initial_values(model, init_guesses, fixed_values, shocks, par):
         init_vf = model['context']['init_vf']
         try:
             _, decisions_output_init = model['context']['func_backw'](
-                init, init, init, init, init_vf, jnp.zeros(len(shocks)), par)
+                init_vals, init_vals, init_vals, init_vals, init_vf, jnp.zeros(len(shocks)), par)
         except ValueError as e:
             if str(e) == "All input arrays must have the same shape.":
                 raise type(e)("Each output of the decisions stage must have the same shape as the distribution.").with_traceback(
@@ -87,8 +88,8 @@ def check_initial_values(model, init_guesses, fixed_values, shocks, par):
     model['context']['init_run']['dists'] = dists_init
 
     # final test of main function
-    test = model['context']['func_eqns'](init, init, init, init, jnp.zeros(len(shocks)), par, jnp.array(
-        dists_init)[..., None], jnp.array(decisions_output_init)[..., None])
+    test = model['context']['func_eqns'](init_vals, init_vals, init_vals, init_vals, jnp.zeros(
+        len(shocks)), par, jnp.array(dists_init)[..., None], jnp.array(decisions_output_init)[..., None])
 
     if mess:
         pass

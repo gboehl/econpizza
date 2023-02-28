@@ -45,11 +45,11 @@ def func_forw_stst_generic(decisions_outputs, tol, maxit, grids, transition, ind
 
 
 def func_pre_stst(x, fixed_values, mapping):
-    x2all, fixed2all, shape0, shape1 = mapping
-    res = jnp.empty(shape0+shape1)
-    res = res.at[x2all].set(x)
-    res = res.at[fixed2all].set(fixed_values)
-    return res[:shape0], res[shape0:]
+    # translate init guesses & fixed values to vars & pars
+    x2var, x2par, fixed2var, fixed2par = mapping
+    evars = x2var@x + fixed2var@fixed_values
+    pars = x2par@x + fixed2par@fixed_values
+    return evars, pars
 
 
 def func_stst_rep_agent(y, func_pre_stst, func_eqns):
@@ -84,13 +84,13 @@ vaj_stst_rep_agent = jax.jit(val_and_jacfwd(
     func_stst_rep_agent, argnums=0, has_aux=True))
 
 
-def get_func_stst_raw(func_pre_stst, func_backw, func_forw_stst, func_eqns, shocks, init_vf, decisions_output_init, fixed_values, tol_backw, maxit_backw, tol_forw, maxit_forw):
+def get_func_stst_raw(func_backw, func_forw_stst, func_eqns, shocks, init_vf, decisions_output_init, fixed_values, pre_stst_mapping, tol_backw, maxit_backw, tol_forw, maxit_forw):
     """Get a function that evaluates the steady state
     """
 
     zshock = jnp.zeros(len(shocks))
     partial_pre_stst = jax.tree_util.Partial(
-        func_pre_stst, fixed_values=fixed_values)
+        func_pre_stst, fixed_values=fixed_values, mapping=pre_stst_mapping)
     partial_eqns = jax.tree_util.Partial(func_eqns, shocks=zshock)
 
     if not func_forw_stst:

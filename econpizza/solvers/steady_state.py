@@ -3,10 +3,10 @@
 import jax
 import time
 import jax.numpy as jnp
+from copy import deepcopy
 from grgrjax import newton_jax, val_and_jacfwd, amax
 from ..parsing import compile_stst_inputs
 from ..parser.build_functions import get_func_stst_raw
-from ..parser.checks import check_if_cached_stst, write_stst_cache
 
 
 def solver(jval, fval):
@@ -97,7 +97,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     if key in model['cache']['steady_state_keys']:
         model['steady_state'] = cache['steady_state'][cache['steady_state_keys'].index(
             key)]
-        model["stst"], model["pars"] = model['steady_state']["values_and_pars"]
+        model["stst"], model["pars"] = deepcopy(
+            model['steady_state']["values_and_pars"])
         if verbose:
             print(
                 f"(solve_stst:) Steady state already {'known' if model['steady_state']['newton_result']['success'] else 'FAILED'}.")
@@ -140,7 +141,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     model["stst"] = dict(zip(evars, stst_vals))
     model["pars"] = dict(zip(par_names, par_vals))
     model['steady_state']["newton_result"] = res
-    model['steady_state']["values_and_pars"] = model["stst"], model["pars"]
+    model['steady_state']["values_and_pars"] = deepcopy(
+        model["stst"]), deepcopy(model["pars"])
 
     # calculate dist objects and compile message
     mess = _get_stst_dist_objs(model, res, maxit_backwards,
@@ -178,9 +180,6 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
             ' WARNING: ' + mess if mess else '')
 
     # cache everything if search was successful
-    write_stst_cache(model, tol, maxit, tol_backwards,
-                     maxit_backwards, tol_forwards, maxit_forwards, res)
-
     model['cache']['steady_state'] += model['steady_state'],
     model['cache']['steady_state_keys'] += key,
 

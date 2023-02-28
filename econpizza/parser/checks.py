@@ -115,40 +115,17 @@ def check_shapes(distributions, init_decisions, dist_names):
     return
 
 
-def check_if_compiled(model, horizon, pars):
+def check_if_compiled(model, horizon, pars, stst):
     try:
-        assert model['cache']['compiled_model_flag']
         assert model['cache']['horizon'] == horizon
+        assert jnp.allclose(model['cache']['stst'], stst)
         return jnp.allclose(model['cache']['pars'], pars)
     except:
         return False
 
 
-def write_cache(model, horizon, pars):
-    model['cache']['compiled_model_flag'] = True
+def write_cache(model, horizon, pars, stst):
     model['cache']['horizon'] = horizon
     model['cache']['pars'] = pars
-    return
-
-
-def check_if_cached_stst(model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, force, verbose):
-    cond = not model['cache']['reset_stst']
-    cond &= model["cache"]["last_stst"]["setup"] == (
-        tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
-    if cond and not force:
-        if verbose:
-            print(
-                f"(solve_stst:) Steady state already {'known' if model['cache']['last_stst']['success'] else 'FAILED'}.")
-
-        return model["cache"]["last_stst"]['res']
-    else:
-        raise KeyError
-
-
-def write_stst_cache(model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, res):
-    model["cache"]["last_stst"] = {}
-    model["cache"]["last_stst"]["setup"] = tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
-    model["cache"]["last_stst"]["res"] = res
-    model["cache"]["last_stst"]["success"] = res['success']
-    model['cache']['reset_stst'] = False
+    model['cache']['stst'] = stst
     return

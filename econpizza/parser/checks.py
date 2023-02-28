@@ -45,21 +45,20 @@ def check_determinancy(evars, eqns):
     return sorted_evars
 
 
-def check_initial_values(model, shocks, par):
+def check_initial_values(model, fixed_values, init_guesses, shocks, par):
 
-    init_mixed = jnp.array(list(model['steady_state']['init'].values()))
-    fixed_values = jnp.array(
-        list(model['steady_state']['fixed_evalued'].values()))
+    init_mixed = jnp.array(list(init_guesses.values()))
+    fixed_values = jnp.array(list(fixed_values.values()))
     init, par = model['context']['func_pre_stst'](init_mixed, fixed_values)
     init = init[..., None]
 
     # collect some information needed later
-    model['steady_state']['init_run'] = {}
+    model['context']['init_run'] = {}
 
     mess = ''
     if model.get('decisions'):
         # make a test backward and forward run
-        init_vf = model['steady_state']['init_vf']
+        init_vf = model['context']['init_vf']
         try:
             _, decisions_output_init = model['context']['func_backw'](
                 init, init, init, init, init_vf, jnp.zeros(len(shocks)), par)
@@ -84,8 +83,8 @@ def check_initial_values(model, shocks, par):
     else:
         decisions_output_init = dists_init = []
 
-    model['steady_state']['init_run']['decisions_output'] = decisions_output_init
-    model['steady_state']['init_run']['dists'] = dists_init
+    model['context']['init_run']['decisions_output'] = decisions_output_init
+    model['context']['init_run']['dists'] = dists_init
 
     # final test of main function
     test = model['context']['func_eqns'](init, init, init, init, jnp.zeros(len(shocks)), par, jnp.array(
@@ -131,7 +130,7 @@ def write_cache(model, horizon, pars):
     return
 
 
-def check_if_compiled_stst(model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, force, verbose):
+def check_if_cached_stst(model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, force, verbose):
     cond = not model['cache']['reset_stst']
     cond &= model["cache"]["last_stst"]["setup"] == (
         tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards)
@@ -145,7 +144,7 @@ def check_if_compiled_stst(model, tol, maxit, tol_backwards, maxit_backwards, to
         raise KeyError
 
 
-def write_cache_stst(model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, res):
+def write_stst_cache(model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, res):
     model["cache"]["last_stst"] = {}
     model["cache"]["last_stst"]["setup"] = tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
     model["cache"]["last_stst"]["res"] = res

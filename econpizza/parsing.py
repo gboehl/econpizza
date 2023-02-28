@@ -25,6 +25,9 @@ cached_mdicts = ()
 cached_models = ()
 
 
+def dict2jnp(x): return jnp.array(list(x.values()))
+
+
 def _load_as_module(path, add_to_path=True):
     """load a file as a module
     """
@@ -131,7 +134,7 @@ def _initialize_cache():
     cache = {}
     cache['steady_state'] = ()
     cache['func_pre_stst'] = {}
-    cache['steady_state_dicts'] = ()
+    cache['steady_state_keys'] = ()
     return cache
 
 
@@ -197,28 +200,93 @@ def _define_function(func_str, context):
     return tmpf.name
 
 
-def load_model(model):
+def compile_fixed_and_init_vals(model):
+
+    par_names = model["parameters"]
+    evars = model["variables"]
+    # collect fixed values and ensure ordering and lenght is fine
+    fixed_values = _define_subdict_if_absent(
+        model["steady_state"], "fixed_values")
+    fixed_values_evaluated = _eval_strs(fixed_values, context=model['context'])
+    fixed_values_names = tuple(
+        sorted([k for k in fixed_values_evaluated if k in par_names or k in evars]))
+    fixed_evaluated = {
+        k: fixed_values_evaluated[k] for k in fixed_values_names}
+
+    # collect initial guesses
+    model['cache']['init_guesses'] = _eval_strs(model["steady_state"].get(
+        "init_guesses"), context=model['context'])
+    init_vals = _compile_init_values(
+        evars, par_names, model['cache']['init_guesses'], fixed_evaluated)
+
+    # check, then get strings that contains the definition of func_pre_stst and compile
+    try:
+        model['context']['func_pre_stst'] = model['cache']['func_pre_stst'][fixed_values_names]
+    except KeyError:
+        _define_function(compile_stst_func_str(
+            evars, par_names, fixed_values_names, init_vals), model['context'])
+        model['cache']['func_pre_stst'][fixed_values_names] = model['context']['func_pre_stst']
+
+    return fixed_evaluated, init_vals
+
+
+def load(
+    model,
+    raise_errors=True,
+    verbose=True
+):
+    """Load model from dict or yaml file.
+
+    Parameters
+    ----------
+    model : dict or string
+        either a dictionary or the path to a yaml file to be parsed
+    raise_errors : bool, optional
+        whether to raise errors while checking. False will let the model fail siliently for debugging. Defaults to True
+    verbose : bool, optional
+        inform that parsing is done. Defaults to True
+
+    Returns
+    -------
+    model : PizzaModel
+        The parsed model
+    """
 
     global cached_mdicts, cached_models
+    from .__init__ import PizzaModel
 
+    # parse if this is a path to yaml file
+    if isinstance(model, str):
+        full_path = model
+        model = parse(model)
+        model['path'] = full_path
+    # make it a model
+    model = PizzaModel(model)
     # load file with additional functions as module (if it exists)
     _parse_external_functions_file(model)
-    mdict_raw = deepcopy(model)
+
+    mdict = deepcopy(model)
+    stst_subdict = mdict.pop('steady_state') if 'steady_state' in mdict else {}
 
     # check if model is already cached
-    if model in cached_mdicts:
-        model = cached_models[cached_mdicts.index(model)]
-        return model, False
+    if mdict in cached_mdicts:
+        model = cached_models[cached_mdicts.index(mdict)]
+        model['steady_state'] = stst_subdict
+        if verbose:
+            print("(load:) Loading cached model.")
+        return model
 
+    # initialize objects
     model['context'] = _initialize_context()
     model['cache'] = _initialize_cache()
     _load_external_functions_file(model, model['context'])
 
+    # compile definitions
     defs = model.get("definitions")
     defs = '' if defs is None else defs
     defs = '\n'.join(defs) if isinstance(defs, list) else defs
     exec(defs, model['context'])
-
+    # get aggregate equations
     eqns = model["equations"].copy()
 
     # check if there are dublicate variables
@@ -263,126 +331,32 @@ def load_model(model):
     model['func_strings']["func_eqns"] = compile_eqn_func_str(evars, deepcopy(eqns), par_names, eqns_aux=model.get(
         'aux_equations'), shocks=shocks, distributions=dist_names, decisions_outputs=decisions_outputs)
 
-    # test if model works. Writing to tempfiles helps to get nice debug traces if not
+    # writing to tempfiles helps to get nice debug traces if the model does not work
     _define_function(model['func_strings']["func_eqns"], model['context'])
-    # add new model to cache
-    cached_mdicts += (deepcopy(mdict_raw),)
-    cached_models += (model,)
-
-    return model, True
-
-
-def load_stst(model, is_fresh, raise_errors, verbose):
-
-    # check if model is already cached
-    stst_dict = deepcopy(model['steady_state'])
-    cache = model['cache']
-    if stst_dict in model['cache']['steady_state_dicts']:
-        model['steady_state'] = cache['steady_state'][cache['steady_state_dicts'].index(
-            stst_dict)]
-        model['context']['func_pre_stst'] = model['steady_state']['func_pre_stst']
-        if verbose:
-            print("(load:) Loading cached model.")
-        return model
-
-    shocks = model.get("shocks") or ()
-    par_names = model["parameters"]
-    evars = model["variables"]
-    dist_names = list(model['distributions'].keys()
-                      ) if model.get('distributions') else []
-
-    # collect fixed values
-    fixed_values = _define_subdict_if_absent(
-        model["steady_state"], "fixed_values")
-    fixed_evaluated = _eval_strs(fixed_values, context=model['context'])
-
-    # collect initial guesses
-    init_guesses = _eval_strs(model["steady_state"].get(
-        "init_guesses"), context=model['context'])
-    model["steady_state"]["init"] = init = _compile_init_values(
-        evars, par_names, init_guesses, fixed_evaluated)
-
-    # ensure ordering and lenght of fixed values is fine
-    fixed_values_names = tuple(
-        sorted([k for k in fixed_evaluated if k in par_names or k in evars]))
-    model["steady_state"]['fixed_evalued'] = {
-        k: fixed_evaluated[k] for k in fixed_values_names}
-
-    # check, then get strings that contains the definition of func_pre_stst and compile
-    try:
-        model['context']['func_pre_stst'] = model['cache']['func_pre_stst'][fixed_values_names]
-    except KeyError:
-        _define_function(compile_stst_func_str(
-            evars, par_names, fixed_values_names, init), model['context'])
-        model['cache']['func_pre_stst'][fixed_values_names] = model['context']['func_pre_stst']
-    model['steady_state']['func_pre_stst'] = model['context']['func_pre_stst']
-
+    # compile fixed and initial values
+    fixed_values, init_guesses = compile_fixed_and_init_vals(model)
     # get the initial decision functions
     if model.get('decisions'):
-        init_vf_list = [init_guesses[dec_input]
+        init_vf_list = [model['cache']['init_guesses'][dec_input]
                         for dec_input in model['decisions']['inputs']]  # for now assume that this must be present
-        model["steady_state"]['init_vf'] = jnp.array(init_vf_list)
+        model["context"]['init_vf'] = jnp.array(init_vf_list)
 
         # check if initial decision functions and the distribution have same shapes
         check_shapes(model['distributions'],
-                     model["steady_state"]['init_vf'], dist_names)
+                     model["context"]['init_vf'], dist_names)
 
     # try if function works on initvals
     try:
-        check_initial_values(model, shocks, par_names)
+        check_initial_values(model, fixed_values,
+                             init_guesses, shocks, par_names)
     except:
         if raise_errors:
             raise
+    # add new model to cache
+    cached_mdicts += (deepcopy(mdict),)
+    cached_models += (model,)
 
-    model['cache']['steady_state'] += model['steady_state'],
-    model['cache']['steady_state_dicts'] += stst_dict,
-    model['cache']['reset_stst'] = True
-
-    if verbose and is_fresh:
+    if verbose:
         print("(load:) Parsing done.")
-    elif verbose and not is_fresh:
-        print("(load:) Loading cached model with changed fixed or initial values.")
 
     return model
-
-
-def load(
-    model,
-    raise_errors=True,
-    verbose=True
-):
-    """Load model from dict or yaml file.
-
-    Parameters
-    ----------
-    model : dict or string
-        either a dictionary or the path to a yaml file to be parsed
-    raise_errors : bool, optional
-        whether to raise errors while checking. False will let the model fail siliently for debugging. Defaults to True
-    verbose : bool, optional
-        inform that parsing is done. Defaults to True
-
-    Returns
-    -------
-    model : PizzaModel
-        The parsed model
-    """
-
-    from .__init__ import PizzaModel
-
-    # parse if this is a path to yaml file
-    if isinstance(model, str):
-        full_path = model
-        model = parse(model)
-        model['path'] = full_path
-    # make it a model
-    model = PizzaModel(model)
-
-    # loading model and steady state are separated for efficient caching
-    model_stst = model.pop('steady_state')
-    # compile or check if model without steady state section is cached
-    model, is_fresh = load_model(model)
-    # add steady state section again
-    model['steady_state'] = model_stst
-    # compile check if model with steady state section is cached
-    return load_stst(model, is_fresh, raise_errors, verbose)

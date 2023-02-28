@@ -4,8 +4,9 @@ import jax
 import time
 import jax.numpy as jnp
 from grgrjax import newton_jax, val_and_jacfwd, amax
+from ..parsing import compile_fixed_and_init_vals
 from ..parser.build_functions import get_func_stst_raw
-from ..parser.checks import check_if_compiled_stst, write_cache_stst
+from ..parser.checks import check_if_cached_stst, write_stst_cache
 
 
 def solver(jval, fval):
@@ -82,19 +83,26 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     evars = model["variables"]
     par_names = model["parameters"]
     shocks = model.get("shocks") or ()
-    fixed_vals = jnp.array(
-        list(model['steady_state']['fixed_evalued'].values()))
 
     tol_backwards = 1e-8 if tol_backwards is None else tol_backwards
     tol_forwards = 1e-10 if tol_forwards is None else tol_forwards
+    setup = tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
 
-    # check if steady state was already calculated
-    try:
+    fixed_vals_dict, init_vals_dict = compile_fixed_and_init_vals(model)
+    fixed_vals = jnp.array(list(fixed_vals_dict.values()))
+    init_vals = jnp.array(list(init_vals_dict.values()))
+
+    # check if model is already cached
+    key = str(f'{setup};{fixed_vals},{init_vals}')
+    cache = model['cache']
+    if key in model['cache']['steady_state_keys']:
+        model['steady_state'] = cache['steady_state'][cache['steady_state_keys'].index(
+            key)]
         model["stst"], model["pars"] = model['steady_state']["values_and_pars"]
-        return check_if_compiled_stst(model, tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards, force, verbose)
-    except KeyError:
-        model['cache']['compiled_model_flag'] = False
-        pass
+        if verbose:
+            print(
+                f"(solve_stst:) Steady state already {'known' if model['steady_state']['newton_result']['success'] else 'FAILED'}.")
+        return model["steady_state"]["newton_result"]
 
     # get all necessary functions
     func_eqns = model['context']['func_eqns']
@@ -103,24 +111,23 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     func_pre_stst = model['context']['func_pre_stst']
 
     # get initial values for heterogenous agents
-    decisions_output_init = model['steady_state']['init_run'].get(
+    decisions_output_init = model['context']['init_run'].get(
         'decisions_output')
-    init_vf = model['steady_state'].get('init_vf')
+    init_vf = model['context'].get('init_vf')
 
     # get the actual steady state function
     func_stst = get_func_stst_raw(func_pre_stst, func_backw, func_forw_stst, func_eqns, shocks, init_vf, decisions_output_init,
                                   fixed_values=fixed_vals, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
     # store jitted stst function that returns jacobian and func. value
     model["context"]['func_stst'] = func_stst
-    x_init = jnp.array(list(model['steady_state']['init'].values()))
 
     if not model['steady_state'].get('skip'):
         # actual root finding
-        res = newton_jax(func_stst, x_init, maxit, tol,
+        res = newton_jax(func_stst, init_vals, maxit, tol,
                          solver=solver, verbose=verbose, **newton_kwargs)
     else:
-        f, jac, aux = func_stst_raw(x_init)
-        res = {'x': x_init,
+        f, jac, aux = func_stst_raw(init_vals)
+        res = {'x': init_vals,
                'fun': f,
                'jac': jac,
                'success': True,
@@ -133,6 +140,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
     model["stst"] = dict(zip(evars, stst_vals))
     model["pars"] = dict(zip(par_names, par_vals))
+    model['steady_state']["newton_result"] = res
     model['steady_state']["values_and_pars"] = model["stst"], model["pars"]
 
     # calculate dist objects and compile message
@@ -171,8 +179,11 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
             ' WARNING: ' + mess if mess else '')
 
     # cache everything if search was successful
-    write_cache_stst(model, tol, maxit, tol_backwards,
+    write_stst_cache(model, tol, maxit, tol_backwards,
                      maxit_backwards, tol_forwards, maxit_forwards, res)
+
+    model['cache']['steady_state'] += model['steady_state'],
+    model['cache']['steady_state_keys'] += key,
 
     if mess:
         print(f"(solve_stst:) {mess}")

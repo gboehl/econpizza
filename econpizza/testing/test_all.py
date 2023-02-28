@@ -4,7 +4,7 @@ import os
 import sys
 import jax.numpy as jnp
 # autopep8: off
-sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath("."))
 import econpizza as ep
 # autopep8: on
 

@@ -44,6 +44,14 @@ def func_forw_stst_generic(decisions_outputs, tol, maxit, grids, transition, ind
     return jnp.array((dist, )), max_cnt
 
 
+def func_pre_stst(x, fixed_values, mapping):
+    x2all, fixed2all, shape0, shape1 = mapping
+    res = jnp.empty(shape0+shape1)
+    res = res.at[x2all].set(x)
+    res = res.at[fixed2all].set(fixed_values)
+    return res[:shape0], res[shape0:]
+
+
 def func_stst_rep_agent(y, func_pre_stst, func_eqns):
     x, par = func_pre_stst(y)
     x = x[..., None]
@@ -82,7 +90,7 @@ def get_func_stst_raw(func_pre_stst, func_backw, func_forw_stst, func_eqns, shoc
 
     zshock = jnp.zeros(len(shocks))
     partial_pre_stst = jax.tree_util.Partial(
-        func_pre_stst, INTERNAL_fixed_values=fixed_values)
+        func_pre_stst, fixed_values=fixed_values)
     partial_eqns = jax.tree_util.Partial(func_eqns, shocks=zshock)
 
     if not func_forw_stst:

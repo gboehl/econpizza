@@ -18,14 +18,12 @@ from inspect import getmembers, isfunction
 from jax.experimental.host_callback import id_print as jax_print
 from .utilities import grids, dists, interp
 from .parser.compile_functions import *
+from .parser.build_functions import func_pre_stst
 from .parser.checks import *
 
 # initialize model cache
 cached_mdicts = ()
 cached_models = ()
-
-
-def dict2jnp(x): return jnp.array(list(x.values()))
 
 
 def _load_as_module(path, add_to_path=True):
@@ -200,7 +198,7 @@ def _define_function(func_str, context):
     return tmpf.name
 
 
-def compile_fixed_and_init_vals(model):
+def compile_stst_inputs(model):
 
     par_names = model["parameters"]
     evars = model["variables"]
@@ -219,15 +217,20 @@ def compile_fixed_and_init_vals(model):
     init_vals = _compile_init_values(
         evars, par_names, model['cache']['init_guesses'], fixed_evaluated)
 
-    # check, then get strings that contains the definition of func_pre_stst and compile
+    # check, then define func_pre_stst
     try:
         model['context']['func_pre_stst'] = model['cache']['func_pre_stst'][fixed_values_names]
     except KeyError:
-        _define_function(compile_stst_func_str(
-            evars, par_names, fixed_values_names, init_vals), model['context'])
+        x2all = jnp.array([(evars.index(v) if v in evars else par_names.index(
+            v)+len(evars)) for v in init_vals], dtype=int)
+        fixed2all = jnp.array([(evars.index(v) if v in evars else par_names.index(
+            v)+len(evars)) for v in fixed_evaluated], dtype=int)
+        mapping = x2all, fixed2all, len(evars), len(par_names)
+        model['context']['func_pre_stst'] = jax.tree_util.Partial(
+            func_pre_stst, mapping=mapping)
         model['cache']['func_pre_stst'][fixed_values_names] = model['context']['func_pre_stst']
 
-    return fixed_evaluated, init_vals
+    return init_vals, fixed_evaluated
 
 
 def load(
@@ -334,7 +337,7 @@ def load(
     # writing to tempfiles helps to get nice debug traces if the model does not work
     _define_function(model['func_strings']["func_eqns"], model['context'])
     # compile fixed and initial values
-    fixed_values, init_guesses = compile_fixed_and_init_vals(model)
+    init_guesses, fixed_values = compile_stst_inputs(model)
     # get the initial decision functions
     if model.get('decisions'):
         init_vf_list = [model['cache']['init_guesses'][dec_input]
@@ -347,13 +350,13 @@ def load(
 
     # try if function works on initvals
     try:
-        check_initial_values(model, fixed_values,
-                             init_guesses, shocks, par_names)
+        check_initial_values(model, init_guesses,
+                             fixed_values, shocks, par_names)
     except:
         if raise_errors:
             raise
     # add new model to cache
-    cached_mdicts += (deepcopy(mdict),)
+    cached_mdicts += (mdict,)
     cached_models += (model,)
 
     if verbose:

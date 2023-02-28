@@ -45,7 +45,7 @@ def check_determinancy(evars, eqns):
     return sorted_evars
 
 
-def check_initial_values(model, fixed_values, init_guesses, shocks, par):
+def check_initial_values(model, init_guesses, fixed_values, shocks, par):
 
     init_mixed = jnp.array(list(init_guesses.values()))
     fixed_values = jnp.array(list(fixed_values.values()))

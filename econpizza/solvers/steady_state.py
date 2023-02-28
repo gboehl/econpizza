@@ -4,7 +4,7 @@ import jax
 import time
 import jax.numpy as jnp
 from grgrjax import newton_jax, val_and_jacfwd, amax
-from ..parsing import compile_fixed_and_init_vals
+from ..parsing import compile_stst_inputs
 from ..parser.build_functions import get_func_stst_raw
 from ..parser.checks import check_if_cached_stst, write_stst_cache
 
@@ -88,7 +88,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     tol_forwards = 1e-10 if tol_forwards is None else tol_forwards
     setup = tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
 
-    fixed_vals_dict, init_vals_dict = compile_fixed_and_init_vals(model)
+    init_vals_dict, fixed_vals_dict = compile_stst_inputs(model)
     fixed_vals = jnp.array(list(fixed_vals_dict.values()))
     init_vals = jnp.array(list(init_vals_dict.values()))
 
@@ -163,7 +163,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     # check if any of the fixed variables are neither a parameter nor variable
     if mess:
         not_var_nor_par = list(
-            set(model['steady_state']['fixed_evalued']) - set(evars) - set(par_names))
+            set(model['steady_state']['fixed_values']) - set(evars) - set(par_names))
         mess += f"Fixed value(s) ``{'``, ``'.join(not_var_nor_par)}`` not defined. " if not_var_nor_par else ''
 
     if err > tol or not res['success']:

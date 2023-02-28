@@ -34,24 +34,6 @@ def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls):
     return func_str
 
 
-def compile_stst_func_str(evars, par, stst, init):
-    """Compile all information from 'equations' section to a string that defines the function.
-    """
-
-    stst_str = '; '.join(
-        [f'{v} = INTERNAL_fixed_values[{i}]' for i, v in enumerate(stst)])
-
-    # compile the final function string
-    func_pre_stst_str = f"""def func_pre_stst(INTERNAL_init, INTERNAL_fixed_values):
-        \n ({"".join(v + ", " for v in init)}) = INTERNAL_init
-        \n {stst_str}
-        \n INTERNAL_vars = ({"".join(v + ", " for v in evars)})
-        \n INTERNAL_par = ({"".join(p + ", " for p in par)})
-        \n return jnp.array(INTERNAL_vars), jnp.array(INTERNAL_par)"""
-
-    return func_pre_stst_str
-
-
 def get_forw_funcs(model):
 
     distributions = model['distributions']

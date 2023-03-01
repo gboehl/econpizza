@@ -282,7 +282,7 @@ def load(
 
     # check if model is already cached
     if mdict in cached_mdicts:
-        model = cached_models[cached_mdicts.index(mdict)]
+        model = copy(cached_models[cached_mdicts.index(mdict)])
         # always use the fresh current stst sec from yaml
         model['steady_state'] = stst_subdict
         if verbose:

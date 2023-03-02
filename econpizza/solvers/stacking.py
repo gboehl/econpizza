@@ -61,6 +61,9 @@ def find_path_stacking(
     """
 
     st = time.time()
+    # only skip jacobian calculation if it exists
+    skip_jacobian = skip_jacobian if model['cache'].get(
+        'jac_factorized') else False
 
     # get variables
     stst = jnp.array(list(model["stst"].values()))

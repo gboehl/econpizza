@@ -27,7 +27,7 @@ def _backwards_step(carry, i):
 
     wf, X, shocks, func_backw, stst, pars = carry
     wf, decisions_output = func_backw(
-        X[:, i], X[:, i+1], X[:, i+2], wFPrime=wf, shocks=shocks[:, i], pars=pars)
+        X[:, i], X[:, i+1], X[:, i+2], WFPrime=wf, shocks=shocks[:, i], pars=pars)
 
     return (wf, X, shocks, func_backw, stst, pars), decisions_output
 

@@ -24,9 +24,9 @@ def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls):
     if isinstance(calls, str):
         calls = calls.splitlines()
 
-    func_str = f"""def func_backw(XLag, X, XPrime, XSS, VFPrime, shocks, pars):
+    func_str = f"""def func_backw(XLag, X, XPrime, XSS, WFPrime, shocks, pars):
             {compile_func_basics_str(evars, par, shocks)}
-            \n ({"".join(v + ", " for v in inputs)}) = VFPrime
+            \n ({"".join(v + ", " for v in inputs)}) = WFPrime
             \n %s
             \n return jnp.array(({"".join(v[:-5] + ", " for v in inputs)})), jnp.array(({", ".join(v for v in outputs)}))
             """ % '\n '.join(calls)

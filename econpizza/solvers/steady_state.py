@@ -5,7 +5,7 @@ import time
 import jax.numpy as jnp
 from copy import deepcopy
 from grgrjax import newton_jax, val_and_jacfwd, amax
-from ..parser import compile_stst_inputs
+from ..parser import compile_stst_inputs, d2jnp
 from ..parser.build_functions import get_func_stst_raw
 
 
@@ -97,7 +97,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
         model)
 
     # check if model is already cached
-    key = str(f'{setup};{fixed_vals};{init_vals};{init_wf.sum()}')
+    key = str(f'{setup};{d2jnp(fixed_vals)};{d2jnp(init_vals)};{init_wf.sum()}')
     cache = model['cache']
     if key in model['cache']['steady_state_keys'] and not force:
         model['steady_state'] = cache['steady_state'][cache['steady_state_keys'].index(
@@ -121,17 +121,17 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
     # get the actual steady state function
     func_stst = get_func_stst_raw(func_backw, func_forw_stst, func_eqns, shocks, init_wf, decisions_output_init,
-                                  fixed_values=fixed_vals, pre_stst_mapping=pre_stst_mapping, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
+                                  fixed_values=d2jnp(fixed_vals), pre_stst_mapping=pre_stst_mapping, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
     # store jitted stst function that returns jacobian and func. value
     model["context"]['func_stst'] = func_stst
 
     if not model['steady_state'].get('skip'):
         # actual root finding
-        res = newton_jax(func_stst, init_vals, maxit, tol,
+        res = newton_jax(func_stst, d2jnp(init_vals), maxit, tol,
                          solver=solver, verbose=verbose, **newton_kwargs)
     else:
-        f, jac, aux = func_stst_raw(init_vals)
-        res = {'x': init_vals,
+        f, jac, aux = func_stst_raw(d2jnp(init_vals))
+        res = {'x': d2jnp(init_vals),
                'fun': f,
                'jac': jac,
                'success': True,
@@ -140,7 +140,9 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
                }
 
     # exchange those values that are identified via stst_equations
-    stst_vals, par_vals = func_pre_stst(res['x'], fixed_vals, pre_stst_mapping)
+    stst_vals, par_vals = func_pre_stst(
+        res['x'], d2jnp(fixed_vals), pre_stst_mapping)
+    res['initial_values'] = {'guesses': init_vals, 'fixed': fixed_vals}
 
     model["stst"] = dict(zip(evars, stst_vals))
     model["pars"] = dict(zip(par_names, par_vals))

@@ -24,6 +24,9 @@ cached_mdicts = ()
 cached_models = ()
 
 
+def d2jnp(x): return jnp.array(list(x.values()))
+
+
 def _load_as_module(path, add_to_path=True):
     """load a file as a module
     """
@@ -220,11 +223,15 @@ def compile_stst_inputs(model):
 
     par_names = model["parameters"]
     evars = model["variables"]
+    context = model["context"]
+    # remove old values from model context
+    [context.pop(key) for key in par_names if key in context]
+    [context.pop(key) for key in evars if key in context]
 
     # collect fixed values and ensure ordering and lenght is fine
     fixed_values = _define_subdict_if_absent(
         model["steady_state"], "fixed_values")
-    fixed_values_evaluated = _eval_strs(fixed_values, context=model['context'])
+    fixed_values_evaluated = _eval_strs(fixed_values, context=context)
     fixed_values_names = tuple(
         sorted([k for k in fixed_values_evaluated if k in par_names or k in evars]))
     fixed_evaluated = {
@@ -232,7 +239,7 @@ def compile_stst_inputs(model):
 
     # collect initial guesses
     init_guesses = _eval_strs(model["steady_state"].get(
-        "init_guesses"), context=model['context'])
+        "init_guesses"), context=context)
     init_vals = _compile_init_values(
         evars, par_names, init_guesses, fixed_evaluated)
 
@@ -249,7 +256,7 @@ def compile_stst_inputs(model):
     mapping = _get_pre_stst_mapping(
         init_vals, fixed_evaluated, evars, par_names)
 
-    return jnp.array(list(init_vals.values())), jnp.array(list(fixed_evaluated.values())), init_wf, mapping
+    return init_vals, fixed_evaluated, init_wf, mapping
 
 
 def load(

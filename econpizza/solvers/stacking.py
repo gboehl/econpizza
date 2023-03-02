@@ -122,7 +122,7 @@ def find_path_stacking(
         jvp_partial = jax.tree_util.Partial(
             model['context']['jvp_func'], x0=x0, dist0=dist0, shocks=shock_series.T, pars=pars)
         if not use_solid_solver:
-            jacobian = model['jac_factorized']
+            jacobian = model['cache']['jac_factorized']
             # actual newton iterations
             x, flag, mess = newton_for_jvp(
                 jvp_partial, jacobian, x_init, verbose, **newton_args)

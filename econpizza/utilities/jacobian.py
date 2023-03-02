@@ -42,8 +42,8 @@ def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
     jac = get_stst_jacobian_jit(derivatives, horizon, nvars)
     jac = jac.reshape(((horizon-1)*nvars, (horizon-1)*nvars))
     # store result
-    model['jac'] = jac
-    model['jac_factorized'] = jax.scipy.linalg.lu_factor(jac)
+    model['cache']['jac'] = jac
+    model['cache']['jac_factorized'] = jax.scipy.linalg.lu_factor(jac)
     if verbose:
         duration = time.time() - st
         print(

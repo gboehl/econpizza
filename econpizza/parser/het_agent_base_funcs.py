@@ -6,38 +6,38 @@ import jax.numpy as jnp
 
 
 def _backwards_stst_cond(carry):
-    _, (vf, _), (vf_old, cnt), (_, tol, maxit) = carry
-    cond0 = jnp.abs(vf - vf_old).max() > tol
+    _, (wf, _), (wf_old, cnt), (_, tol, maxit) = carry
+    cond0 = jnp.abs(wf - wf_old).max() > tol
     cond1 = cnt < maxit
     return jnp.logical_and(cond0, cond1)
 
 
 def _backwards_stst_body(carry):
-    (x, par), (vf, _), (_, cnt), (func, tol, maxit) = carry
-    return (x, par), func(x, x, x, x, vf, pars=par), (vf, cnt + 1), (func, tol, maxit)
+    (x, par), (wf, _), (_, cnt), (func, tol, maxit) = carry
+    return (x, par), func(x, x, x, x, wf, pars=par), (wf, cnt + 1), (func, tol, maxit)
 
 
 def backwards_sweep_stst(x, par, carry):
-    _, (vf, decisions_output), (_, cnt), _ = jax.lax.while_loop(
+    _, (wf, decisions_output), (_, cnt), _ = jax.lax.while_loop(
         _backwards_stst_cond, _backwards_stst_body, ((x, par), *carry))
-    return vf, decisions_output, cnt
+    return wf, decisions_output, cnt
 
 
 def _backwards_step(carry, i):
 
-    vf, X, shocks, func_backw, stst, pars = carry
-    vf, decisions_output = func_backw(
-        X[:, i], X[:, i+1], X[:, i+2], VFPrime=vf, shocks=shocks[:, i], pars=pars)
+    wf, X, shocks, func_backw, stst, pars = carry
+    wf, decisions_output = func_backw(
+        X[:, i], X[:, i+1], X[:, i+2], wFPrime=wf, shocks=shocks[:, i], pars=pars)
 
-    return (vf, X, shocks, func_backw, stst, pars), decisions_output
+    return (wf, X, shocks, func_backw, stst, pars), decisions_output
 
 
-def backwards_sweep(x, x0, shocks, pars, stst, vfSS, horizon, func_backw):
+def backwards_sweep(x, x0, shocks, pars, stst, wfSS, horizon, func_backw):
 
     X = jnp.hstack((x0, x, stst)).reshape(horizon+1, -1).T
 
     _, decisions_output_storage = jax.lax.scan(
-        _backwards_step, (vfSS, X, shocks, func_backw, stst, pars), jnp.arange(horizon-1), reverse=True)
+        _backwards_step, (wfSS, X, shocks, func_backw, stst, pars), jnp.arange(horizon-1), reverse=True)
     decisions_output_storage = jnp.moveaxis(
         decisions_output_storage, 0, -1)
 

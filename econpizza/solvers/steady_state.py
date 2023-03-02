@@ -20,13 +20,13 @@ def _get_stst_dist_objs(model, res, maxit_backwards, maxit_forwards):
     """
 
     res_backw, res_forw = res['aux']
-    vfSS, decisions_output, cnt_backwards = res_backw
+    wfSS, decisions_output, cnt_backwards = res_backw
     distSS, cnt_forwards = res_forw
     decisions_output_names = model['decisions']['outputs']
 
     # compile informative message
     mess = ''
-    if jnp.isnan(jnp.array(vfSS)).any() or jnp.isnan(jnp.array(decisions_output)).any():
+    if jnp.isnan(jnp.array(wfSS)).any() or jnp.isnan(jnp.array(decisions_output)).any():
         mess += f"Backward iteration returns 'NaN's. "
     elif jnp.isnan(distSS).any():
         mess += f"Forward iteration returns 'NaN's. "
@@ -37,9 +37,9 @@ def _get_stst_dist_objs(model, res, maxit_backwards, maxit_forwards):
     if cnt_forwards == maxit_forwards:
         mess += f'Maximum of {maxit_forwards} forwards calls reached. '
 
-    # TODO: this should loop over the objects in distSS/vfSS and store under the name of the distribution/decisions (i.e. 'D' or 'Va')
+    # TODO: this should loop over the objects in distSS/wfSS and store under the name of the distribution/decisions (i.e. 'D' or 'Va')
     model['steady_state']["distributions"] = distSS
-    model['steady_state']['value_functions'] = vfSS
+    model['steady_state']['value_functions'] = wfSS
     model['steady_state']['decisions'] = {
         oput: decisions_output[i] for i, oput in enumerate(decisions_output_names)}
 
@@ -93,10 +93,11 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     setup = tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
 
     # parse and compile steady_state section from yaml
-    init_vals, fixed_vals, pre_stst_mapping = compile_stst_inputs(model)
+    init_vals, fixed_vals, init_wf, pre_stst_mapping = compile_stst_inputs(
+        model)
 
     # check if model is already cached
-    key = str(f'{setup};{fixed_vals},{init_vals}')
+    key = str(f'{setup};{fixed_vals};{init_vals};{init_wf.sum()}')
     cache = model['cache']
     if key in model['cache']['steady_state_keys'] and not force:
         model['steady_state'] = cache['steady_state'][cache['steady_state_keys'].index(
@@ -117,10 +118,9 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     # get initial values for heterogenous agents
     decisions_output_init = model['context']['init_run'].get(
         'decisions_output')
-    init_vf = model['context'].get('init_vf')
 
     # get the actual steady state function
-    func_stst = get_func_stst_raw(func_backw, func_forw_stst, func_eqns, shocks, init_vf, decisions_output_init,
+    func_stst = get_func_stst_raw(func_backw, func_forw_stst, func_eqns, shocks, init_wf, decisions_output_init,
                                   fixed_values=fixed_vals, pre_stst_mapping=pre_stst_mapping, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
     # store jitted stst function that returns jacobian and func. value
     model["context"]['func_stst'] = func_stst

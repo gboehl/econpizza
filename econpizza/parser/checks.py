@@ -46,7 +46,7 @@ def check_determinancy(evars, eqns):
     return sorted_evars
 
 
-def check_initial_values(model, shocks, init_guesses, fixed_values, pre_stst_mapping):
+def check_initial_values(model, shocks, init_guesses, fixed_values, init_wf, pre_stst_mapping):
 
     # run func_pre_stst to translate init values into vars & pars
     init_vals, par = func_pre_stst(
@@ -59,10 +59,9 @@ def check_initial_values(model, shocks, init_guesses, fixed_values, pre_stst_map
     mess = ''
     if model.get('decisions'):
         # make a test backward and forward run
-        init_vf = model['context']['init_vf']
         try:
             _, decisions_output_init = model['context']['func_backw'](
-                init_vals, init_vals, init_vals, init_vals, init_vf, jnp.zeros(len(shocks)), par)
+                init_vals, init_vals, init_vals, init_vals, init_wf, jnp.zeros(len(shocks)), par)
         except ValueError as e:
             if str(e) == "All input arrays must have the same shape.":
                 raise type(e)("Each output of the decisions stage must have the same shape as the distribution.").with_traceback(

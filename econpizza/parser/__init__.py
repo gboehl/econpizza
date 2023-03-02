@@ -220,6 +220,7 @@ def compile_stst_inputs(model):
 
     par_names = model["parameters"]
     evars = model["variables"]
+
     # collect fixed values and ensure ordering and lenght is fine
     fixed_values = _define_subdict_if_absent(
         model["steady_state"], "fixed_values")
@@ -230,16 +231,25 @@ def compile_stst_inputs(model):
         k: fixed_values_evaluated[k] for k in fixed_values_names}
 
     # collect initial guesses
-    model['cache']['init_guesses'] = _eval_strs(model["steady_state"].get(
+    init_guesses = _eval_strs(model["steady_state"].get(
         "init_guesses"), context=model['context'])
     init_vals = _compile_init_values(
-        evars, par_names, model['cache']['init_guesses'], fixed_evaluated)
+        evars, par_names, init_guesses, fixed_evaluated)
+
+    # get the initial decision functions
+    if model.get('decisions'):
+        dist_names = list(model['distributions'].keys())
+        # for now assume that this must be present
+        init_wf = jnp.array([init_guesses[dec_input]
+                            for dec_input in model['decisions']['inputs']])
+        # check if initial decision functions and the distribution have same shapes
+        check_shapes(model['distributions'], init_wf, dist_names)
 
     # define func_pre_stst
     mapping = _get_pre_stst_mapping(
         init_vals, fixed_evaluated, evars, par_names)
 
-    return jnp.array(list(init_vals.values())), jnp.array(list(fixed_evaluated.values())), mapping
+    return jnp.array(list(init_vals.values())), jnp.array(list(fixed_evaluated.values())), init_wf, mapping
 
 
 def load(
@@ -348,16 +358,6 @@ def load(
     _define_function(model['func_strings']["func_eqns"], model['context'])
     # compile fixed and initial values
     stst_inputs = compile_stst_inputs(model)
-    # get the initial decision functions
-    if model.get('decisions'):
-        init_vf_list = [model['cache']['init_guesses'][dec_input]
-                        for dec_input in model['decisions']['inputs']]  # for now assume that this must be present
-        model["context"]['init_vf'] = jnp.array(init_vf_list)
-
-        # check if initial decision functions and the distribution have same shapes
-        check_shapes(model['distributions'],
-                     model["context"]['init_vf'], dist_names)
-
     # try if function works on initvals
     try:
         check_initial_values(model, shocks, *stst_inputs)

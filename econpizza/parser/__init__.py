@@ -251,6 +251,8 @@ def compile_stst_inputs(model):
                             for dec_input in model['decisions']['inputs']])
         # check if initial decision functions and the distribution have same shapes
         check_shapes(model['distributions'], init_wf, dist_names)
+    else:
+        init_wf = jnp.array(None)
 
     # define func_pre_stst
     mapping = _get_pre_stst_mapping(

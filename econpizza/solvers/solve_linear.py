@@ -69,7 +69,7 @@ def find_path_linear(model, shock=None, init_state=None, pars=None, horizon=200,
         get_stst_jacobian(model, derivatives, horizon, nvars, verbose)
         write_cache(model, horizon, pars, stst)
 
-    jacobian = model['jac']
+    jacobian = model['cache']['jac']
 
     x0 -= stst
     x = - \

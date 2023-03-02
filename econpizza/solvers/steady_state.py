@@ -67,6 +67,10 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
         maximum of iterations for the forward iteration. Defaults to 5000
     force : bool, optional
         force recalculation of steady state, even if it is already evaluated. Defaults to False
+    raise_errors : bool, optional
+        raise an error if Newton method does not converge. Useful for debuggin models. Defaults to True
+    check_rank : bool, optional
+        force checking the rank of the Jacobian, even if the Newton method was successful. Defualts to False
     verbose : bool, optional
         level of verbosity. Defaults to True
     newton_kwargs : keyword arguments
@@ -94,7 +98,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     # check if model is already cached
     key = str(f'{setup};{fixed_vals},{init_vals}')
     cache = model['cache']
-    if key in model['cache']['steady_state_keys']:
+    if key in model['cache']['steady_state_keys'] and not force:
         model['steady_state'] = cache['steady_state'][cache['steady_state_keys'].index(
             key)]
         model["stst"], model["pars"] = deepcopy(
@@ -153,8 +157,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     if err > tol and model['steady_state'].get('skip'):
         mess += f"They do not satisfy the required tolerance."
     elif err > tol or not res['success'] or check_rank:
-        jac = res['jac']
-        rank = jnp.linalg.matrix_rank(jac)
+        rank = jnp.linalg.matrix_rank(res['jac'])
         if rank:
             nvars = len(evars)+len(par_names)
             nfixed = len(fixed_vals)

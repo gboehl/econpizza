@@ -22,7 +22,7 @@ def test_bh(create=False):
     x, flag = ep.find_path_shooting(
         mod, state, horizon=50, max_horizon=500, tol=1e-8, verbose=2)
 
-    path = os.path.join(filepath, "test_storage", "bh.npy")
+    path = os.path.join(filepath, "cache", "bh.npy")
 
     assert flag == 0
     if create:
@@ -44,7 +44,7 @@ def test_nk(create=False):
     x, flag = ep.find_path_shooting(mod, state.values(), horizon=10,
                                     max_horizon=10, verbose=2)
 
-    path = os.path.join(filepath, "test_storage", "nk.npy")
+    path = os.path.join(filepath, "cache", "nk.npy")
 
     assert flag == 0
     if create:
@@ -64,7 +64,7 @@ def test_stacked(create=False):
 
     x, flag = ep.find_path_stacking(mod, shock=shk, horizon=50)
 
-    path = os.path.join(filepath, "test_storage", "stacked.npy")
+    path = os.path.join(filepath, "cache", "stacked.npy")
 
     assert flag == 0
     if create:
@@ -89,9 +89,9 @@ def test_hank(create=False):
     het_vars = mod.get_distributions(x)
     dist = het_vars['dist']
 
-    path_x = os.path.join(filepath, "test_storage", "hank.npy")
-    path_x_lin = os.path.join(filepath, "test_storage", "hank_lin.npy")
-    path_dist = os.path.join(filepath, "test_storage", "hank_dist.npy")
+    path_x = os.path.join(filepath, "cache", "hank.npy")
+    path_x_lin = os.path.join(filepath, "cache", "hank_lin.npy")
+    path_dist = os.path.join(filepath, "cache", "hank_dist.npy")
 
     assert flag == 0
     if create:
@@ -118,7 +118,7 @@ def test_hank_labor(create=False):
 
     x, flag = mod.find_path(shocks, horizon=50)
 
-    path = os.path.join(filepath, "test_storage", "hank_labor.npy")
+    path = os.path.join(filepath, "cache", "hank_labor.npy")
 
     assert flag == 0
     if create:
@@ -140,7 +140,7 @@ def test_hank2(create=False):
 
     x, flag = mod.find_path(init_state=x0.values(), horizon=50)
 
-    path = os.path.join(filepath, "test_storage", "hank2.npy")
+    path = os.path.join(filepath, "cache", "hank2.npy")
 
     assert flag == 0
     if create:
@@ -162,7 +162,7 @@ def test_solid(create=False):
     x, flag = mod.find_path(shocks, use_solid_solver=True,
                             horizon=20, chunk_size=90)
 
-    path = os.path.join(filepath, "test_storage", "hank_solid.npy")
+    path = os.path.join(filepath, "cache", "hank_solid.npy")
 
     assert flag == 0
     if create:

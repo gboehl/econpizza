@@ -34,5 +34,6 @@ setup(
         "jaxlib",
         "grgrjax",
         "pyyaml",
+        "scipy",
     ],
 )

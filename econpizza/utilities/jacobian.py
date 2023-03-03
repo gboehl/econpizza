@@ -32,6 +32,7 @@ def get_stst_jacobian_jit(derivatives, horizon, nvars):
 
     # accumulate and flatten
     jac, _ = jax.lax.fori_loop(0, (horizon-2)**2, accumulate, (jac, horizon))
+    jac = jac.reshape(((horizon-1)*nvars, (horizon-1)*nvars))
     return jac
 
 
@@ -50,11 +51,11 @@ def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
     """Calculate the steady state jacobian
     """
     st = time.time()
-    # simply a wrapper
+    # do the accumulation in jitted jax
     jac = get_stst_jacobian_jit(derivatives, horizon, nvars)
-    jac = jac.reshape(((horizon-1)*nvars, (horizon-1)*nvars))
     # store result
     model['cache']['jac'] = jac
+    # use sparse SuperLU because it is wayyy faster
     sparse_jac = ssp.csc_matrix(jac)
     sparse_jac_lu = ssp.linalg.splu(sparse_jac)
     model['cache']['jac_factorized'] = lu_factor_from_sparse(sparse_jac_lu)

@@ -30,9 +30,8 @@ def get_stst_jacobian_jit(derivatives, horizon, nvars):
     jac = jac.at[0, :, 1, :].add(jac_f2xPrime[..., 0])
     jac = jac.at[1, :, 0, :].add(jac_f2xLag[..., 0])
 
-    # accumulate and flatten
+    # accumulate
     jac, _ = jax.lax.fori_loop(0, (horizon-2)**2, accumulate, (jac, horizon))
-    jac = jac.reshape(((horizon-1)*nvars, (horizon-1)*nvars))
     return jac
 
 
@@ -51,8 +50,9 @@ def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
     """Calculate the steady state jacobian
     """
     st = time.time()
-    # do the accumulation in jitted jax
+    # do the accumulation in jitted jax and flatten
     jac = get_stst_jacobian_jit(derivatives, horizon, nvars)
+    jac = jac.reshape(((horizon-1)*nvars, (horizon-1)*nvars))
     # store result
     model['cache']['jac'] = jac
     # use sparse SuperLU because it is wayyy faster

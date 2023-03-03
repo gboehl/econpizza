@@ -1,8 +1,9 @@
-from grgrjax import jax_print
 import jax
 import time
 import jax.numpy as jnp
+import scipy.sparse as ssp
 from jax._src.api import partial
+from grgrjax import jax_print
 
 
 def accumulate(i_and_j, carry):
@@ -34,6 +35,17 @@ def get_stst_jacobian_jit(derivatives, horizon, nvars):
     return jac
 
 
+def lu_factor_from_sparse(lu):
+    """Translate the output of scipy.sparse.linalg.splu to something that jax.scipy.linalg.lu_solve understands
+    """
+    pr = lu.perm_r
+    pc = lu.perm_c
+    n = len(pr)
+    pr = jnp.empty(n, dtype=int).at[pr].set(jnp.arange(n))
+    lu_factor = lu.L.A - jnp.eye(n) + lu.U.A
+    return (lu_factor, pr), pc
+
+
 def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
     """Calculate the steady state jacobian
     """
@@ -43,7 +55,9 @@ def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
     jac = jac.reshape(((horizon-1)*nvars, (horizon-1)*nvars))
     # store result
     model['cache']['jac'] = jac
-    model['cache']['jac_factorized'] = jax.scipy.linalg.lu_factor(jac)
+    sparse_jac = ssp.csc_matrix(jac)
+    sparse_jac_lu = ssp.linalg.splu(sparse_jac)
+    model['cache']['jac_factorized'] = lu_factor_from_sparse(sparse_jac_lu)
     if verbose:
         duration = time.time() - st
         print(

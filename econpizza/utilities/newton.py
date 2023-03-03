@@ -4,13 +4,14 @@
 import jax
 import time
 import jax.numpy as jnp
+from jax._src.lax.linalg import lu_solve
 from grgrjax import callback_func, amax, newton_jax_jit
 
 
 def iteration_step(carry):
     (y, dampening, cnt), (x, f, jvp_func, jacobian, factor), (_, tol, maxit) = carry
     _, v = jvp_func(x, y)
-    v = jax.scipy.linalg.lu_solve(jacobian, v)
+    v = lu_solve(*jacobian[0], v, 0)[jacobian[1]]
     dampening = jnp.minimum(dampening, factor*jnp.abs((y.T@y)/(v.T@y)))
     diff = f-v
     y += dampening*diff
@@ -28,7 +29,7 @@ def jvp_while_body(carry):
                      nsteps, tol, factor, verbose) = carry
     # first iteration
     f, _ = jvp_func(x, jnp.zeros_like(x))
-    f = jax.scipy.linalg.lu_solve(jacobian, f)
+    f = lu_solve(*jacobian[0], f, 0)[jacobian[1]]
     # other iterations
     iteration_tol = jnp.minimum(1e-5, 1e-1*amax(f))
     init = ((f, 1., 0), (x, f, jvp_func, jacobian, factor),

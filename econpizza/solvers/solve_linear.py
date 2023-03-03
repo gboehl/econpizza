@@ -5,6 +5,7 @@ import time
 import jax.numpy as jnp
 from .stacking import write_cache
 from ..utilities.jacobian import get_stst_jacobian
+from ..parser import d2jnp
 from ..parser.checks import check_if_compiled
 from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 
@@ -46,10 +47,9 @@ def find_path_linear(model, shock=None, init_state=None, pars=None, horizon=200,
     st = time.time()
 
     # get model variables
-    stst = jnp.array(list(model['stst'].values()))
+    stst = d2jnp(model['stst'])
     nvars = len(model["variables"])
-    pars = jnp.array(
-        list((pars if pars is not None else model["pars"]).values()))
+    pars = d2jnp((pars if pars is not None else model["pars"]))
     shocks = model.get("shocks") or ()
     x_stst = jnp.ones((horizon + 1, nvars)) * stst
 

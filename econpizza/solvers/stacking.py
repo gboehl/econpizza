@@ -5,6 +5,7 @@ import jax
 import time
 import jax.numpy as jnp
 from grgrjax import val_and_jacrev
+from ..parser import d2jnp
 from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 from ..parser.checks import check_if_compiled
 from ..utilities.jacobian import get_stst_jacobian, get_jac_and_value_sliced
@@ -66,10 +67,9 @@ def find_path_stacking(
         'jac_factorized') else False
 
     # get variables
-    stst = jnp.array(list(model["stst"].values()))
+    stst = d2jnp(model["stst"])
     nvars = len(model["variables"])
-    pars = jnp.array(
-        list((pars if pars is not None else model["pars"]).values()))
+    pars = d2jnp(pars if pars is not None else model["pars"])
     shocks = model.get("shocks") or ()
 
     # get initial guess

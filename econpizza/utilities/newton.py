@@ -4,29 +4,34 @@
 import jax
 import time
 import jax.numpy as jnp
+from functools import partial
 from jax._src.lax.linalg import lu_solve
 from grgrjax import callback_func, amax, newton_jax_jit
 
 
+def callback_with_damp(cnt, err, fev, dampening, ltime, verbose): return callback_func(
+    cnt, err, fev=fev, misc=('dampening', dampening), ltime=ltime, verbose=verbose)
+
+
 def iteration_step(carry):
-    (y, dampening, cnt), (x, f, jvp_func, jacobian, factor), (_, tol, maxit) = carry
+    (y, dampening, fev), (x, f, jvp_func, jacobian, factor), (_, tol, maxit) = carry
     _, v = jvp_func(x, y)
     v = lu_solve(*jacobian[0], v, 0)[jacobian[1]]
     dampening = jnp.minimum(dampening, factor*jnp.abs((y.T@y)/(v.T@y)))
     diff = f-v
     y += dampening*diff
     eps = amax(diff)
-    return (y, dampening, cnt+1), (x, f, jvp_func, jacobian, factor), (eps, tol, maxit)
+    return (y, dampening, fev+1), (x, f, jvp_func, jacobian, factor), (eps, tol, maxit)
 
 
 def iteration_cond(carry):
-    (_, _, cnt), _, (eps, tol, maxit) = carry
-    return jnp.logical_and(cnt <= maxit, eps > tol)
+    (_, _, fev), _, (eps, tol, maxit) = carry
+    return jnp.logical_and(fev <= maxit, eps > tol)
 
 
 def jvp_while_body(carry):
-    (x, _, _, cnt), (jvp_func, jacobian, maxit,
-                     nsteps, tol, factor, verbose) = carry
+    (x, _, _, cnt, fev), (jvp_func, jacobian, maxit,
+                          nsteps, tol, factor, verbose) = carry
     # first iteration
     f, _ = jvp_func(x, jnp.zeros_like(x))
     f = lu_solve(*jacobian[0], f, 0)[jacobian[1]]
@@ -34,17 +39,18 @@ def jvp_while_body(carry):
     iteration_tol = jnp.minimum(1e-5, 1e-1*amax(f))
     init = ((f, 1., 0), (x, f, jvp_func, jacobian, factor),
             (1e8, iteration_tol, nsteps))
-    (y, dampening, cnt_inner), _, _ = jax.lax.while_loop(
+    (y, dampening, fev_inner), _, _ = jax.lax.while_loop(
         iteration_cond, iteration_step, init)
-    return (x-y, amax(f), dampening, cnt+cnt_inner), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)
+    return (x-y, amax(f), dampening, cnt+1, fev+fev_inner), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)
 
 
 def jvp_while_cond(carry):
-    (_, err, dampening, cnt), (_, _, maxit, nsteps, tol, _, verbose) = carry
-    cond = jnp.logical_and(err > tol, cnt < maxit)
+    (_, err, dampening, cnt, fev), (_, _, maxit, nsteps, tol, _, verbose) = carry
+    cond = jnp.logical_and(err > tol, fev < maxit)
     verbose = jnp.logical_and(cond, verbose)
-    verbose = jnp.logical_and(cnt, verbose)
-    jax.debug.callback(callback_func, cnt, err, dampening, verbose=verbose)
+    verbose = jnp.logical_and(fev, verbose)
+    jax.debug.callback(callback_with_damp, cnt, err, fev=fev,
+                       dampening=dampening, ltime=None, verbose=verbose)
     return cond
 
 
@@ -84,10 +90,11 @@ def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=500, nst
     start_time = time.time()
     x = x_init[1:-1].flatten()
 
-    (x, err, dampening, cnt), _ = jax.lax.while_loop(jvp_while_cond, jvp_while_body,
-                                                     ((x, 1., 0., 0), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)))
+    (x, err, dampening, cnt, fev), _ = jax.lax.while_loop(jvp_while_cond, jvp_while_body,
+                                                          ((x, 1., 0., 0, 0), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)))
     ltime = time.time() - start_time
-    callback_func(cnt, err, dampening, ltime, verbose)
+    callback_with_damp(cnt, err, fev=fev, dampening=dampening,
+                       ltime=ltime, verbose=verbose)
     _, (success, mess) = check_status(err, cnt, maxit, tol)
     # compile error/report message
     if not success and not jnp.isnan(err):

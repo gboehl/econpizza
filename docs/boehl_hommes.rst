@@ -26,7 +26,7 @@ The following example shows how to use the shooting method on the simple New Key
     import numpy as np
     import matplotlib.pyplot as plt
     import econpizza as ep
-    from econpizza import example_nk
+    example_nk = ep.examples.nk
 
     # load the example.
     # example_nk is nothing else but the path to the yaml, hence you could also use `filename = 'path_to/model.yaml'`
@@ -56,7 +56,7 @@ Lets go for a second, numerically more challenging example: the chaotic rational
     import numpy as np
     import matplotlib.pyplot as plt
     import econpizza as ep
-    from econpizza import example_bh
+    example_bh = ep.examples.bh
 
     # parse the yaml
     mod = ep.load(example_bh, raise_errors=False)

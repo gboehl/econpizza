@@ -13,10 +13,10 @@ A small-scale nonlinear New Keynesian model with ZLB is provided `as an example 
 
     import matplotlib.pyplot as plt
     import econpizza as ep
-    from econpizza import example_nk
 
+    example_nk = ep.examples.nk
 
-    # use the NK model again
+    # use the NK model
     mod = ep.load(example_nk)
     _ = mod.solve_stst()
 
@@ -81,7 +81,7 @@ The folder `yaml files <https://github.com/gboehl/econpizza/tree/master/econpizz
 
 .. code-block:: python
 
-    from econpizza import example_dsge
+    example_dsge = ep.examples.dsge
 
     mod = ep.load(example_dsge)
 

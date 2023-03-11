@@ -34,7 +34,7 @@ class PizzaModel(dict):
     solve_stst = solve_stst
     find_path = find_path_stacking
 
-    def get_distributions(model, init_state, init_dist=None, shock=None, pars=None):
+    def get_distributions(model, trajectory, init_dist=None, shock=None, pars=None):
         """Get all disaggregated variables for a given trajectory of aggregate variables.
 
         Note that the output objects do, other than the result from `find_path` with stacking, not include the time-T objects and that the given distribution is as from the beginning of each period.
@@ -44,7 +44,7 @@ class PizzaModel(dict):
 
         model : PizzaModel
             the model instance
-        init_state : array
+        trajectory : array
             a _full_ trajectory of aggregate variables
         init_dist : array, optional
             the initial distribution. Defaults to the steady state distribution
@@ -64,11 +64,11 @@ class PizzaModel(dict):
         shocks = model.get("shocks") or ()
         dist_names = list(model['distributions'].keys())
         decisions_outputs = model['decisions']['outputs']
-        x = init_state[1:-1].flatten()
-        x0 = init_state[0]
+        x = trajectory[1:-1].flatten()
+        x0 = trajectory[0]
 
         # deal with shocks if any
-        shock_series = jnp.zeros((len(init_state)-2, len(shocks)))
+        shock_series = jnp.zeros((len(trajectory)-2, len(shocks)))
         if shock is not None:
             shock_series = shock_series.at[0,
                                            shocks.index(shock[0])].set(shock[1])
@@ -79,15 +79,11 @@ class PizzaModel(dict):
         decisions_output_storage = backwards_sweep(x, x0, shock_series.T, pars)
         dists_storage = forwards_sweep(decisions_output_storage, dist0)
 
-        # steady state objects for period 0
-        distSS = model['steady_state']['distributions']
-        dosSS = model['steady_state']['decisions']
-
         # store this
-        rdict = {oput: jnp.concatenate(
-            (dosSS[oput][..., None], decisions_output_storage[i]), axis=-1) for i, oput in enumerate(decisions_outputs)}
-        rdict.update({oput: jnp.concatenate(
-            (distSS[i][..., None], dists_storage[i]), axis=-1) for i, oput in enumerate(dist_names)})
+        rdict = {oput: decisions_output_storage[i]
+                 for i, oput in enumerate(decisions_outputs)}
+        rdict.update({oput: dists_storage[i]
+                     for i, oput in enumerate(dist_names)})
 
         return rdict
 

@@ -154,7 +154,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     mess = _get_stst_dist_objs(model, res, maxit_backwards,
                                maxit_forwards) if model.get('distributions') else ''
     # calculate error
-    err = amax(res['fun'])
+    err, errarg = amax(res['fun'], True)
 
     if err > tol and model['steady_state'].get('skip'):
         mess += f"They do not satisfy the required tolerance."
@@ -174,9 +174,9 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
     if err > tol or not res['success']:
         if not res["success"] or raise_errors:
-            mess = f"Steady state FAILED (error is {err:1.2e}). {res['message']} {mess}"
+            mess = f"Steady state FAILED (max. error is {err:1.2e} in eqn. {errarg}). {res['message']} {mess}"
         else:
-            mess = f"{res['message']} WARNING: Steady state error is {err:1.2e}. {mess}"
+            mess = f"{res['message']} WARNING: Steady state error is {err:1.2e} in eqn. {errarg}. {mess}"
         if raise_errors:
             raise Exception(mess)
     elif verbose:

@@ -7,24 +7,24 @@ from econpizza.utilities.interp import interpolate_coord, apply_coord, interpola
 from grgrjax import jax_print
 
 
-def hh_init_Va(b_grid, a_grid, z_grid, sigma_c):
-    Va = (0.6 + 1.1 * b_grid[:, None] +
+def egm_init_Wa(b_grid, a_grid, z_grid, sigma_c):
+    Wa = (0.6 + 1.1 * b_grid[:, None] +
           a_grid) ** (-sigma_c) * jnp.ones((z_grid.shape[0], 1, 1))
-    return Va
+    return Wa
 
 
-def hh_init_Vb(b_grid, a_grid, z_grid, sigma_c):
-    Vb = (0.5 + b_grid[:, None] + 1.2 *
+def egm_init_Wb(b_grid, a_grid, z_grid, sigma_c):
+    Wb = (0.5 + b_grid[:, None] + 1.2 *
           a_grid) ** (-sigma_c) * jnp.ones((z_grid.shape[0], 1, 1))
-    return Vb
+    return Wb
 
 
-def hh(Va_p, Vb_p, a_grid, b_grid, z_grid, e_grid, kappa_grid, beta, sigma_c, rb, ra, chi0, chi1, chi2, Psi1):
+def egm_step(Wa_p, Wb_p, a_grid, b_grid, z_grid, e_grid, kappa_grid, beta, sigma_c, rb, ra, chi0, chi1, chi2, Psi1):
 
     # === STEP 2: Wb(z, b', a') and Wa(z, b', a') ===
     # (take discounted expectation of tomorrow's value function)
-    Wb = beta * Vb_p
-    Wa = beta * Va_p
+    Wb = beta * Wb_p
+    Wa = beta * Wa_p
     W_ratio = Wa / Wb
 
     # === STEP 3: a'(z, b', a) for UNCONSTRAINED ===
@@ -89,10 +89,10 @@ def hh(Va_p, Vb_p, a_grid, b_grid, z_grid, e_grid, kappa_grid, beta, sigma_c, rb
     uce = e_grid[:, None, None] * uc
 
     # update derivatives of value function using envelope conditions
-    Va = (1 + ra - Psi2) * uc
-    Vb = (1 + rb) * uc
+    Wa = (1 + ra - Psi2) * uc
+    Wb = (1 + rb) * uc
 
-    return Va, Vb, a, b, c, uce
+    return Wa, Wb, a, b, c, uce
 
 
 def adjustment_costs(a, a_grid, ra, chi0, chi1, chi2):

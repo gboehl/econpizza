@@ -82,7 +82,7 @@ def test_hank(create=False):
     _ = mod.solve_stst(tol=1e-8)
 
     x0 = mod['stst'].copy()
-    x0['beta'] *= 1.01  # setting a shock on the discount factor
+    x0['beta'] *= 1.005  # setting a shock on the discount factor
 
     x, flag = mod.find_path(init_state=x0.values(), horizon=50)
     x_lin, _ = mod.find_path_linear(init_state=x0.values(), horizon=50)
@@ -157,7 +157,7 @@ def test_solid(create=False):
     mod = ep.load(mod_dict)
     _ = mod.solve_stst(tol=1e-8)
 
-    shocks = ('e_beta', .01)
+    shocks = ('e_beta', .005)
 
     x, flag = mod.find_path(shocks, use_solid_solver=True,
                             horizon=20, chunk_size=90)

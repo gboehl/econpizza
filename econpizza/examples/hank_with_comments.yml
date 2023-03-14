@@ -105,7 +105,7 @@ equations:
     # clearings
     ~ C = y # market clearing
     ~ B = aggr_a # bond market clearing
-    ~ w**sigma_l = n # labor market clearing
+    ~ n**sigma_l = w # labor market clearing
 
     # exogenous
     ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # exogenous beta
@@ -115,10 +115,10 @@ equations:
 steady_state:
     fixed_values:
         # parameters:
-        sigma_c: 2. # intertemporal elasticity of substitution
-        sigma_l: 1.5 # inverse Frisch elasticity of labour supply
+        sigma_c: 2 # intertemporal elasticity of substitution
+        sigma_l: 2 # inverse Frisch elasticity of labour supply
         theta: 6. # elasticity of substitution
-        psi: 96. # parameter on the costs of price adjustment
+        psi: 60. # parameter on the costs of price adjustment
         phi_pi: 1.5 # Taylor rule coefficient on inflation
         phi_y: 0.1 # Taylor rule coefficient on output
         rho: 0.8 # persistence in (notional) nominal interest rate
@@ -135,7 +135,7 @@ steady_state:
         B: 5.6 # bond supply
         # definitions can be recursive: theta is defined above
         w: (theta-1)/theta # wages
-        n: w**sigma_l # labor supply
+        n: w**(1/sigma_l) # labor supply
         div: 1 - w*n # dividends
         z: y/n # technology
 

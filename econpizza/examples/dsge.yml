@@ -5,7 +5,7 @@
 name: 'nk_capital'
 description: 'A medium scale NK model with capital, capital adjustement costs, capital utilization costs, and habits'
 variables: [ y, c, pi, R, Rn, Rk, beta, w, q, mc, k, i, n, z, eps_i, eps_u, lamda, g, b, qb, t, ds, bprof, dd, MPK, cap_util, cap_util_costs, y_prod, pitilde, piwntilde, piwn, price_markup, wage_markup, Rstar, wn, div ]
-parameters: [ theta, kappa, delta, alpha, h, psi_i, psi_p, psi_w, phi_pi, phi_y, rho, sigma_l, chi, cap_util_param, omega_p, omega_w, theta_w, iota_w, rho_beta, rho_z, rho_g, rho_p, rho_w, rho_i, rho_r ]
+parameters: [ theta, kappa, delta, alpha, h, psi_i, psi_p, psi_w, phi_pi, phi_y, rho, sigma_l, chi, psi_u, omega_p, omega_w, theta_w, iota_w, elb, rho_beta, rho_z, rho_g, rho_p, rho_w, rho_i, rho_r ]
 shocks: [ e_beta, e_z, e_g, e_p, e_w, e_i, e_r, e_u ]
 
 equations:
@@ -15,7 +15,7 @@ equations:
     ~ piwn = wn/wnLag*pi # wage inflation
     ~ w = max(iota_w*wLag/pi, wn) # dowards nominal wage rigidity
     ~ psi_w*(piwn/piwntilde - 1)*piwn/piwntilde = psi_w*beta*(piwnPrime/piwntildePrime - 1)*piwnPrime/piwntildePrime + n*wage_markup/(wage_markup-1)*(chi*n**sigma_l - lamda*w/wage_markup) # wage Phillips curve
-    ~ piwntilde = piwnSS**omega_w*piwn**(1-omega_w) # wage indexation
+    ~ piwntilde = piwnSS**omega_w*piwnLag**(1-omega_w) # wage indexation
     ~ dd + c + t + psi_w/2*(piwn/piwntilde-1)**2 = w*n + RLag/pi*ddLag + div + bprof
 
     ### "banks" block
@@ -37,15 +37,15 @@ equations:
     ~ qLag*Rk/pi = MPK*cap_util + (1-delta)*q - cap_util_costs # return to capital
     ~ w = (1-alpha)*mc*y_prod/n # real marginal costs
     ~ MPK = alpha*mc*y_prod/(cap_util*kLag) # marginal product of capital
-    ~ cap_util_costs = MPKSS*(cap_util - 1) + cap_util_param/(1-cap_util_param)/2*(cap_util - 1)**2 # capital utilisation costs
-    ~ (1-cap_util_param)*(MPK - MPKSS) = cap_util_param*(cap_util - 1) # cap_util utilisation
-    ~ div = (1 - mc - psi_p/2*(pi/piSS - 1)**2/2)*y_prod - (1 - q*(1 - psi_i/2*(i/iLag - 1)**2))*i
+    ~ cap_util_costs = MPKSS*(cap_util - 1) + psi_u/(1-psi_u)/2*(cap_util - 1)**2 # capital utilisation costs
+    ~ (1-psi_u)*(MPK - MPKSS) = psi_u*(cap_util - 1) # cap_util utilisation
+    ~ div = (1 - mc - psi_p*(pi/piSS - 1)**2/2)*y_prod - (1 - q*(1 - psi_i/2*(i/iLag - 1)**2))*i
 
     ## policy block
     ~ g + (1+kappa*qb)/pi*bLag = qb*b + t # government budget constraint
     ~ b = ySS/qbSS # level of outstanding government bonds, i.e. level of government debt
     ~ Rn = (Rstar*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho)*RnLag**rho # Taylor rule for the notional nominal interest rate
-    ~ R = max(1, Rn) # (actual) nominal interest rate, subject to ZLB
+    ~ R = max(elb, Rn) # (actual) nominal interest rate, subject to ELB
 
     ## exogenous block
     ~ log(beta) = (1-rho_beta)*log(betaSS) + rho_beta*log(betaLag) + e_beta # discount factor shock
@@ -62,21 +62,22 @@ steady_state:
         # parameters:
         sigma_l: 2. # inverse Frisch elasticity of labour supply
         theta: 6. # elasticity of substitution
-        theta_w: 6. # elasticity of substitution for wages
+        theta_w: 11. # elasticity of substitution for wages
         kappa: 0.975 # decay parameter for coupon payments of perpetual bonds
         delta: 0.025 # depreciation rate
         h: 0.74 # habit formation parameter
         psi_i: 5.6 # parameter on the costs of investment adjustment
         psi_p: 60. # parameter on the costs of price adjustment
-        psi_w: 96. # parameter on the costs of price adjustment
-        alpha: 0.33 # capital income share
+        psi_w: 96. # parameter on the costs of wage adjustment
+        psi_u: 0.8 # parameter on the capital utilisation costs
+        alpha: 0.2 # capital income share
         phi_pi: 1.5 # Taylor rule coefficient on inflation
         phi_y: 0.1 # Taylor rule coefficient on output
         rho: 0.8 # persistence in (notional) nominal interest rate
-        cap_util_param: 0.8 # parameter on the capital utilisation costs
         omega_p: 0.44 # coefficient on steady state inflation in price indexation
         omega_w: 0.66 # coefficient on steady state wage inflation in wage indexation
         iota_w: 1. # degree of dowards nominal wage rigidity
+        elb: 1. # position of ELB
         rho_beta: 0.9 # persistence of discount factor shock
         rho_z: 0.9 # persistence of technology shocks
         rho_p: 0.9 # persistence of price MU shock

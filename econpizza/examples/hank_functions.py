@@ -8,16 +8,16 @@ from grgrjax import jax_print
 from econpizza.utilities.interp import interpolate
 
 
-def hh_init(a_grid, skills_grid):
+def egm_init(a_grid, skills_grid):
     return jnp.ones((skills_grid.shape[0], a_grid.shape[0]))*1e-2
 
 
-def hh(Va_p, a_grid, skills_grid, w, n, T, R, beta, sigma_c, sigma_l):
+def egm_step(Wa_p, a_grid, skills_grid, w, n, T, R, beta, sigma_c, sigma_l):
     """A single backward step via EGM
     """
 
     # MUC as implied by next periods value function
-    ux_nextgrid = beta * Va_p
+    ux_nextgrid = beta * Wa_p
 
     # consumption can be readily obtained from MUC and MU of labor
     labor_inc = skills_grid[:, None]*n*w
@@ -38,9 +38,9 @@ def hh(Va_p, a_grid, skills_grid, w, n, T, R, beta, sigma_c, sigma_l):
     a = jnp.where(a < a_grid[0], a_grid[0], a)
 
     # calculate new MUC
-    Va = R * (c - labor_inc/(1 + sigma_l)) ** (-sigma_c)
+    Wa = R * (c - labor_inc/(1 + sigma_l)) ** (-sigma_c)
 
-    return Va, a, c
+    return Wa, a, c
 
 
 def transfers(skills_stationary, Div, Tax, skills_grid):

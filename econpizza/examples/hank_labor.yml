@@ -30,12 +30,12 @@ distributions:
       n: 50
 
 decisions:
-  inputs: [VaPrime]
+  inputs: [WaPrime]
   calls: |
     trans = transfers(skills_stationary, div, tax, skills_grid)
     we = wages(w, skills_grid)
-    VaPrimeExp = skills_transition @ VaPrime
-    Va, a, c, n = hh(VaPrimeExp, a_grid, we, trans, Rr, beta, sigma_c, sigma_l, chi)
+    WaPrimeExp = skills_transition @ WaPrime
+    Wa, a, c, n = egm_step(WaPrimeExp, a_grid, we, trans, Rr, beta, sigma_c, sigma_l, chi)
     n = labor_supply(n, skills_grid)
   outputs: [a,c,n]
 
@@ -106,4 +106,4 @@ steady_state:
         Rr: Rstar # real rate
         we: wages(w, skills_grid)
         T: transfers(skills_stationary, div, tax, skills_grid)
-        VaPrime: hh_init(a_grid, we, Rr, sigma_c, T)
+        WaPrime: egm_init(a_grid, we, Rr, sigma_c, T)

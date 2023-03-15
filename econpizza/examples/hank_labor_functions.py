@@ -9,22 +9,22 @@ from grgrjax import jax_print, amax
 from econpizza.utilities.interp import interpolate
 
 
-def hh_init(a_grid, we, R, sigma_c, T):
+def egm_init(a_grid, we, R, sigma_c, T):
     """The initialization for the value function
     """
 
     coh = R * a_grid[None, :] + \
         we[:, None] + T[:, None]
-    Va = R * (0.1 * coh) ** (-sigma_c)
-    return Va
+    Wa = R * (0.1 * coh) ** (-sigma_c)
+    return Wa
 
 
-def hh(Va_p, a_grid, we, trans, R, beta, sigma_c, sigma_l, vphi):
+def egm_step(Wa_p, a_grid, we, trans, R, beta, sigma_c, sigma_l, vphi):
     """A single backward step via EGM
     """
 
     # MUC as implied by next periods value function
-    uc_nextgrid = beta * Va_p
+    uc_nextgrid = beta * Wa_p
     # back out consumption and labor supply from MUC
     c_nextgrid, n_nextgrid = cn(
         uc_nextgrid, we[:, None], sigma_c, sigma_l, vphi)
@@ -41,13 +41,13 @@ def hh(Va_p, a_grid, we, trans, R, beta, sigma_c, sigma_l, vphi):
     a = rhs + we[:, None] * n + trans[:, None] - c
     # fix consumption and labor for constrained households
     c, n = jnp.where(a < a_grid[0], solve_cn(
-        we[:, None], rhs + trans[:, None] - a_grid[0], sigma_c, sigma_l, vphi, Va_p), jnp.array((c, n)))
+        we[:, None], rhs + trans[:, None] - a_grid[0], sigma_c, sigma_l, vphi, Wa_p), jnp.array((c, n)))
     a = jnp.where(a > a_grid[0], a, a_grid[0])
 
     # calculate new MUC
-    Va = R * c ** (-sigma_c)
+    Wa = R * c ** (-sigma_c)
 
-    return Va, a, c, n
+    return Wa, a, c, n
 
 
 def cn(uc, w, sigma_c, sigma_l, vphi):

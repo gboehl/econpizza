@@ -48,17 +48,17 @@ distributions:
 
 # stage one: iterating the decisions function backwards
 decisions:
-  # define the multidimensional input "VaPrime", in addition to all aggregated variables (defined in 'variables')
-  inputs: [VaPrime]
+  # define the multidimensional input "WaPrime", in addition to all aggregated variables (defined in 'variables')
+  inputs: [WaPrime]
   calls: |
     # calls executed during the decisions stage
     # these are executed subsequently (top-down)
     # iteration starts with the last in time T and then iterating backwards
-    # each call takes the previous input (Va as VaPrime) as given
+    # each call takes the previous input (Wa as WaPrime) as given
     # these functions are defined in functions_file
     trans = transfers(skills_stationary, div, tax, skills_grid)
-    VaPrimeExp = skills_transition @ VaPrime
-    Va, a, c = hh(VaPrimeExp, a_grid, skills_grid, w, n, trans, Rr, beta, sigma_c, sigma_l)
+    WaPrimeExp = skills_transition @ WaPrime
+    Wa, a, c = egm_step(WaPrimeExp, a_grid, skills_grid, w, n, trans, Rr, beta, sigma_c, sigma_l)
   # the 'outputs' values are stored for the following stages
   # NOTE: each output must have the same shape as the distribution (here: 4,40)
   outputs: [a,c]
@@ -145,4 +145,4 @@ steady_state:
         Rn: Rstar # steady state notional rage
         R: Rstar # steady state nominal rage
         tax: 0.028
-        VaPrime: hh_init(a_grid, skills_stationary)
+        WaPrime: egm_init(a_grid, skills_stationary)

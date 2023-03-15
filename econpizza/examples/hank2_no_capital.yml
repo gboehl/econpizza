@@ -10,10 +10,11 @@ definitions: |
     from jax.numpy import log, maximum
     from econpizza.utilities.grids import log_grid
     from econpizza.utilities.dists import expect_transition
-    from econpizza.tools import jax_print
+    from econpizza.tools import percentile, jax_print
     kappa_grid = log_grid(amax=1., n=4)[::-1]
 
-variables: [ C, mc, y, pi, div, equity, n, z, w, wn, Rr, R, Rn, Rstar, tax, g, Rb, Ra, wealth, A, B, beta, transfers ]
+variables: [ C, mc, y, pi, div, equity, n, z, w, wn, Rr, R, Rn, Rstar, tax, g, Rb, Ra, wealth, A, B, beta, transfers, AJC, MUC, Top10A, Top10B, Top10C ]
+#variables: [ C, mc, y, pi, div, equity, n, z, w, wn, Rr, R, Rn, Rstar, tax, g, Rb, Ra, wealth, A, B, beta, transfers, AJC, MUC ]
 parameters: [ sigma_c, sigma_l, psi_p, psi_a0, psi_a1, psi_a2, Bgov, phi_pi, phi_y, rho, zeta, rho_beta, rho_r, rho_g, rho_z, rho_t, theta, chi, iota, elb ]
 shocks: [ e_beta, e_z, e_g, e_r, e_t ]
 
@@ -29,23 +30,25 @@ distributions:
       type: endogenous
       grid_variables: b_grid
       min: 0.0
-      max: 20
+      max: 80
       n: 10
     a:
       type: endogenous
       grid_variables: a_grid
       min: 0.0
-      max: 90
+      max: 180
       n: 20
 
 decisions:
-  inputs: [VaPrime,VbPrime]
+  inputs: [WaPrime,WbPrime]
   calls: |
       z_grid = income(skills_grid, tax, w, n, transfers)
       Psi1 = marginal_cost_grid(a_grid, Ra-1, psi_a0, psi_a1, psi_a2)
-      VaPrimeExp = expect_transition(skills_transition, VaPrime)
-      VbPrimeExp = expect_transition(skills_transition, VbPrime)
-      Va, Vb, a, b, c, uce = hh(VaPrimeExp, VbPrimeExp, a_grid, b_grid, z_grid, skills_grid, kappa_grid, beta, sigma_c, Rb-1, Ra-1, psi_a0, psi_a1, psi_a2, Psi1)
+      WaPrimeExp = expect_transition(skills_transition, WaPrime)
+      WbPrimeExp = expect_transition(skills_transition, WbPrime)
+      Wa, Wb, a, b, c, uce = egm_step(WaPrimeExp, WbPrimeExp, a_grid, b_grid, z_grid, skills_grid, kappa_grid, beta, sigma_c, Rb-1, Ra-1, psi_a0, psi_a1, psi_a2, Psi1)
+      #adj = adjustment_costs(a, a_grid, Ra-1, psi_a0, psi_a1, psi_a2)
+  #outputs: [a,b,c,uce,adj] # interesting but costly
   outputs: [a,b,c,uce]
 
 aux_equations: |
@@ -53,10 +56,15 @@ aux_equations: |
       aggr_a = jnp.sum(dist*a, axis=(0,1,2))
       aggr_b = jnp.sum(dist*b, axis=(0,1,2))
       aggr_c = jnp.sum(dist*c, axis=(0,1,2))
-      UCE = jnp.sum(dist*uce, axis=(0,1,2))
+      aggr_muc = jnp.sum(dist*uce, axis=(0,1,2))
+
+      # calculate consumption and asset share of top-10%
+      top10a = 1 - percentile(a, dist, .9)
+      top10b = 1 - percentile(b, dist, .9)
+      top10c = 1 - percentile(c, dist, .9)
 
       # misc definitions
-      price_adj_cost = psi_p*(pi/piSS - 1)**2/2*y
+      price_adj_cost = psi_p/2*(pi/piSS - 1)**2*y
       assetshareLag = equityLag / ALag
 
 equations:
@@ -64,6 +72,10 @@ equations:
     ~ A = aggr_a
     ~ B = aggr_b
     ~ C = aggr_c
+    ~ aggr_muc = MUC
+    ~ Top10A = top10a
+    ~ Top10B = top10b
+    ~ Top10C = top10c
     ~ wealth = A + B # total wealth equals all assets
     ~ equity + Bgov = wealth # total wealth equals outstanding firm shares and government bonds
 
@@ -78,12 +90,12 @@ equations:
     ~ Rn = (Rstar*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*RnLag**rho # MP rule
     ~ R = max(elb,Rn) # ELB
     ~ Rb = Rr - zeta # bond return
-    ~ Ra = assetshareLag * (div + equity) / equityLag + (1 - assetshareLag) * Rr # illiquid bonds' return
+    ~ Ra = assetshareLag*(div + equity)/equityLag + (1 - assetshareLag)*Rr # illiquid bonds' return
     ~ Rr = RLag/pi # ex-post real rate
     ~ tax = ((Rr-1) * Bgov + g + transfers) / w / n # government budget
 
     # unions
-    ~ wn = chi*n**sigma_l/(1 - tax)/UCE # notional wage
+    ~ wn = chi*n**sigma_l/(1 - tax)/aggr_muc # notional wage
     ~ w = max(iota*wLag/pi, wn) # dnwr
 
     # exogenous process
@@ -91,60 +103,69 @@ equations:
     ~ g = gSS*(gLag/gSS)**rho_g*exp(e_g) # exogenous gov. spending
     ~ z = zSS*(zLag/zSS)**rho_z*exp(e_z) # exogenous technology
     ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # exogenous discount factor
-    ~ transfers = transfersSS**(1-rho_t)*transfersLag**rho_t*exp(e_t) # exogenous discount factor
+    ~ transfers = transfersSS**(1-rho_t)*transfersLag**rho_t*exp(e_t) # exogenous transfers
+
+    # check
+    ~ C + g + AJC + price_adj_cost + zeta*BLag = y
 
 steady_state:
+    #skip: True
     fixed_values:
-
       # parameters
         sigma_c: 2. # intertemporal elasticity of substitution
-        sigma_l: 2. # inverse Frisch elasticity of labour supply
+        # Frisch should be > 2 to avoid complex EVs with transfers
+        sigma_l: 2.9 # inverse Frisch elasticity of labour supply
+        chi: .5 # utility weight of labor disutility
+        theta: 6. # elasticity of substitution
         psi_p: 60. # parameter on the costs of price adjustment
         psi_a0: 0.25 # parameter on portfolio adjustment no.1
+        psi_a1: 15 # parameter on portfolio adjustment no.2
         psi_a2: 2 # parameter on portfolio adjustment no.3
+        zeta: 0.005 # liquidity premium
         phi_pi: 1.5 # Taylor rule coefficient on inflation
-        phi_y: 0.25 # Taylor rule coefficient on output
+        phi_y: 0.1 # Taylor rule coefficient on output
         rho: 0.8 # persistence in (notional) nominal interest rate
         rho_beta: 0.8 # persistence of discount factor shock
         rho_t: 0.8 # persistence of transfer shock
         rho_z: 0.8 # persistence of technology shocks
         rho_g: 0.8 # persistence of government spending shock
         rho_r: 0.8 # persistence of MP shock
-        theta: 6. # elasticity of substitution
-        zeta: 0.005 # liquidity premium
-        iota: .9
-        elb: 1.
+        Bgov: 2.8 # government bond supply
+        iota: 0. # degree of DNWR
+        elb: 0. # effective lower bound
 
         # steady state
+        beta: 0.98 # discount factor
+        z: 1 # technology
         pi: 1.02^.25 # steady state inflation
-        Rr: 1.011 # real interest rate
+        g: 0.2 # government spending
+        mc: (theta-1)/theta # marginal costs
+        w: mc # wages
+        wn: mc # notional wages
+        transfers: 1e-5 # government transfers
+
+    init_guesses:
+        # guesses:
+        MUC: 1.4131353 # aggregate marginal utility of consumption
+        AJC: 0.02485704 # aggregate portfolio adjustment costs
+        Rr: 1.01059989 # real interest rate
+        B: 6.36509168 # bond supply
+        wealth: 21.10905459 # total wealth
+        # infered from guesses:
+        equity: wealth - Bgov
+        A: wealth - B
         Rstar: Rr*pi # target interest rate
         Ra: Rr # asset return
         Rb: Rr - zeta # bond return
         Rn: Rstar # notional interest rate
         R: Rstar # nominal interest
-        g: 0.2 # government spending
-        transfers: .1 # government transfers
-        z: 1 # technology
-        wealth: 14 # total wealth
-        B: 1.04 # bond supply
-        A: wealth - B
-        Bgov: 2.8 # government bond supply
-        equity: wealth - Bgov
         div: equity*(Rr - 1)
-        mc: (theta-1)/theta # marginal costs
-        w: mc # wages
-        wn: mc # notional wages
         y: div/(1 - w)
         n: y
         tax: ((Rr-1)*Bgov + g + transfers)/w/n
-
-    init_guesses:
-        chi: 4. # utility weight of labor disutility
-        beta: 0.98 # discount factor
-        psi_a1: 4. # parameter on portfolio adjustment no.2
+        C: y - g - AJC - zeta*B
 
         # get rough idea on initial value functions
         z_grid: income(skills_grid, tax, w, n, transfers)
-        VaPrime: hh_init_Va(b_grid, a_grid, z_grid, sigma_c)
-        VbPrime: hh_init_Vb(b_grid, a_grid, z_grid, sigma_c)
+        WaPrime: egm_init_Wa(b_grid, a_grid, z_grid, sigma_c)
+        WbPrime: egm_init_Wb(b_grid, a_grid, z_grid, sigma_c)

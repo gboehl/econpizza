@@ -56,9 +56,9 @@ decisions:
     # iteration starts with the last in time T and then iterating backwards
     # each call takes the previous input (Wa as WaPrime) as given
     # these functions are defined in functions_file
-    trans = transfers(skills_stationary, div, tax, skills_grid)
+    tfs = transfers(skills_stationary, div, tax, skills_grid)
     WaPrimeExp = skills_transition @ WaPrime
-    Wa, a, c = egm_step(WaPrimeExp, a_grid, skills_grid, w, n, trans, Rr, beta, sigma_c, sigma_l)
+    Wa, a, c = egm_step(WaPrimeExp, a_grid, skills_grid, w, n, tfs, Rr, beta, sigma_c, sigma_l)
   # the 'outputs' values are stored for the following stages
   # NOTE: each output must have the same shape as the distribution (here: 4,40)
   outputs: [a,c]

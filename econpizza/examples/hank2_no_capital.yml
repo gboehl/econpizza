@@ -113,7 +113,6 @@ steady_state:
     fixed_values:
       # parameters
         sigma_c: 2. # intertemporal elasticity of substitution
-        # Frisch should be > 2 to avoid complex EVs with transfers
         sigma_l: 2.9 # inverse Frisch elasticity of labour supply
         chi: .5 # utility weight of labor disutility
         theta: 6. # elasticity of substitution
@@ -125,11 +124,11 @@ steady_state:
         phi_pi: 1.5 # Taylor rule coefficient on inflation
         phi_y: 0.1 # Taylor rule coefficient on output
         rho: 0.8 # persistence in (notional) nominal interest rate
-        rho_beta: 0.8 # persistence of discount factor shock
+        rho_beta: 0.9 # persistence of discount factor shock
+        rho_z: 0.9 # persistence of technology shocks
+        rho_g: 0.9 # persistence of government spending shock
+        rho_r: 0.9 # persistence of MP shock
         rho_t: 0.8 # persistence of transfer shock
-        rho_z: 0.8 # persistence of technology shocks
-        rho_g: 0.8 # persistence of government spending shock
-        rho_r: 0.8 # persistence of MP shock
         Bgov: 2.8 # government bond supply
         iota: 0. # degree of DNWR
         elb: 0. # effective lower bound

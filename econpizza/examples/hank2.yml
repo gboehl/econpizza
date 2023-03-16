@@ -123,7 +123,7 @@ steady_state:
         # parameters:
         sigma_c: 2. # intertemporal elasticity of substitution
         sigma_l: 2.9 # inverse Frisch elasticity of labour supply
-        chi: .5
+        chi: .5 # utility weight of labor disutility
         theta: 6. # elasticity of substitution final good
         theta_w: 11. # elasticity of substitution wages
         delta: 0.025 # depreciation rate
@@ -147,15 +147,15 @@ steady_state:
         rho_g: 0.9 # persistence of government spending shock
         rho_i: 0.9 # persistence of MEI shock
         rho_r: 0.9 # persistence of MP shock
-        rho_t: 0.9 # persistence of MP shock
+        rho_t: 0.8 # persistence of MP shock
         Bgov: 2.8 # government bonds
         alpha: 0.2
         iota: 0. # degree of dowards nominal wage rigidity
         elb: 0. # position of ELB
 
         # steady state
-        z: 1. # technology
         beta: 0.98 # discount factor
+        z: 1. # technology
         q: 1. # value of capital in consumption units
         eps_i: 1. # investment technology shock
         cap_util: 1. # capital utilization

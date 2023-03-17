@@ -9,8 +9,9 @@ Installing the `repository version <https://pypi.org/project/econpizza/>`_ from 
 
 in your terminal or Anaconda Prompt.
 
-Installation on Windows
------------------------
+On Windows
+----------
+
 Econpizza needs **JAX** to be installed. This is not a problem for MacOS and Linux, but the time for JAX to fully support Windows has not yet come. Fortunately, there is help out there (see `this link <https://github.com/cloudhan/jax-windows-builder>`_ for the somewhat cryptic original reference). To install JAX, run
 
 .. code-block:: bash

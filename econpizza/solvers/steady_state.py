@@ -6,7 +6,7 @@ import jax.numpy as jnp
 from copy import deepcopy
 from grgrjax import newton_jax, val_and_jacfwd, amax
 from ..parser import compile_stst_inputs, d2jnp
-from ..parser.build_functions import get_func_stst_raw
+from ..parser.build_functions import get_func_stst
 
 
 def solver(jval, fval):
@@ -120,8 +120,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
         'decisions_output')
 
     # get the actual steady state function
-    func_stst = get_func_stst_raw(func_backw, func_forw_stst, func_eqns, shocks, init_wf, decisions_output_init,
-                                  fixed_values=d2jnp(fixed_vals), pre_stst_mapping=pre_stst_mapping, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
+    func_stst = get_func_stst(func_backw, func_forw_stst, func_eqns, shocks, init_wf, decisions_output_init, fixed_values=d2jnp(
+        fixed_vals), pre_stst_mapping=pre_stst_mapping, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
     # store jitted stst function that returns jacobian and func. value
     model["context"]['func_stst'] = func_stst
 
@@ -130,7 +130,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
         res = newton_jax(func_stst, d2jnp(init_vals), maxit, tol,
                          solver=solver, verbose=verbose, **newton_kwargs)
     else:
-        f, jac, aux = func_stst_raw(d2jnp(init_vals))
+        f, jac, aux = func_stst(d2jnp(init_vals))
         res = {'x': d2jnp(init_vals),
                'fun': f,
                'jac': jac,

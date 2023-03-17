@@ -33,6 +33,7 @@ def find_path_stacking(
     **newton_args
 ):
     """Find the expected trajectory given an initial state.
+
     Parameters
     ----------
     model : PizzaModel
@@ -47,12 +48,15 @@ def find_path_stacking(
         alternative parameters. Warning: do only change those parameters that are invariant to the steady state.
     horizon : int, optional
         number of periods until the system is assumed to be back in the steady state. Defaults to 200
+    skip_jacobian : bool, optional
+        whether to skip the calculation of the steady state sequence space Jacobian. If True, the last cached Jacobian will be used. Defaults to False
     verbose : bool, optional
         degree of verbosity. 0/`False` is silent
     raise_errors : bool, optional
         whether to raise errors as exceptions, or just inform about them. Defaults to `True`
     newton_args : optional
         any additional arguments to be passed on to the solver
+
     Returns
     -------
     x : array

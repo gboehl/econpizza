@@ -84,7 +84,7 @@ vaj_stst_rep_agent = jax.jit(val_and_jacfwd(
     func_stst_rep_agent, argnums=0, has_aux=True))
 
 
-def get_func_stst_raw(func_backw, func_forw_stst, func_eqns, shocks, init_wf, decisions_output_init, fixed_values, pre_stst_mapping, tol_backw, maxit_backw, tol_forw, maxit_forw):
+def get_func_stst(func_backw, func_forw_stst, func_eqns, shocks, init_wf, decisions_output_init, fixed_values, pre_stst_mapping, tol_backw, maxit_backw, tol_forw, maxit_forw):
     """Get a function that evaluates the steady state
     """
 

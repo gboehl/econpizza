@@ -19,8 +19,8 @@ release = version
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
-    "sphinx.ext.autosectionlabel",
-    "sphinx.ext.intersphinx",
+    # "sphinx.ext.autosectionlabel",
+    # "sphinx.ext.intersphinx",
     "nbsphinx",
     "sphinx.ext.mathjax",
 ]
@@ -50,5 +50,5 @@ html_theme_options = {
 
 autoclass_content = "both"
 autodoc_member_order = "bysource"
+master_doc = 'content'
 latex_use_parts = False
-master_doc = 'index'

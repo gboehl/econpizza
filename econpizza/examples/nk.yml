@@ -22,17 +22,17 @@ equations:
 steady_state:
     fixed_values:
         # parameters
-        theta: 6.  # demand elasticity
-        psi: 96  # price adjustment costs
-        phi_pi: 4  # monetary policy rule coefficient #1
-        phi_y: 1.5  # monetary policy rule coefficient #2
+        theta: 6  # demand elasticity
+        psi: 60  # price adjustment costs
+        phi_pi: 1.5  # monetary policy rule coefficient #1
+        phi_y: 0.1  # monetary policy rule coefficient #2
         rho: .8  # interest rate smoothing
-        h: .44  # habit formation
-        sigma_l: 1.5  # inverse Frisch elasticity
+        h: .74  # habit formation
+        sigma_l: 2  # inverse Frisch elasticity
         rho_beta: .9  # autocorrelation of discount factor shock
 
         # steady state values
-        beta: 0.9984
+        beta: 0.995
         y: .33
         pi: 1.02^.25
 

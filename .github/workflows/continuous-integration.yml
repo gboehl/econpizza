@@ -35,10 +35,11 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt
         python -m pip install pytest
         python -m pip install testbook
         python -m pip install ipykernel
-        python -m pip install -r requirements.txt
+        python -m pip install grgrlib
         # to be removed:
         python -m pip uninstall -y grgrjax
         python -m pip install --upgrade git+https://github.com/gboehl/grgrjax

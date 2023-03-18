@@ -3,9 +3,10 @@
 
 import jax
 import jax.numpy as jnp
+from jax._src.typing import Array
 
 
-def expect_transition(Pi, X):
+def expect_transition(Pi: Array, X: Array) -> Array:
     """If Pi is a matrix, multiply Pi times the ith dimension of X and return"""
 
     shape = X.shape
@@ -17,7 +18,7 @@ def expect_transition(Pi, X):
     return X
 
 
-def forward_policy_1d(D, x_i, x_pi):
+def forward_policy_1d(D: Array, x_i: Array, x_pi: Array) -> Array:
 
     nZ, _ = D.shape
     Dnew = jnp.zeros_like(D)
@@ -44,7 +45,7 @@ def _body_func_1d(carry):
     return (dist_new, cnt + 1, dist), cond_vars, exo_endo
 
 
-def stationary_distribution_forward_policy_1d(endog_inds, endog_probs, exog_probs, tol=1e-10, maxit=1000):
+def stationary_distribution_forward_policy_1d(endog_inds: Array, endog_probs: Array, exog_probs: Array, tol=1e-10, maxit=1000) -> (Array, int):
 
     dist = jnp.ones_like(endog_inds, dtype=jnp.float64)
     dist /= dist.sum()
@@ -54,7 +55,7 @@ def stationary_distribution_forward_policy_1d(endog_inds, endog_probs, exog_prob
     return dist, cnt
 
 
-def forward_policy_2d(D, x_i, y_i, x_pi, y_pi):
+def forward_policy_2d(D: Array, x_i: Array, y_i: Array, x_pi: Array, y_pi: Array) -> Array:
 
     nZ, _, _ = D.shape
     Dnew = jnp.zeros_like(D)
@@ -78,7 +79,7 @@ def _body_func_2d(carry):
     return (new_dist, cnt + 1, dist), cond_vars, exo_endo
 
 
-def stationary_distribution_forward_policy_2d(endog_inds0, endog_inds1, endog_probs0, endog_probs1, exog_probs, tol=1e-10, maxit=1000):
+def stationary_distribution_forward_policy_2d(endog_inds0: Array, endog_inds1: Array, endog_probs0: Array, endog_probs1: Array, exog_probs: Array, tol=1e-10, maxit=1000) -> (Array, int):
     # TODO: can be merged with stationary_distribution_forward_policy_1d
 
     dist = jnp.ones_like(endog_inds0, dtype=jnp.float64)

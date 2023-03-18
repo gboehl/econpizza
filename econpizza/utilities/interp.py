@@ -4,10 +4,11 @@
 import jax
 import jax.numpy as jnp
 from functools import partial
+from jax._src.typing import Array
 
 
 @partial(jnp.vectorize, signature='(n),(nq),(n)->(nq)')
-def interpolate(x, xq, y):
+def interpolate(x: Array, xq: Array, y: Array) -> Array:
     """Efficient linear interpolation exploiting monotonicity.
 
     Complexity O(n+nq), so most efficient when x and xq have comparable number of points.
@@ -33,13 +34,13 @@ def interpolate(x, xq, y):
     return yq
 
 
-def interpolate_fast(xp, x, fp):
+def interpolate_fast(xp: Array, x: Array, fp: Array) -> Array:
     """The vmap'ed version is much faster. Note: does not extrapolate linearly!"""
     return jax.vmap(
         jnp.interp)(x.broadcast((xp.shape[0],)), xp, fp)
 
 
-def interpolate_coord_robust_vector(x, xq):
+def interpolate_coord_robust_vector(x: Array, xq: Array) -> (Array, Array):
     """Get representation xqi, xqpi of xq interpolated against x:
     xq = xqpi * x[xqi] + (1-xqpi) * x[xqi+1]
 
@@ -66,7 +67,7 @@ interpolate_coord = jnp.vectorize(
     interpolate_coord_robust_vector, signature='(nq),(nq)->(nq),(nq)')
 
 
-def interpolate_coord_robust(x, xq, check_increasing=False):
+def interpolate_coord_robust(x: Array, xq: Array, check_increasing=False) -> (Array, Array):
     """Linear interpolation exploiting monotonicity only in data x, not in query points xq.
     Simple binary search, less efficient but more robust.
     xq = xqpi * x[xqi] + (1-xqpi) * x[xqi+1]
@@ -100,7 +101,7 @@ def interpolate_coord_robust(x, xq, check_increasing=False):
 
 
 @partial(jnp.vectorize, signature='(nq),(nq),(n)->(nq)')
-def apply_coord(x_i, x_pi, y):
+def apply_coord(x_i: Array, x_pi: Array, y: Array) -> Array:
     """Use representation xqi, xqpi to get yq at xq:
     yq = xqpi * y[xqi] + (1-xqpi) * y[xqi+1]
 
@@ -118,7 +119,7 @@ def apply_coord(x_i, x_pi, y):
 
 
 @partial(jnp.vectorize, signature='(ni),(ni,nj)->(nj),(nj)')
-def lhs_equals_rhs_interpolate(lhs, rhs):
+def lhs_equals_rhs_interpolate(lhs: Array, rhs: Array) -> (Array, Array):
     """
     Given lhs (i) and rhs (i,j), for each j, find the i such that
 

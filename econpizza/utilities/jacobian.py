@@ -3,10 +3,11 @@ import time
 import jax.numpy as jnp
 import scipy.sparse as ssp
 from jax._src.api import partial
+from jax._src.typing import Array
 from grgrjax import jax_print
 
 
-def accumulate(i_and_j, carry):
+def accumulate(i_and_j: Array, carry: (Array, Array)) -> (Array, int):
     # accumulate effects over different horizons
     jac, horizon = carry
     i = i_and_j // (horizon-2)
@@ -16,7 +17,7 @@ def accumulate(i_and_j, carry):
 
 
 @jax.jit
-def get_stst_jacobian_jit(derivatives, horizon, nvars):
+def get_stst_jacobian_jit(derivatives, horizon):
     # load derivatives
     (jac_f2xLag, jac_f2x, jac_f2xPrime), jac_f2do, jac_do2x = derivatives
 
@@ -51,7 +52,7 @@ def get_stst_jacobian(model, derivatives, horizon, nvars, verbose):
     """
     st = time.time()
     # do the accumulation in jitted jax and flatten
-    jac = get_stst_jacobian_jit(derivatives, horizon, nvars)
+    jac = get_stst_jacobian_jit(derivatives, horizon)
     jac = jac.reshape(((horizon-1)*nvars, (horizon-1)*nvars))
     # store result
     model['cache']['jac'] = jac

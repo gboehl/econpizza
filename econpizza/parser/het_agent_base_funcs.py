@@ -3,6 +3,8 @@
 
 import jax
 import jax.numpy as jnp
+from jax._src.typing import Array
+from typing import Callable
 
 
 def _backwards_stst_cond(carry):
@@ -32,7 +34,7 @@ def _backwards_step(carry, i):
     return (wf, X, shocks, func_backw, stst, pars), decisions_output
 
 
-def backwards_sweep(x, x0, shocks, pars, stst, wfSS, horizon, func_backw):
+def backwards_sweep(x: Array, x0: Array, shocks: Array, pars: Array, stst: Array, wfSS: Array, horizon: int, func_backw: Callable) -> Array:
 
     X = jnp.hstack((x0, x, stst)).reshape(horizon+1, -1).T
 
@@ -52,7 +54,7 @@ def _forwards_step(carry, i):
     return (dist, decisions_output_storage, func_forw), dist_old
 
 
-def forwards_sweep(decisions_output_storage, dist0, horizon, func_forw):
+def forwards_sweep(decisions_output_storage: Array, dist0: Array, horizon: int, func_forw: callable) -> Array:
 
     _, dists_storage = jax.lax.scan(
         _forwards_step, (dist0, decisions_output_storage, func_forw), jnp.arange(horizon-1))
@@ -61,7 +63,7 @@ def forwards_sweep(decisions_output_storage, dist0, horizon, func_forw):
     return dists_storage
 
 
-def final_step(x, dists_storage, decisions_output_storage, x0, shocks, pars, stst, horizon, nshpe, func_eqns):
+def final_step(x: Array, dists_storage: Array, decisions_output_storage: Array, x0: Array, shocks: Array, pars: Array, stst: Array, horizon: int, nshpe, func_eqns: Callable) -> Array:
 
     X = jnp.hstack((x0, x, stst)).reshape(horizon+1, -1).T
     out = func_eqns(X[:, :-2].reshape(nshpe), X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(
@@ -70,7 +72,7 @@ def final_step(x, dists_storage, decisions_output_storage, x0, shocks, pars, sts
     return out
 
 
-def second_sweep(x, decisions_output_storage, x0, dist0, shocks, pars, forwards_sweep, final_step):
+def second_sweep(x: Array, decisions_output_storage: Array, x0: Array, dist0: Array, shocks: Array, pars: Array, forwards_sweep: Callable, final_step: Callable) -> Array:
 
     # forwards step
     dists_storage = forwards_sweep(decisions_output_storage, dist0)
@@ -81,7 +83,7 @@ def second_sweep(x, decisions_output_storage, x0, dist0, shocks, pars, forwards_
     return out
 
 
-def stacked_func_het_agents(x, x0, dist0, shocks, pars, backwards_sweep, second_sweep):
+def stacked_func_het_agents(x: Array, x0: Array, dist0: Array, shocks: Array, pars: Array, backwards_sweep: Callable, second_sweep: Callable):
 
     # backwards step
     decisions_output_storage = backwards_sweep(x, x0, shocks, pars)

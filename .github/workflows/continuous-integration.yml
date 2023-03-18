@@ -40,7 +40,6 @@ jobs:
         python -m pip install pytest
         python -m pip install testbook
         python -m pip install ipykernel
-        python -m pip install latex
         python -m pip install grgrlib
         # to be removed:
         python -m pip uninstall -y grgrjax

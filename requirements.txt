@@ -1,4 +1,4 @@
-jax>=0.3.20
+jax==0.3.20
 jaxlib
 grgrjax
 scipy

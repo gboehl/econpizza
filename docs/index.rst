@@ -2,7 +2,7 @@ Overview: **Econpizza**
 =======================
 
 **Econpizza** is a framework to solve and simulate *fully nonlinear* perfect foresight models, with or without heterogeneous agents.
-The package implements the ADHS-method proposed in `HANK on ADHS: Robust Nonlinear Solutions using Automatic Differentiation <https://gregorboehl.com/live/hank_speed_boehl.pdf>`_ *(Gregor Boehl, 2023)*.
+The package implements the solution method proposed in `HANK on Speed: Robust Nonlinear Solutions using Automatic Differentiation <https://gregorboehl.com/live/hank_speed_boehl.pdf>`_ *(Gregor Boehl, 2023)*.
 It allows to specify and solve economic models in a simple, high-level fashion.
 
 The package builds heavily on `automatic differentiation <https://en.wikipedia.org/wiki/Automatic_differentiation>`_ via `JAX <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_.
@@ -21,7 +21,7 @@ Please cite with
 .. code-block::
 
     @Misc{boehl2022pizza,
-    title         = {HANK on ADHS: Robust Nonlinear Solutions using Automatic Differentiation},
+    title         = {HANK on Speed: Robust Nonlinear Solutions using Automatic Differentiation},
     author        = {Boehl, Gregor},
     howpublished  = {\url{https://gregorboehl.com/live/hank_speed_boehl.pdf}},
     year = {2023}

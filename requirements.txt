@@ -1,5 +1,5 @@
 jax==0.3.20
-jaxlib
+jaxlib==0.3.20
 grgrjax
 scipy
 pyyaml

@@ -94,23 +94,23 @@ def find_path_stacking(
 
     if not model.get('distributions'):
 
-        if not check_if_compiled(model, horizon, pars, stst):
+        if not check_if_compiled(model, horizon, pars, stst) or not model['context'].get('jav_func'):
             # get transition function
             func_eqns = model['context']["func_eqns"]
             jav_func_eqns = val_and_jacrev(func_eqns, (0, 1, 2))
             jav_func_eqns_partial = jax.tree_util.Partial(
                 jav_func_eqns, XSS=stst, pars=pars, distributions=[], decisions_outputs=[])
-            model['jav_func'] = jav_func_eqns_partial
+            model['context']['jav_func'] = jav_func_eqns_partial
             # mark as compiled
             write_cache(model, horizon, pars, stst)
 
         # actual newton iterations
-        jav_func_eqns_partial = model['jav_func']
+        jav_func_eqns_partial = model['context']['jav_func']
         x_out, flag, mess = newton_for_banded_jac(
             jav_func_eqns_partial, nvars, horizon, x_init, shock_series, verbose, **newton_args)
 
     else:
-        if not check_if_compiled(model, horizon, pars, stst):
+        if not check_if_compiled(model, horizon, pars, stst) or not model['context'].get('jvp_func'):
             # get derivatives via AD and compile functions
             zero_shocks = jnp.zeros_like(shock_series).T
             build_aggr_het_agent_funcs(model, jnp.zeros_like(

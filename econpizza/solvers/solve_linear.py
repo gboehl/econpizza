@@ -60,8 +60,8 @@ def find_path_linear(model, shock=None, init_state=None, pars=None, horizon=200,
 
     if not check_if_compiled(model, horizon, pars, stst):
         # get derivatives via AD and compile functions
-        build_aggr_het_agent_funcs(
-            model, nvars, pars, stst, zero_shocks, horizon)
+        build_aggr_het_agent_funcs(model, jnp.zeros_like(
+            pars), nvars, stst, zero_shocks, horizon)
         derivatives = get_stst_derivatives(
             model, nvars, pars, stst, x_stst, zero_shocks, horizon, verbose)
 

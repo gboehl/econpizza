@@ -17,4 +17,3 @@
    tutorial/rank.ipynb
    tutorial/hank1.ipynb
    tutorial/hank2.ipynb
-   tutorial/boehl_hommes

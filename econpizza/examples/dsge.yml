@@ -60,15 +60,15 @@ equations:
 steady_state:
     fixed_values:
         # parameters:
-        sigma_l: 2. # inverse Frisch elasticity of labour supply
-        theta: 6. # elasticity of substitution
-        theta_w: 11. # elasticity of substitution for wages
+        sigma_l: 2 # inverse Frisch elasticity of labour supply
+        theta: 6 # elasticity of substitution
+        theta_w: 11 # elasticity of substitution for wages
         kappa: 0.975 # decay parameter for coupon payments of perpetual bonds
         delta: 0.025 # depreciation rate
         h: 0.74 # habit formation parameter
         psi_i: 5.6 # parameter on the costs of investment adjustment
-        psi_p: 60. # parameter on the costs of price adjustment
-        psi_w: 96. # parameter on the costs of wage adjustment
+        psi_p: 60 # parameter on the costs of price adjustment
+        psi_w: 96 # parameter on the costs of wage adjustment
         psi_u: 0.8 # parameter on the capital utilisation costs
         alpha: 0.2 # capital income share
         phi_pi: 1.5 # Taylor rule coefficient on inflation
@@ -76,8 +76,8 @@ steady_state:
         rho: 0.8 # persistence in (notional) nominal interest rate
         omega_p: 0.44 # coefficient on steady state inflation in price indexation
         omega_w: 0.66 # coefficient on steady state wage inflation in wage indexation
-        iota_w: 1. # degree of dowards nominal wage rigidity
-        elb: 1. # position of ELB
+        iota_w: 1 # degree of dowards nominal wage rigidity
+        elb: 1 # position of ELB
         rho_beta: 0.9 # persistence of discount factor shock
         rho_z: 0.9 # persistence of technology shocks
         rho_p: 0.9 # persistence of price MU shock

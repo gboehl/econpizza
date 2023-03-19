@@ -1,6 +1,5 @@
 # Author: Gregor Boehl [mail@gregorboehl.com]
 ---
-
 name: 'hank'
 description: 'A small example HANK model with one asset'
 # the functions_file contains longer definitions, e.g. of the value function 'hh'
@@ -102,7 +101,7 @@ equations:
     ~ Rn = (Rstar*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*RnLag**rho # MP rule on shadow nominal rate
     ~ R = maximum(1, Rn) # ZLB
 
-    # clearings
+    # clearing conditions
     ~ C = y # market clearing
     ~ B = aggr_a # bond market clearing
     ~ n**sigma_l = w # labor market clearing

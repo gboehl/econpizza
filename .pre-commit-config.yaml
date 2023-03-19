@@ -1,16 +1,12 @@
+---
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.2.0
-  hooks:
-  - id: end-of-file-fixer
-  - id: trailing-whitespace
-- repo: https://github.com/pre-commit/mirrors-autopep8
-  rev: v1.6.0
-  hooks:
-  - id: autopep8
-# automatic yaml linting would be nice, but so far no hook accepts lines starting with ~
-#- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-  #rev: v2.3.0
-  #hooks:
-  #- id: pretty-format-yaml
-    #args: [--autofix, --indent, '2']
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v4.2.0
+      hooks:
+          - id: end-of-file-fixer
+          - id: trailing-whitespace
+
+    - repo: https://github.com/pre-commit/mirrors-autopep8
+      rev: v1.6.0
+      hooks:
+          - id: autopep8

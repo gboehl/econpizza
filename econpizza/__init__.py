@@ -18,7 +18,7 @@ from .parser import parse, load
 # set number of cores for XLA
 os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
 
-__version__ = '0.4.6'
+__version__ = '0.5.0'
 
 jax.config.update("jax_enable_x64", True)
 

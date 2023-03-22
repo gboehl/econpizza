@@ -266,12 +266,12 @@ def load(
     raise_errors=True,
     verbose=True
 ):
-    """Load model from dict or yaml file.
+    """Load a model from a dictionary or a YAML file.
 
     Parameters
     ----------
     model : dict or string
-        either a dictionary or the path to a yaml file to be parsed
+        either a dictionary or the path to a YAML file to be parsed
     raise_errors : bool, optional
         whether to raise errors while checking. False will let the model fail siliently for debugging. Defaults to True
     verbose : bool, optional

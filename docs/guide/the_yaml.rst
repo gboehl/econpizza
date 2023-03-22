@@ -27,8 +27,8 @@ The YAML file
 The YAML files follow a simple structure:
 
 1. list all variables, parameters and shocks
-2. provide the nonlinear equations. Note that each equation starts with a `~`.
-3. define the values of the parameters and fixed steady state values in the `steady_state` section
+2. provide the nonlinear equations. Note that each equation starts with a ``~``.
+3. define the values of the parameters and fixed steady state values in the ``steady_state`` section
 4. optionally provide auxilliary equations that are not directly part of the nonlinear system
 5. optionally provide initial guesses for all other steady state values and parameters
 
@@ -57,7 +57,7 @@ Use the ``parameters`` block to define any *parameters*. Parameters are treated 
     definitions: |
         from jax.numpy import log, maximum
 
-The second block (``definitions``) defines general definitions and imports, which are available at all time.
+The second block (``definitions``) defines general definitions and imports, which are available at all stages.
 
 .. code-block:: yaml
 
@@ -101,7 +101,8 @@ Finally, the ``steady_state`` block allows to fix parameters and, if desired, so
 YAML: heterogeneous agent models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Let us have a look of the YAML of a hank model we will discuss in `the tutorial <https://econpizza.readthedocs.io/en/latest/tutorial.html>`_. `The file <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/hank.yaml>`_ also contains exhaustive additional comments. The first line reads:
+Let us have a look of the YAML of a hank model we will discuss in `the tutorial <../tutorial/hank1.ipynb>`_.
+`The file <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/hank_with_comments.yml>`_ also contains exhaustive additional comments. The first line reads:
 
 .. code-block:: yaml
 
@@ -116,7 +117,7 @@ The relative path to a functions-file, which may provide additional functions. I
         from econpizza.tools import percentile, jax_print
 
 General definitions and imports (as above). These are available during all three stages (decisions, distributions, equations).
-We will use the ``percentile`` function to get some distributional statistics. ``jax_print`` is a jax-able print function that can be used during ``call`` stages for debugging.
+We will use the ``percentile`` function to get some distributional statistics. ``jax_print`` is a JAX-jit-able print function that can be used during ``call`` stages for debugging.
 
 .. code-block:: yaml
 
@@ -156,7 +157,7 @@ Define the model parameters and shocks, as above.
           max: 50
           n: 50
 
-The distributions block. Defines a distribution (here ``dist``) and all its dimensions. The information provided here will later be used to construct the distribution-forward-functions. If this is not supplied, Pizza assumes that you are providing a representative agent model.
+The distributions block. Defines a distribution (here ``dist``) and all its dimensions. The information provided here will later be used to construct the distribution-forward-functions. If this is not supplied, econpizza assumes that you are providing a representative agent model.
 
 .. code-block:: yaml
 
@@ -174,7 +175,7 @@ The distributions block. Defines a distribution (here ``dist``) and all its dime
 
 The decisions block. Only relevant for heterogeneous agents models. It is important to correctly specify the dynamic inputs (here: marginals of the value function) and outputs, i.e. those variables that are needed as inputs for the distribution stage. Note that calls are evaluated one after another.
 
-.. code-block:: yaml
+.. code-block:: py
 
     aux_equations: |
         # `dist` here corresponds to the dist *at the beginning of the period*
@@ -258,6 +259,6 @@ Equations. This also works exactly as for representative agents models.
             tax: 0.028
             WaPrime: egm_init(a_grid, skills_stationary)
 
-The steady state block. ``fixed_values`` are those steady state values that are fixed ex-ante. ``init_guesses`` are initial guesses for steady state finding. Values are defined from the top to the bottom, so it is possible to use recursive definitions, such as `n: w**frisch`.
+The steady state block. ``fixed_values`` are those steady state values that are fixed ex-ante. ``init_guesses`` are initial guesses for steady state finding. Values are defined from the top to the bottom, so it is possible to use recursive definitions, such as ``n: w**frisch``.
 
 Note that for heterogeneous agents models it is required that the initial value of inputs to the decisions-stage are given (here ``WaPrime``).

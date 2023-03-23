@@ -12,84 +12,35 @@ econpizza
 .. image:: https://badge.fury.io/py/econpizza.svg
     :target: https://badge.fury.io/py/econpizza
 
-Econpizza is a framework to solve and simulate *fully nonlinear* perfect foresight models, with or without heterogeneous agents.
-A parser allows to express economic models in a simple, high-level fashion as yaml-files.
+**Econpizza** is a framework to solve and simulate *fully nonlinear* perfect foresight models, with or without heterogeneous agents.
+The package implements the solution method proposed in `Robust Nonlinear Transition Dynamics in HANK <https://gregorboehl.com/live/hank_speed_boehl.pdf>`_ *(Gregor Boehl, 2023)*.
+It allows to specify and solve nonlinear macroeconomic models quickly in a simple, high-level fashion.
 Generic and robust routines for steady state search are provided.
 
 The package can solve nonlinear models with heterogeneous agents, such as HANK models with one or two assets and portfolio choice. Steady state and nonlinear impulse responses (including, e.g., the ELB) can typically be found within a few seconds.
-The method extends the `Sequence-Space Jacobian <https://github.com/shade-econ/sequence-jacobian>`_ method (`Auclert et al., 2022, ECMA <https://doi.org/10.3982/ECTA17434>`_) to fully nonlinear heterogeneous agent models models by iteratively using `jacobian-vector producs <https://jax.readthedocs.io/en/latest/notebooks/autodiff_cookbook.html#how-it-s-made-two-foundational-autodiff-functions>`_ to approximate the solution to the linear system of equations associated with each Newton iteration. This not only allows to study the dynamics of aggregate variables, but also the complete nonlinear transition dynamics of the cross-sectional distribution of assets and disaggregated objects.
+The method extends the `Sequence-Space Jacobian <https://github.com/shade-econ/sequence-jacobian>`_ method (`Auclert et al., 2022, ECMA <https://doi.org/10.3982/ECTA17434>`_) to fully nonlinear heterogeneous agent models models by iteratively using `Jacobian-vector producs <https://jax.readthedocs.io/en/latest/notebooks/autodiff_cookbook.html#how-it-s-made-two-foundational-autodiff-functions>`_ to approximate the solution to the linear system of equations associated with each Newton iteration. This not only allows to study the dynamics of aggregate variables, but also the complete nonlinear transition dynamics of the cross-sectional distribution of assets and disaggregated objects.
 
-To solve models with representative agent the shooting methods of Laffargue (1990), Boucekkine (1995) and Juillard (1996) is implemented. It is faster and more reliable than the extended path method in dynare due to the use of automatic differentiation for the efficient jacobian decompositions during each Newton-step. Nonlinear perfect-foresight transition dynamics can - even for large-scale nonlinear models with several occassionally binding constraints - be computed in less than a second.
+To solve models with representative agents a shooting methods similar to Laffargue (1990), Boucekkine (1995) and Juillard (1996) is implemented. It is faster and more reliable than the extended path method in dynare due to the use of automatic differentiation for the efficient jacobian decompositions during each Newton-step. Nonlinear perfect-foresight transition dynamics can - even for large-scale nonlinear models with several occassionally binding constraints - be computed in less than a second.
 
 The package builds heavily on `automatic differentiation <https://en.wikipedia.org/wiki/Automatic_differentiation>`_ via `JAX <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_.
-
-A central philosophy of this package is to consequently separate the low-level routines for *model solution* (which is what happens under the hood) from
-*model specification* (via a ``yaml`` file) and the
-high-level interface for *model simulation and analysis* (what the user does with the model).
-
-A `model parser <https://econpizza.readthedocs.io/en/latest/quickstart.html#the-yaml-file>`_ allows for the simple and generic specification of models (with or without heterogeneity) in ``yaml`` format.
 
 
 Documentation
 -------------
 
- * `Getting started <https://econpizza.readthedocs.io/en/stable/quickstart.html>`_
- * `Tutorials <https://econpizza.readthedocs.io/en/stable/tutorial.html>`_
- * `Module and functions documentation <https://econpizza.readthedocs.io/en/stable/modules.html>`_
+Guides and tutorials are provided on ReadTheDocs:
 
-Installation
-------------
+ * `Installation <https://econpizza.readthedocs.io/en/stable/guide/installation.html>`_
+ * `User guide <https://econpizza.readthedocs.io/en/stable/index.html>`_
+ * `Quickstart tutorial <https://econpizza.readthedocs.io/en/stable/tutorial/quickstart.html>`_
 
-Installing the `repository version <https://pypi.org/project/econpizza/>`_ from PyPi is as simple as typing
-
-.. code-block:: bash
-
-   pip install econpizza
-
-in your terminal or Anaconda Prompt.
-
-Installation on Windows
-^^^^^^^^^^^^^^^^^^^^^^^
-Econpizza needs **JAX** to be installed. This is not a problem for MacOS and Linux, but the time for JAX to fully support Windows has not yet come. Fortunately, there is help out there (see `this link <https://github.com/cloudhan/jax-windows-builder>`_ for the somewhat cryptic original reference). To install JAX, run
-
-.. code-block:: bash
-
-    pip install "jax[cpu]===0.3.25" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
-
-*prior* to installing Econpizza. Econpizza should then run just fine (`proof <https://github.com/gboehl/econpizza/actions/runs/2579662335>`_).
-
-In case you run into an error with `ptxas` (like `in this case <https://github.com/tensorflow/models/issues/7640>`_), a workaround is to disable CUDA by running the following **before** importing econpizza or JAX:
-
-.. code-block:: python
-
-    import os; os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
-
-References
-----------
-
-**econpizza** is developed by Gregor Boehl to simulate nonlinear perfect foresight models. Please cite it with
-
-.. code-block::
+Citation
+--------
+.. code-block:: bibtex
 
     @Misc{boehl2022pizza,
-    title         = {Econpizza: solving nonlinear heterogeneous agents models using machine learning techniques},
+    title         = {Robust Nonlinear Transition Dynamics in HANK},
     author        = {Boehl, Gregor},
-    howpublished  = {\url{https://econpizza.readthedocs.io/_/downloads/en/latest/pdf/}},
-    year = {2022}
+    howpublished  = {\url{https://gregorboehl.com/live/hank_speed_boehl.pdf}},
+    year = {2023}
     }
-
-For the Boehl-Hommes method: Boehl and Hommes (2021). `Rational vs. Irrational Beliefs in a Complex World <https://gregorboehl.com/live/rational_chaos_bh.pdf>`_. *IMFS Working papers*
-
-
-.. code-block::
-
-    @techreport{boehl2021rational,
-    title         = {Rational vs. Irrational Beliefs in a Complex World},
-    author        = {Boehl, Gregor and Hommes, Cars},
-    year          = 2021,
-    institution   = {IMFS Working Paper Series}
-    }
-
-
-I appreciate citations for **econpizza** because it helps me to find out how people have been using the package and it motivates further work.

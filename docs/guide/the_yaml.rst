@@ -142,22 +142,22 @@ Define the model parameters and shocks, as above.
         # the naming of the dimensions (skills, a) is arbitrary
         skills:
           # first dimension
-          type: exogenous
-          grid_variables: [skills_grid, skills_stationary, skills_transition] # returns skills_grid, skills_stationary, skills_transition
+          type: exogenous_rouwenhorst
           rho: 0.966
           sigma: 0.6
           n: 4
-        # second dimension
         a:
-          # endogenous variables require inputs from the decisions stage. This assumes that the decisions stage returns a variable named 'a'
-          type: endogenous
-          # a variable named a_grid with the following properties will be made available during decisions calls and distributions calls
-          grid_variables: a_grid
+          # second dimension. Endogenous distribution objects require inputs from the decisions stage. An object named 'a' assumes that the decisions stage returns a variable named 'a'
+          type: endogenous_log
           min: 0.0
           max: 50
           n: 50
 
-The distributions block. Defines a distribution (here ``dist``) and all its dimensions. The information provided here will later be used to construct the distribution-forward-functions. If this is not supplied, econpizza assumes that you are providing a representative agent model.
+The distributions block. Defines a distribution (here ``dist``) and all its dimensions. The information provided here is used to construct the distribution-forward-functions. If this is not supplied, econpizza assumes that you are providing a representative agent model.
+
+Exogenous grids are grids for idiosyncratic shocks. A grid type "exogenous_rouwenhorst" requires the parameters ``rho``, ``sigma`` and ``n``. Alternatively, a grid type "exogenous_generic" only needs ``n`` and expects the grid variable and the transition matrix to be defined somewhere else.
+
+Endogenous grids are grids for idiosyncratic state variables. A grid type "exogenous_log" requires the parameters ``min``, ``max`` and ``n``. Based on these, a log grid will be created. Alternatively, a grid type "endogenous_generic" only needs ``n`` and expects the grid variable to be defined somewhere else.
 
 .. code-block:: yaml
 

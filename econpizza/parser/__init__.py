@@ -329,7 +329,7 @@ def load(
     check_if_defined(evars, eqns, model.get('skip_check_if_defined'))
 
     # create fixed (time invariant) grids
-    grids.create_grids(model.get('distributions'), model["context"])
+    grids.create_grids(model.get('distributions'), model["context"], verbose)
     shocks = model.get("shocks") or ()
 
     # initialize storages

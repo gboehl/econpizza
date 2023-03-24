@@ -30,17 +30,13 @@ distributions:
     # the naming of the dimensions (skills, a) is arbitrary
     skills:
       # first dimension
-      type: exogenous
-      grid_variables: [skills_grid, skills_stationary, skills_transition] # returns skills_grid, skills_stationary, skills_transition
+      type: exogenous_rouwenhorst
       rho: 0.966
       sigma: 0.6
       n: 4
     a:
-      # second dimension
-      type: endogenous
-      # endogenous variables require inputs from the decisions stage. This assumes that the decisions stage returns a variable named 'a'
-      # a variable named a_grid with the following properties will be made available during decisions calls and distributions calls
-      grid_variables: a_grid
+      # second dimension. Endogenous distribution objects require inputs from the decisions stage. An object named 'a' assumes that the decisions stage returns a variable named 'a'
+      type: endogenous_log
       min: 0.0
       max: 50
       n: 50

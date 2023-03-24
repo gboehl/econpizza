@@ -24,7 +24,7 @@ def variance(x, pi):
     return jnp.sum(pi * (x - jnp.sum(pi * x)) ** 2)
 
 
-def markov_rouwenhorst(rho, sigma, N=7):
+def markov_rouwenhorst(rho, sigma, N):
     """Rouwenhorst method analog to markov_tauchen"""
 
     # Explicitly typecast N as an integer, since when the grid constructor functions
@@ -48,10 +48,7 @@ def markov_rouwenhorst(rho, sigma, N=7):
 
     # invariant distribution and scaling
     pi = stationary_distribution(jnp.array(Pi.T))
-    s = jnp.linspace(-1, 1, N)
-    s *= (sigma / jnp.sqrt(variance(s, pi)))
-    y = jnp.exp(s) / jnp.sum(pi * jnp.exp(s))
-
+    y = rouwenhorst_grid_from_stationary(sigma, pi)
     return y, pi, Pi
 
 
@@ -61,7 +58,7 @@ def rouwenhorst_grid_from_stationary(sigma, stationary_distribution):
     return jnp.exp(s) / jnp.sum(stationary_distribution * jnp.exp(s))
 
 
-def create_grids(distributions, context):
+def create_grids(distributions, context, verbose):
     """Get the strings of functions that define the grids.
     """
 
@@ -69,6 +66,9 @@ def create_grids(distributions, context):
         return
 
     grid_strings = ()
+
+    if verbose:
+        print("Creating grid variables...")
 
     # create strings of the function that define the grids
     for dist_name, dist in distributions.items():
@@ -78,17 +78,30 @@ def create_grids(distributions, context):
             g['type'] = 'endogenous_log' if g['type'] == 'endogenous' else g['type']
             g['type'] = 'exogenous_rouwenhorst' if g['type'] == 'exogenous' else g['type']
 
-            if 'exogenous' in g['type'] and 'transition_name' not in g:
+            g['grid_name'] = grid_name + '_grid'
+            # generic grid added by the user
+            if g['type'] == 'exogenous_generic':
                 g['transition_name'] = grid_name + '_transition'
+                if verbose:
+                    print(
+                        f"    ...expecting the objects '{g['transition_name']}' and '{g['grid_name']}' for the exogenous grid of '{grid_name}'")
+            if g['type'] == 'endogenous_generic':
+                if verbose:
+                    print(
+                        f"    ...dxpecting the object '{g['grid_name']}' for the endogenous grid of '{grid_name}'")
 
-            if 'endogenous' in g['type'] and 'grid_name' not in g:
-                g['grid_name'] = grid_name + '_grid'
-
+            # predefined grids
             if g['type'] == 'exogenous_rouwenhorst':
-                grid_strings += f"{', '.join(v for v in g['grid_variables'])} = grids.markov_rouwenhorst(rho={g['rho']}, sigma={g['sigma']}, N={g['n']})",
-
+                grid_strings += f"{grid_name}_grid, {grid_name}_stationary, {grid_name}_transition = grids.markov_rouwenhorst(rho={g['rho']}, sigma={g['sigma']}, N={g['n']})",
+                g['transition_name'] = grid_name + '_transition'
+                if verbose:
+                    print(
+                        f"    ...adding exogenous Rouwenhorst-grid for '{grid_name}' with objects '{g['grid_name']}', '{g['transition_name']}' and '{grid_name}_stationary'.")
             if g['type'] == 'endogenous_log':
                 grid_strings += f"{g['grid_name']} = grids.log_grid(amin={g['min']}, amax={g['max']}, n={g['n']})",
+                if verbose:
+                    print(
+                        f"    ...adding endogenous log-grid for '{grid_name}' named '{g['grid_name']}'.")
 
     # execute all of them
     for grid_str in grid_strings:

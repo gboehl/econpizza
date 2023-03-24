@@ -20,20 +20,17 @@ shocks: [ e_beta, e_p, e_w, e_i, e_z, e_g, e_r, e_t ]
 distributions:
   dist:
     skills:
-      type: exogenous
-      grid_variables: [skills_grid, skills_stationary, skills_transition]
+      type: exogenous_rouwenhorst
       rho: 0.966
       sigma: 0.92
       n: 3
     b:
-      type: endogenous
-      grid_variables: b_grid
+      type: endogenous_log
       min: 0.0
       max: 50
       n: 10
     a:
-      type: endogenous
-      grid_variables: a_grid
+      type: endogenous_log
       min: 0.0
       max: 220
       n: 20

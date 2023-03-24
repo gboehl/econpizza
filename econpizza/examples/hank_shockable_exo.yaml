@@ -24,7 +24,7 @@ distributions:
       transition_name: skills_transition
       n: 4
     a:
-      type: endogenous
+      type: endogenous_log
       grid_name: a_grid
       min: 0.0
       max: 50

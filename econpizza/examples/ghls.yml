@@ -30,8 +30,7 @@ equations:
 
     # Government/Central Bank
     ~ g = 0.2*y # level of government spending
-    ~ Rn = (RSS*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho_r)*RnLag**rho_r # Taylor rule (inflation targeting)
-    #~ Rn = (RSS*((p/pSS)**phi_p)*((y/ySS)**phi_y))**(1-rho_r)*RnLag**rho_r # Taylor rule (price level targeting)
+    ~ Rn = (RSS*((pi/piSS)**phi_pi)*((p/pSS)**phi_p)*((y/ySS)**phi_y))**(1-rho_r)*RnLag**rho_r # Taylor rule (inflation targeting)
     ~ R = max(1, Rn) # (actual) nominal interest rate, subject to ZLB
 
     # Clearing
@@ -39,7 +38,7 @@ equations:
     ~ c + i + g = y # definition of "effective" output
 
     # Exogenous Process
-    ~ rp=rpSS*(rpLag/rpSS)**rho_rp*exp(e_rp) # risk premium shock
+    ~ rp = rpSS*(rpLag/rpSS)**rho_rp*exp(e_rp) # risk premium shock
 
 steady_state:
     fixed_values:
@@ -51,7 +50,12 @@ steady_state:
         phip: 113.36 # parameter on the costs of price adjustment
         delta: 0.025 # depreciation rate
         phii: 3.48 # parameter on the costs of investment adjustment
+        # conventional inflation targeting setup:
         phi_pi: 1.5 # Taylor rule coefficient on inflation
+        phi_p: 0 # Taylor rule coefficient on price
+        # an alternative price level targeting setup:
+        #phi_pi: 0 # Taylor rule coefficient on inflation
+        #phi_p: 0.2 # Taylor rule coefficient on price
         phi_y: 0.1 # Taylor rule coefficient on output
         h: 0.52 # habit formation parameter
         rho_r: .8 # persistence in (notional) nominal interest rate

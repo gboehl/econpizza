@@ -85,7 +85,7 @@ steady_state:
         rho_g: 0.9 # persistence of government spending shock
         rho_i: 0.9 # persistence of MEI shock
         rho_r: 0.9 # persistence of MP shock
-        rho_u: 0.9 # persistence of wage MU shock
+        rho_u: 0.9 # persistence of risk premium shock
 
         # steady state
         eps_i: 1. # investment technology shock

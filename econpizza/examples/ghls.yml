@@ -2,7 +2,7 @@
 ---
 
 name: 'ghls'
-description: 'A model heavily inspired by "The Emprirical Implications of the Interest-Rate Lower Bound" (Gust et al., Fed WP 2012-083)'
+description: 'A model heavily inspired by "The Emprirical Implications of the Interest-Rate Lower Bound" (Gust et al., Fed WP 2012-083) with optional price level targeting'
 variables: [ p, y_prod, g, pi, pitilde, lamda, y, mc, w, n, rk, cap_util, k , c, R, i, rp, piw, piwtilde, q, cap_util_costs, Rn]
 parameters: [ kappa, beta , epsilonp, phip, alpha, a, h, epsilonw, phiw, chi, sigma_l, aw, delta, phii, sigmaa , rho_r, rho_rp, phi_pi, phi_y]
 shocks: [ e_rp ]
@@ -30,7 +30,8 @@ equations:
 
     # Government/Central Bank
     ~ g = 0.2*y # level of government spending
-    ~ Rn = (RSS*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho_r)*RnLag**rho_r # Taylor rule for the notional nominal interest rate
+    ~ Rn = (RSS*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho_r)*RnLag**rho_r # Taylor rule (inflation targeting)
+    #~ Rn = (RSS*((p/pSS)**phi_p)*((y/ySS)**phi_y))**(1-rho_r)*RnLag**rho_r # Taylor rule (price level targeting)
     ~ R = max(1, Rn) # (actual) nominal interest rate, subject to ZLB
 
     # Clearing

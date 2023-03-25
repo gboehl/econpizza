@@ -35,9 +35,14 @@ def interpolate(x: Array, xq: Array, y: Array) -> Array:
 
 
 def interpolate_fast(xp: Array, x: Array, fp: Array) -> Array:
-    """The vmap'ed version is much faster. Note: does not extrapolate linearly!"""
-    return jax.vmap(
-        jnp.interp)(x.broadcast((xp.shape[0],)), xp, fp)
+    """
+    One-dimensional linear interpolation for monotonically increasing sample points.
+    Returns the one-dimensional piecewise linear interpolant to a function
+    with given discrete data points (`xp`, `fp`), evaluated at `x`.
+
+    The vmap'ed version is much faster. Note: does not extrapolate linearly!
+    """
+    return jax.vmap(jnp.interp)(jax.lax.broadcast(x, (xp.shape[0],)), xp, fp)
 
 
 def interpolate_coord_robust_vector(x: Array, xq: Array) -> (Array, Array):

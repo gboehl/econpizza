@@ -14,6 +14,7 @@ definitions: |
     kappa_grid = log_grid(amax=1., n=4)[::-1]
 
 variables: [ C, mc, y, pi, div, equity, n, z, w, wn, Rr, R, Rn, Rstar, tax, g, Rb, Ra, wealth, A, B, beta, transfers, AJC, MUC, Top10A, Top10B, Top10C ]
+# cheaper because percentiles are costly:
 #variables: [ C, mc, y, pi, div, equity, n, z, w, wn, Rr, R, Rn, Rstar, tax, g, Rb, Ra, wealth, A, B, beta, transfers, AJC, MUC ]
 parameters: [ sigma_c, sigma_l, psi_p, psi_a0, psi_a1, psi_a2, Bgov, phi_pi, phi_y, rho, zeta, rho_beta, rho_r, rho_g, rho_z, rho_t, theta, chi, iota, elb ]
 shocks: [ e_beta, e_z, e_g, e_r, e_t ]

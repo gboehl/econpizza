@@ -1,6 +1,10 @@
 from setuptools import setup, find_packages
 from os import path
-from econpizza import __version__
+
+# get version from dedicated version file
+version = {}
+with open("econpizza/version.py") as fp:
+    exec(fp.read(), version)
 
 # read the contents of the README file
 this_directory = path.abspath(path.dirname(__file__))
@@ -12,7 +16,7 @@ setup(
     long_description_content_type="text/x-rst",
     url="https://github.com/gboehl/econpizza",
     name='econpizza',
-    version=__version__,
+    version=version['__version__'],
     author="Gregor Boehl",
     author_email="admin@gregorboehl.com",
     description="Solve nonlinear perfect foresight models with heterogeneous agents",

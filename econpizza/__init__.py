@@ -7,6 +7,7 @@ import jax.numpy as jnp
 from copy import deepcopy as copy
 
 from . import examples
+from .version import __version__
 from .solvers.steady_state import solve_stst
 from .solvers.stacking import find_path_stacking
 from .solvers.solve_linear import find_path_linear
@@ -17,8 +18,6 @@ from .parser import parse, load
 
 # set number of cores for XLA
 os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
-
-__version__ = '0.5.1'
 
 jax.config.update("jax_enable_x64", True)
 

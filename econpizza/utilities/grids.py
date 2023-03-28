@@ -68,7 +68,7 @@ def create_grids(distributions, context, verbose):
     grid_strings = ()
 
     if verbose:
-        print("Creating grid variables...")
+        print("Creating grid variables:")
 
     # create strings of the function that define the grids
     for dist_name, dist in distributions.items():

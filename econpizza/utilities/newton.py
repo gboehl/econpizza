@@ -1,6 +1,7 @@
 """Newton heavy lifting functions and helpers
 """
 
+from grgrjax import jax_print
 import jax
 import time
 import jax.numpy as jnp
@@ -9,8 +10,10 @@ from jax._src.lax.linalg import lu_solve
 from grgrjax import callback_func, amax, newton_jax_jit
 
 
-def callback_with_damp(cnt, err, fev, dampening, ltime, verbose): return callback_func(
-    cnt, err, fev=fev, misc=('dampening', dampening), ltime=ltime, verbose=verbose)
+def callback_with_damp(cnt, err, fev, err_inner, dampening, ltime, verbose):
+    inner = f' | inner {err_inner:.2e}'
+    damp = f' | dampening {dampening:1.3f}'
+    return callback_func(cnt, err, inner, damp, fev=fev, ltime=ltime, verbose=verbose)
 
 
 def iteration_step(carry):
@@ -30,8 +33,8 @@ def iteration_cond(carry):
 
 
 def jvp_while_body(carry):
-    (x, _, _, cnt, fev), (jvp_func, jacobian, maxit,
-                          nsteps, tol, factor, verbose) = carry
+    (x, _, _, cnt, fev, _), (jvp_func, jacobian, maxit,
+                             nsteps, tol, factor, verbose) = carry
     # first iteration
     f, _ = jvp_func(x, jnp.zeros_like(x))
     f = lu_solve(*jacobian[0], f, 0)[jacobian[1]]
@@ -39,18 +42,19 @@ def jvp_while_body(carry):
     iteration_tol = jnp.minimum(1e-5, 1e-1*amax(f))
     init = ((f, 1., 0), (x, f, jvp_func, jacobian, factor),
             (1e8, iteration_tol, nsteps))
-    (y, dampening, fev_inner), _, _ = jax.lax.while_loop(
+    (y, dampening, fev_inner), _, (err_inner, _, _) = jax.lax.while_loop(
         iteration_cond, iteration_step, init)
-    return (x-y, amax(f), dampening, cnt+1, fev+fev_inner), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)
+    return (x-y, amax(f), dampening, cnt+1, fev+fev_inner, err_inner), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)
 
 
 def jvp_while_cond(carry):
-    (_, err, dampening, cnt, fev), (_, _, maxit, nsteps, tol, _, verbose) = carry
-    cond = jnp.logical_and(err > tol, fev < maxit)
+    (_, err, dampening, cnt, fev, err_inner), (_,
+                                               _, maxit, nsteps, tol, _, verbose) = carry
+    cond = jnp.logical_and(err > tol, cnt < maxit)
     verbose = jnp.logical_and(cond, verbose)
     verbose = jnp.logical_and(fev, verbose)
     jax.debug.callback(callback_with_damp, cnt, err, fev=fev,
-                       dampening=dampening, ltime=None, verbose=verbose)
+                       err_inner=err_inner, dampening=dampening, ltime=None, verbose=verbose)
     return cond
 
 
@@ -78,8 +82,8 @@ def check_status(err, cnt, maxit, tol):
     if err < tol:
         return True, (True, "The solution converged.")
     elif jnp.isnan(err):
-        return True, (False, "Function returns 'NaN's.")
-    elif cnt > maxit:
+        return True, (False, "Function returns NaNs.")
+    elif cnt >= maxit:
         return True, (False, f"Maximum number of {maxit} iterations reached.")
     else:
         return False, (False, "")
@@ -90,11 +94,11 @@ def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=500, nst
     start_time = time.time()
     x = x_init[1:-1].flatten()
 
-    (x, err, dampening, cnt, fev), _ = jax.lax.while_loop(jvp_while_cond, jvp_while_body,
-                                                          ((x, 1., 0., 0, 0), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)))
+    (x, err, dampening, cnt, fev, err_inner), _ = jax.lax.while_loop(jvp_while_cond, jvp_while_body,
+                                                                     ((x, 1., 0., 0, 0, 0), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)))
     ltime = time.time() - start_time
-    callback_with_damp(cnt, err, fev=fev, dampening=dampening,
-                       ltime=ltime, verbose=verbose)
+    callback_with_damp(cnt, err, fev=fev, err_inner=err_inner,
+                       dampening=dampening, ltime=ltime, verbose=verbose)
     _, (success, mess) = check_status(err, cnt, maxit, tol)
     # compile error/report message
     if not success and not jnp.isnan(err):
@@ -130,7 +134,7 @@ def newton_for_banded_jac(jav_func, nvars, horizon, X, shocks, verbose, maxit=30
             break
 
     if not success:
-        mess += f" Max. error is {err:1.2e}."
+        mess += f"Max. error is {err:1.2e}."
 
     return X, False, ''
 

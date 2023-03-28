@@ -13,5 +13,8 @@ Upon failure, the function tries to be as informative as possible. If the search
 
    A common gotcha for heterogeneous agent models is that the distribution contains negative values. The routine will be informative about that. This is usually due to too much interpolation outside the grid and can often be fixed by using a grid with larger maximum values.
 
+.. note::
+
+   The steady state procedure is based on the pseudoinverse of the Jacobian (see the original paper). If the procedure fails, it will tell you the rank of the Jacobian and the number of degrees of freedom. More degrees of freedom than the Jacobian rank normally implies that you should fix more steady state values and vice versa.
 
 .. autofunction:: econpizza.PizzaModel.solve_stst

@@ -27,9 +27,9 @@ def _get_stst_dist_objs(model, res, maxit_backwards, maxit_forwards):
     # compile informative message
     mess = ''
     if jnp.isnan(jnp.array(wfSS)).any() or jnp.isnan(jnp.array(decisions_output)).any():
-        mess += f"Backward iteration returns 'NaN's. "
+        mess += f"Backward iteration returns NaNs. "
     elif jnp.isnan(distSS).any():
-        mess += f"Forward iteration returns 'NaN's. "
+        mess += f"Forward iteration returns NaNs. "
     elif distSS.min() < 0:
         mess += f"Distribution contains negative values ({distSS.min():0.1e}). "
     if cnt_backwards == maxit_backwards:
@@ -174,7 +174,9 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
     if err > tol or not res['success']:
         if not res["success"] or raise_errors:
-            mess = f"Steady state FAILED (max. error is {err:1.2e} in eqn. {errarg}). {res['message']} {mess}"
+            location = '' if jnp.isnan(
+                err) else f" (max. error is {err:1.2e} in eqn. {errarg})"
+            mess = f"Steady state FAILED{location}. {res['message']} {mess}"
         else:
             mess = f"{res['message']} WARNING: Steady state error is {err:1.2e} in eqn. {errarg}. {mess}"
         if raise_errors:

@@ -73,6 +73,8 @@ def parse(mfile):
     # create nice shortcuts
     mdict['path'] = mfile
     mdict["vars"] = mdict["variables"]
+    # load file with additional functions as module (if it exists)
+    _parse_external_functions_file(mdict)
 
     return mdict
 
@@ -291,14 +293,10 @@ def load(
         full_path = model
         model = parse(model)
         model['path'] = full_path
-    # make it a model
-    model = PizzaModel(model)
-    # load file with additional functions as module (if it exists)
-    _parse_external_functions_file(model)
 
+    # define the model dictionary as key for cached models
     mdict = deepcopy(model)
     stst_subdict = mdict.pop('steady_state') if 'steady_state' in mdict else {}
-
     # check if model is already cached
     if mdict in cached_mdicts:
         model = copy(cached_models[cached_mdicts.index(mdict)])
@@ -308,6 +306,8 @@ def load(
             print("(load:) Loading cached model.")
         return model
 
+    # make it a model
+    model = PizzaModel(model)
     # initialize objects
     model['context'] = _initialize_context()
     model['cache'] = _initialize_cache()

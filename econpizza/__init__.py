@@ -4,7 +4,7 @@ import logging
 import os
 import jax
 import jax.numpy as jnp
-from copy import deepcopy as copy
+from copy import deepcopy
 
 from . import examples
 from .__version__ import __version__
@@ -21,13 +21,18 @@ os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count
 
 jax.config.update("jax_enable_x64", True)
 
+# create local alias
+copy = deepcopy
+
 
 class PizzaModel(dict):
     """Base class for models. Contains all necessary methods and informations.
     """
 
-    def __init__(self, *args, **kwargs):
-        super(PizzaModel, self).__init__(*args, **kwargs)
+    def __init__(self, mdict, *args, **kwargs):
+        # do not overwrite original input
+        mdict = deepcopy(mdict)
+        super(PizzaModel, self).__init__(mdict, *args, **kwargs)
         self.__dict__ = self
 
     solve_stst = solve_stst

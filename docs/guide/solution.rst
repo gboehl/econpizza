@@ -7,7 +7,7 @@ The main functionality of nonlinear simulations is provided by the functions :me
 
    All numerical methods are subject to numerical errors. To reduce these, you can decrease the numerical tolerance ``tol``. However, this should not be below the tolerance level for the steady state search, or below machine precision.
 
-.. note::
+.. hint::
 
    As stated in the paper, a sufficient condition for convergence of the solution routine is that the generalized eigenvalues of the sequence space Jacobian and its steady-state pendant are all positive (which is prohibitory expensive to check). If the method does not converge, the ``use_solid_solver=True`` flag can be used to check if the model solves when using a conventional Newton method with the true Jacobian.
 

@@ -9,12 +9,16 @@ Upon failure, the function tries to be as informative as possible. If the search
 
    A classic complaint is "**The Jacobian contains NaNs**". This is usually due to numerical errors somewhere along the way. While the package tries to provide more information about where the error occurred, a good idea is to follow JAX's hints on `how to debug NaNs <https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html#debugging-nans>`_.
 
-.. note::
+.. hint::
 
    A common gotcha for heterogeneous agent models is that the distribution contains negative values. The routine will be informative about that. This is usually due to too much interpolation outside the grid and can often be fixed by using a grid with larger maximum values.
 
-.. note::
+.. hint::
 
    The steady state procedure is based on the pseudoinverse of the Jacobian (see the original paper). If the procedure fails, it will tell you the rank of the Jacobian and the number of degrees of freedom. More degrees of freedom than the Jacobian rank normally implies that you should fix more steady state values and vice versa.
+
+.. hint::
+
+   If the desired precision is not reached, the error message will tell you in which equation the maximum error did arise. You can use the ``equations`` key to get the list of equations (as strings), e.g. ``print(model['equations'][17])`` to get the equation with index 17.
 
 .. autofunction:: econpizza.PizzaModel.solve_stst

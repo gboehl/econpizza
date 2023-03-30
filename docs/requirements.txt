@@ -1,3 +1,4 @@
+pydata-sphinx-theme==0.13.1
 sphinx-book-theme
 ipykernel
 nbsphinx

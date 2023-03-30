@@ -84,11 +84,11 @@ def create_grids(distributions, context, verbose):
                 g['transition_name'] = grid_name + '_transition'
                 if verbose:
                     print(
-                        f"    ...expecting the objects '{g['transition_name']}' and '{g['grid_name']}' for the exogenous grid of '{grid_name}'")
+                        f"    ...expecting the objects '{g['transition_name']}' and '{g['grid_name']}' for the exogenous grid of '{grid_name}'.")
             if g['type'] == 'endogenous_generic':
                 if verbose:
                     print(
-                        f"    ...dxpecting the object '{g['grid_name']}' for the endogenous grid of '{grid_name}'")
+                        f"    ...expecting the object '{g['grid_name']}' for the endogenous grid of '{grid_name}'.")
 
             # predefined grids
             if g['type'] == 'exogenous_rouwenhorst':

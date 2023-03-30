@@ -47,8 +47,10 @@ def get_forw_funcs(model):
 
         dist = distributions[dist_name]
 
-        implemented_endo = ('exogenous', 'exogenous_rouwenhorst')
-        implemented_exo = ('endogenous', 'endogenous_log')
+        implemented_endo = (
+            'exogenous', 'exogenous_rouwenhorst', 'exogenous_generic')
+        implemented_exo = ('endogenous', 'endogenous_log',
+                           'endogenous_generic')
         exog = [v for v in dist if dist[v]['type'] in implemented_endo]
         endo = [v for v in dist if dist[v]['type'] in implemented_exo]
         other = [dist[v]['type'] for v in dist if dist[v]

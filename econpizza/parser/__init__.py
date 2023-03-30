@@ -251,6 +251,10 @@ def compile_stst_inputs(model):
         # for now assume that this must be present
         init_wf = jnp.array([init_guesses[dec_input]
                             for dec_input in model['decisions']['inputs']])
+        # allow `n` in distributions to be a variable from the context (so far only for one distribution)
+        for d in model['distributions'][dist_names[0]].values():
+            if isinstance(d['n'], str):
+                d['n'] = eval(d['n'], context)
         # check if initial decision functions and the distribution have same shapes
         check_shapes(model['distributions'], init_wf, dist_names)
     else:

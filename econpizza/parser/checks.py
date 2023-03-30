@@ -105,6 +105,7 @@ def check_initial_values(model, shocks, init_guesses, fixed_values, init_wf, pre
 
 def check_shapes(distributions, init_decisions, dist_names):
     decisions_shape = init_decisions.shape
+    # so far only for one distribution
     dist_shape = tuple([d.get('n')
                        for d in distributions[dist_names[0]].values()])
     check = [(ds == decisions_shape[-len(dist_shape):][i] or ds is None)

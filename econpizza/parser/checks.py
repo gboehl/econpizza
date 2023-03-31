@@ -4,12 +4,20 @@
 import sys
 import jax.numpy as jnp
 from .build_functions import func_pre_stst
+import re
 
 
-def check_if_defined(evars, eqns, skipped_vars):
+def _strip_comments(code):
+    code = str(code)
+    return re.sub(r'(?m)^ *#.*\n?', '', code)
+
+
+def check_if_defined(evars, eqns, decisions, skipped_vars):
     """Check if all variables are defined in period t.
     """
     skipped_vars = [] if skipped_vars is None else skipped_vars
+    calls = _strip_comments(
+        decisions['calls']) if decisions is not None else ''
 
     for v in evars:
         v_in_eqns = [
@@ -17,7 +25,13 @@ def check_if_defined(evars, eqns, skipped_vars):
                                                  "").replace(v + "Prime", "")
             for e in eqns
         ]
-        if not any(v_in_eqns) and not v in skipped_vars:
+        v_in_calls = v in calls.replace(
+            v + "SS", "").replace(v + "Lag", "").replace(v + "Prime", "")
+        print(v)
+        print(calls.replace(v + "SS", "").replace(v +
+              "Lag", "").replace(v + "Prime", ""))
+
+        if not any(v_in_eqns) and not v_in_calls and not v in skipped_vars:
             raise Exception(f"Variable `{v}` is not defined for time t.")
     return
 

@@ -246,7 +246,7 @@ def compile_stst_inputs(model):
         evars, par_names, init_guesses, fixed_evaluated)
 
     # get the initial decision functions
-    if model.get('decisions'):
+    if model.get('distributions'):
         dist_names = list(model['distributions'].keys())
         # for now assume that this must be present
         init_wf = jnp.array([init_guesses[dec_input]
@@ -330,7 +330,8 @@ def load(
     check_dublicates(model.get("parameters"))
     evars = check_determinancy(model["variables"], eqns)
     # check if each variable is defined in time t (only defining xSS does not give a valid root)
-    check_if_defined(evars, eqns, model.get('skip_check_if_defined'))
+    check_if_defined(evars, eqns, model.get('decisions'),
+                     model.get('skip_check_if_defined'))
 
     # create fixed (time invariant) grids
     grids.create_grids(model.get('distributions'), model["context"], verbose)

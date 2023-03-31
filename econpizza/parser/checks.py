@@ -27,10 +27,6 @@ def check_if_defined(evars, eqns, decisions, skipped_vars):
         ]
         v_in_calls = v in calls.replace(
             v + "SS", "").replace(v + "Lag", "").replace(v + "Prime", "")
-        print(v)
-        print(calls.replace(v + "SS", "").replace(v +
-              "Lag", "").replace(v + "Prime", ""))
-
         if not any(v_in_eqns) and not v_in_calls and not v in skipped_vars:
             raise Exception(f"Variable `{v}` is not defined for time t.")
     return

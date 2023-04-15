@@ -42,8 +42,8 @@ jobs:
         python -m pip install ipykernel
         python -m pip install grgrlib
         # for development versions of grgrjax
-        python -m pip uninstall -y grgrjax
-        python -m pip install git+https://github.com/gboehl/grgrjax
+        #python -m pip uninstall -y grgrjax
+        #python -m pip install git+https://github.com/gboehl/grgrjax
     - name: Test with pytest
       run: |
         pytest -x

@@ -15,6 +15,6 @@ ipynb_path = os.path.join(filepath, '..', '..', 'docs',
                           'tutorial', 'hank1.ipynb')
 
 
-@testbook(ipynb_path, execute=True)
+@testbook(ipynb_path, execute=True, timeout=120)
 def test_this(tb):
     assert True

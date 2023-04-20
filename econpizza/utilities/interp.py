@@ -16,7 +16,7 @@ def interpolate(x: Array, xq: Array, y: Array) -> Array:
 
     Parameters
     ----------
-    x  : array (n), ascending data points
+    x  : array (n), ascending input points
     xq : array (nq), ascending query points
     y  : array (n), data points
 

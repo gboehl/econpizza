@@ -2,8 +2,8 @@
 Model parsing and the yaml-file
 -------------------------------
 
-All relevant information is supplied via the YAML file, which uses the YAML markup language.
-For general information about the YAML and its syntax see `Wikipedia <https://en.wikipedia.org/wiki/YAML>`_.
+All relevant information is supplied via the YAML file, which uses the YAML markup language. The YAML format is widely used due to its intuitive handling, e.g. in applications where data is being stored or transmitted or for configuration files.
+For general information about the format and its syntax see `Wikipedia <https://en.wikipedia.org/wiki/YAML>`_.
 
 Model parsing
 ^^^^^^^^^^^^^
@@ -37,7 +37,7 @@ I will first briefly discuss the YAML of the small scale *representative* agents
 YAML: representative agent models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The file for the small scale NK model can be found `here <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yml>`_. The first block (``variables`` and ``shocks``) is self explanatory:
+The GitHub version of the YAML file for the small scale NK model can be found `here <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yml>`_. The first block (``variables`` and ``shocks``) is self explanatory:
 
 .. code-block:: yaml
 
@@ -102,13 +102,15 @@ YAML: heterogeneous agent models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Let us have a look of the YAML of a hank model we will discuss in `the tutorial <../tutorial/hank1.ipynb>`_.
-`The file <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/hank_with_comments.yml>`_ also contains exhaustive additional comments. The first line reads:
+The GitHub version of the file (`link <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/hank_with_comments.yml>`_) also contains exhaustive additional comments. The first line reads:
 
 .. code-block:: yaml
 
     functions_file: 'hank_functions.py'
 
-The relative path to a functions-file, which may provide additional functions. In this example, the file defines the functions ``transfers``, ``wages``, ``hh``, ``labor_supply`` and ``hh_init``.
+The relative path to a functions-file, which may provide additional functions.
+The GitHub version of the functions file for this model `can be found here <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/hank_functions.py>`_.
+In this example, the file defines the functions ``transfers``, ``wages``, ``hh``, ``labor_supply`` and ``hh_init``.
 
 .. code-block:: yaml
 

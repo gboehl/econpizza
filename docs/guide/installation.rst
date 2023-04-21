@@ -1,6 +1,9 @@
 Installation
 ============
 
+On Linux & MacOS
+----------------
+
 Installing the `repository version <https://pypi.org/project/econpizza/>`_ from PyPi is as simple as typing
 
 .. code-block:: bash
@@ -18,9 +21,9 @@ Econpizza needs the Python package `JAX <https://jax.readthedocs.io>`_ to be ins
 
     pip install "jax[cpu]===0.3.25" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
 
-*prior* to installing Econpizza. Econpizza should then run just fine (`proof <https://github.com/gboehl/econpizza/actions/runs/2579662335>`_).
+in your terminal or Anaconda Prompt, *prior* to installing Econpizza. Then continue as for Linux and Mac. Econpizza then just runns fine (`proof <https://github.com/gboehl/econpizza/actions/runs/2579662335>`_).
 
-In case you run into an error with `ptxas` (like `in this case <https://github.com/tensorflow/models/issues/7640>`_), a workaround is to disable CUDA by adding the following line **before** importing econpizza or JAX:
+In case you run into an error with `ptxas` (like `in this case <https://github.com/tensorflow/models/issues/7640>`_), a workaround is to disable CUDA by running the following line **before** importing econpizza or JAX in your python code:
 
 .. code-block:: python
 

@@ -1,7 +1,9 @@
 Nonlinear simulations
 =====================
 
-The main functionality of nonlinear simulations is provided by the functions :meth:`econpizza.PizzaModel.find_path`. The main arguments are either ``shock`` or ``init_state``, which allows to specify an economic shock as a tuple of the shock name (as specified in ``shocks`` in the YAML) and the size of the shock, or a vector of initial states, respectively.
+The main functionality of nonlinear simulations is provided by the function :meth:`econpizza.PizzaModel.find_path`
+The main arguments are either ``shock`` or ``init_state``, which allows to specify an economic shock as a tuple of the shock name (as specified in ``shocks`` in the YAML) and the size of the shock, or a vector of initial states, respectively.
+The function :meth:`econpizza.PizzaModel.get_distributions` allows to retrieve the full nonlinear sequence of the distribution.
 
 .. note::
 

@@ -89,7 +89,20 @@ def check_status(err, cnt, maxit, tol):
         return False, (False, "")
 
 
-def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=500, nsteps=30, factor=1.5):
+def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=20, nsteps=30, factor=1.5):
+    """Newton solver for heterogeneous agents models as described in the paper.
+
+    Parameters
+    ----------
+    tol : float, optional
+        tolerance of the Newton method, defaults to ``1e-8``
+    maxit : int, optional
+        maximum of iterations for the Newton method, defaults to 20
+    nsteps : int, optional
+        number of function evaluations per Newton iteration, defaults to 30
+    factor : float, optional
+        dampening factor (gamma in the paper), Defaults to 1.5
+    """
 
     start_time = time.time()
     x = x_init[1:-1].flatten()
@@ -108,6 +121,15 @@ def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=500, nst
 
 
 def newton_for_banded_jac(jav_func, nvars, horizon, X, shocks, verbose, maxit=30, tol=1e-8):
+    """Newton solver for representative agents models.
+
+    Parameters
+    ----------
+    tol : float, optional
+        tolerance of the Newton method, defaults to ``1e-8``
+    maxit : int, optional
+        maximum of iterations for the Newton method, defaults to 20
+    """
 
     st = time.time()
     cnt = 0
@@ -140,7 +162,7 @@ def newton_for_banded_jac(jav_func, nvars, horizon, X, shocks, verbose, maxit=30
 
 
 def newton_jax_jit_wrapper(func, init, **args):
-    """Wrapper around grgrjax.newton.newton_jax_jit to return flag and message
+    """Wrapper around grgrjax.newton.newton_jax_jit. Returns correct flags and messages.
     """
 
     if 'tol' not in args:

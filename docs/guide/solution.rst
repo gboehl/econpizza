@@ -25,7 +25,7 @@ For models with representative agents, the Newton method is :meth:`econpizza.uti
 
 .. autofunction:: econpizza.utilities.newton.newton_for_banded_jac
 
-If ``use_solid_solver`` is set to `True`, the Newton method `grgrjax.newton.newton_jax_jit <https://grgrjax.readthedocs.io/en/latest/#grgrjax.newton_jax_jit>`_ from the `grgrjax <https://grgrjax.readthedocs.io>`_ package is used.
+If ``use_solid_solver`` is set to `True`, the Newton method `newton_jax_jit <https://grgrjax.readthedocs.io/en/latest/#grgrjax.newton_jax_jit>`_ from the `grgrjax <https://grgrjax.readthedocs.io>`_ package is used.
 
 The function :meth:`econpizza.PizzaModel.get_distributions` allows to retrieve the sequence of distributions and decision variables. To that end it requires the shocks and initial distribution together with the trajectory of aggregated variables as input.
 

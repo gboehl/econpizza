@@ -7,6 +7,9 @@ from functools import partial
 from jax._src.typing import Array
 
 
+interpolate_numpy = jnp.vectorize(jnp.interp, signature='(n),(nq),(n)->(nq)')
+
+
 @partial(jnp.vectorize, signature='(n),(nq),(n)->(nq)')
 def interpolate(x: Array, xq: Array, y: Array) -> Array:
     """Efficient linear interpolation exploiting monotonicity.

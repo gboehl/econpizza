@@ -1,25 +1,16 @@
 
-Model parsing and the yaml-file
--------------------------------
+Specifying models
+-----------------
 
-All relevant information is supplied via the YAML file, which uses the YAML markup language. The YAML format is widely used due to its intuitive handling, e.g. in applications where data is being stored or transmitted or for configuration files.
+Models are specified in a YAML file, which uses the YAML markup language.
+The YAML format is widely used due to its intuitive handling,
+for example for configuration files or in applications where data is being stored or transmitted which should be human readable.
 For general information about the format and its syntax see `Wikipedia <https://en.wikipedia.org/wiki/YAML>`_.
 
-Model parsing
-^^^^^^^^^^^^^
-
-Models specified as a YAML files can be parsed and loaded using :py:meth:`econpizza.parse` and :py:meth:`econpizza.load`.
-
-.. autofunction:: econpizza.parse
-
-This returns a dictionary containing all the informations provided in the YAML file. Parsing before loading allows to change some features of the model manually. The dictionary can then be forwarded to :py:meth:`econpizza.load`:
-
-.. autofunction:: econpizza.load
-
-If desired, :meth:`econpizza.load` can also parse the YAML-file directly. The function then returns an instance of
-:class:`econpizza.PizzaModel`, which holds all the relevant information and functionality of the model:
-
-.. autoclass:: econpizza.PizzaModel
+The YAML file contains all relevant information from model equations, variable declarations and steady state values.
+Models specified as a YAML files can be parsed into a :class:`econpizza.PizzaModel`
+using :py:meth:`econpizza.parse` or :py:meth:`econpizza.load`.
+An instance of :class:`econpizza.PizzaModel` holds all the relevant information and functionality of the model.
 
 The YAML file
 ^^^^^^^^^^^^^
@@ -29,7 +20,7 @@ The YAML files follow a simple structure:
 1. list all variables, parameters and shocks
 2. provide the nonlinear equations. Note that each equation starts with a ``~``.
 3. define the values of the parameters and fixed steady state values in the ``steady_state`` section
-4. optionally provide auxilliary equations that are not directly part of the nonlinear system
+4. optionally provide auxiliary equations that are not directly part of the nonlinear system
 5. optionally provide initial guesses for all other steady state values and parameters
 
 I will first briefly discuss the YAML of the small scale *representative* agents NK model `from the quickstart tutorial <../tutorial/quickstart.ipynb>`_ and then turn to a more complex HANK model.
@@ -264,3 +255,25 @@ Equations. This also works exactly as for representative agents models.
 The steady state block. ``fixed_values`` are those steady state values that are fixed ex-ante. ``init_guesses`` are initial guesses for steady state finding. Values are defined from the top to the bottom, so it is possible to use recursive definitions, such as ``n: w**frisch``.
 
 Note that for heterogeneous agents models it is required that the initial value of inputs to the decisions-stage are given (here ``WaPrime``).
+
+.. note::
+
+   `Econpizza` is written in `JAX <https://jax.readthedocs.io>`_, which is a machine learning framework for Python developed by Google. JAX provides automatic differentiation and just-in-time compilation ("jitting"), which makes the package fast and robust.
+   However, running jitted JAX code brings along a few limitations. Check the `common gotchas in JAX <https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html>`_ for details.
+
+
+Model parsing
+^^^^^^^^^^^^^
+
+Models specified as a YAML files can be parsed and loaded using :py:meth:`econpizza.parse` and :py:meth:`econpizza.load`.
+
+.. autofunction:: econpizza.parse
+
+This returns a dictionary containing all the informations provided in the YAML file. Parsing before loading allows to change some features of the model manually. The dictionary can then be forwarded to :py:meth:`econpizza.load`:
+
+.. autofunction:: econpizza.load
+
+If desired, :meth:`econpizza.load` can also parse the YAML-file directly. The function then returns an instance of
+:class:`econpizza.PizzaModel`, which holds all the relevant information and functionality of the model:
+
+.. autoclass:: econpizza.PizzaModel

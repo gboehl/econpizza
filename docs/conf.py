@@ -10,7 +10,7 @@ from econpizza import __version__
 
 # -- Project information -----------------------------------------------------
 project = 'econpizza'
-copyright = '2022, Gregor Boehl'
+copyright = '2023, Gregor Boehl'
 author = 'Gregor Boehl'
 version = __version__
 release = version
@@ -36,16 +36,17 @@ html_sourcelink_suffix = ""
 html_title = "econpizza"
 html_theme_options = {
     "path_to_docs": "docs",
+    "show_toc_level": 9,
     "repository_url": "https://github.com/gboehl/econpizza",
     "repository_branch": "main",
     "launch_buttons": {
-        "binderhub_url": "https://mybinder.org",
         "notebook_interface": "classic",
     },
     "use_edit_page_button": True,
     "use_issues_button": True,
     "use_repository_button": True,
     "use_download_button": True,
+    "use_fullscreen_button": False,
 }
 
 autoclass_content = "both"

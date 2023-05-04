@@ -38,9 +38,9 @@ Citation
 --------
 .. code-block:: bibtex
 
-    @Misc{boehl2022pizza,
-    title         = {Robust Nonlinear Transition Dynamics in HANK},
-    author        = {Boehl, Gregor},
-    howpublished  = {\url{https://gregorboehl.com/live/hank_speed_boehl.pdf}},
-    year = {2023}
+    @article{boehl2023goodpizza,
+        title       = {Robust Nonlinear Transition Dynamics in HANK},
+        author      = {Boehl, Gregor},
+        journal     = {Available at SSRN 4433585},
+        year        = {2023}
     }

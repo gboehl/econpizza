@@ -41,21 +41,21 @@ def find_path_stacking(
     shock : tuple, optional
         shock in period 0 as in `(shock_name_as_str, shock_size)`
     init_state : array, optional
-        tial state
+        initial state, defaults to the steady state values
     init_dist : array, optional
-        tial distribution
+        initial distribution, defaults to the steady state distribution
     pars : dict, optional
         alternative parameters. Warning: do only change those parameters that are invariant to the steady state.
     horizon : int, optional
-        number of periods until the system is assumed to be back in the steady state. Defaults to 200
+        number of periods until the system is assumed to be back in the steady state. Defaults to ``200``
     use_solid_solver : bool, optional
-        calculate the full jacobian and use a standard Newton method. Defaults to False
+        calculate the full jacobian and use a standard Newton method. Defaults to ``False``
     skip_jacobian : bool, optional
-        whether to skip the calculation of the steady state sequence space Jacobian. If True, the last cached Jacobian will be used. Defaults to False
+        whether to skip the calculation of the steady state sequence space Jacobian. If True, the last cached Jacobian will be used. Defaults to ``False``
     verbose : bool, optional
-        degree of verbosity. 0/`False` is silent
+        degree of verbosity. ``0``/``False`` is silent. Defaults to ``False``
     raise_errors : bool, optional
-        whether to raise errors as exceptions, or just inform about them. Defaults to `True`
+        whether to raise errors as exceptions, or just inform about them. Defaults to ``True``
     newton_args : optional
         any additional arguments to be passed on to the Newton solver (see the documentations of the solvers)
 
@@ -64,7 +64,7 @@ def find_path_stacking(
     x : array
         array of the trajectory
     flag : bool
-        returns False if the solver was successful, else True
+        Error flag. Returns `False` if the solver was successful, otherwise returns `True`
     """
 
     st = time.time()

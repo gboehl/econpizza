@@ -56,15 +56,15 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     tol : float, optional
         tolerance of the Newton method, defaults to ``1e-8``
     maxit : int, optional
-        maximum of iterations for the Newton method, defaults to 15
+        maximum of iterations for the Newton method, defaults to ``15``
     tol_backwards : float, optional
         tolerance required for backward iteration. Defaults to ``tol``
     maxit_backwards : int, optional
-        maximum of iterations for the backward iteration. Defaults to 2000
+        maximum of iterations for the backward iteration. Defaults to ``2000``
     tol_forwards : float, optional
         tolerance required for forward iteration. Defaults to ``tol*1e-2``
     maxit_forwards : int, optional
-        maximum of iterations for the forward iteration. Defaults to 5000
+        maximum of iterations for the forward iteration. Defaults to ``5000``
     force : bool, optional
         force recalculation of steady state, even if it is already evaluated. Defaults to ``False``
     raise_errors : bool, optional

@@ -156,9 +156,9 @@ def newton_for_banded_jac(jav_func, nvars, horizon, X, shocks, verbose, maxit=30
             break
 
     if not success:
-        mess += f"Max. error is {err:1.2e}."
+        mess += f" Max. error is {err:1.2e}."
 
-    return X, False, ''
+    return X, not success, mess
 
 
 def newton_jax_jit_wrapper(func, init, **args):

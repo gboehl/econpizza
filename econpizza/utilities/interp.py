@@ -7,7 +7,7 @@ from functools import partial
 from jax._src.typing import Array
 
 
-interpolate_numpy = jnp.vectorize(jnp.interp, signature='(n),(nq),(n)->(nq)')
+interpolate_numpy = jnp.vectorize(jnp.interp, signature='(nq),(n),(n)->(nq)')
 
 
 @partial(jnp.vectorize, signature='(n),(nq),(n)->(nq)')

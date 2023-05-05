@@ -170,7 +170,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     if mess:
         not_var_nor_par = list(
             set(model['steady_state']['fixed_values']) - set(evars) - set(par_names))
-        mess += f"Fixed value(s) ``{'``, ``'.join(not_var_nor_par)}`` not defined. " if not_var_nor_par else ''
+        mess += f"Fixed value(s) ``{'``, ``'.join(not_var_nor_par)}`` not declared. " if not_var_nor_par else ''
 
     if err > tol or not res['success']:
         if not res["success"] or raise_errors:

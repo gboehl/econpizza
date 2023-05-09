@@ -44,12 +44,13 @@ def jvp_while_body(carry):
             (1e8, iteration_tol, nsteps))
     (y, dampening, fev_inner), _, (err_inner, _, _) = jax.lax.while_loop(
         iteration_cond, iteration_step, init)
-    return (x-y, amax(f), dampening, cnt+1, fev+fev_inner, err_inner), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)
+    return (x-y, f, dampening, cnt+1, fev+fev_inner, err_inner), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)
 
 
 def jvp_while_cond(carry):
-    (_, err, dampening, cnt, fev, err_inner), (_,
-                                               _, maxit, nsteps, tol, _, verbose) = carry
+    (_, f, dampening, cnt, fev, err_inner), (_,
+                                             _, maxit, nsteps, tol, _, verbose) = carry
+    err = amax(f)
     cond = jnp.logical_and(err > tol, cnt < maxit)
     verbose = jnp.logical_and(cond, verbose)
     verbose = jnp.logical_and(fev, verbose)
@@ -107,8 +108,9 @@ def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=20, nste
     start_time = time.time()
     x = x_init[1:-1].flatten()
 
-    (x, err, dampening, cnt, fev, err_inner), _ = jax.lax.while_loop(jvp_while_cond, jvp_while_body,
-                                                                     ((x, 1., 0., 0, 0, 0), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)))
+    (x, f, dampening, cnt, fev, err_inner), _ = jax.lax.while_loop(jvp_while_cond, jvp_while_body,
+                                                                   ((x, x, 0., 0, 0, 0), (jvp_func, jacobian, maxit, nsteps, tol, factor, verbose)))
+    err = amax(f)
     ltime = time.time() - start_time
     callback_with_damp(cnt, err, fev=fev, err_inner=err_inner,
                        dampening=dampening, ltime=ltime, verbose=verbose)
@@ -117,7 +119,7 @@ def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=20, nste
     if not success and not jnp.isnan(err):
         mess += f" Max. error is {err:1.2e}."
 
-    return x, not success, mess
+    return x, f, not success, mess
 
 
 def newton_for_banded_jac(jav_func, nvars, horizon, X, shocks, verbose, maxit=30, tol=1e-8):
@@ -158,7 +160,7 @@ def newton_for_banded_jac(jav_func, nvars, horizon, X, shocks, verbose, maxit=30
     if not success:
         mess += f" Max. error is {err:1.2e}."
 
-    return X, not success, mess
+    return X, out, not success, mess
 
 
 def newton_jax_jit_wrapper(func, init, **args):
@@ -178,4 +180,4 @@ def newton_jax_jit_wrapper(func, init, **args):
     # compile error/report message
     if not success and not jnp.isnan(err):
         mess += f" Max. error is {err:1.2e}."
-    return x, flag, mess
+    return x, f, flag, mess

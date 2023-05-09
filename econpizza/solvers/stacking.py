@@ -108,7 +108,7 @@ def find_path_stacking(
 
         # actual newton iterations
         jav_func_eqns_partial = model['context']['jav_func']
-        x_out, flag, mess = newton_for_banded_jac(
+        x_out, f, flag, mess = newton_for_banded_jac(
             jav_func_eqns_partial, nvars, horizon, x_init, shock_series, verbose, **newton_args)
 
     else:
@@ -133,13 +133,13 @@ def find_path_stacking(
         if not use_solid_solver:
             jacobian = model['cache']['jac_factorized']
             # actual newton iterations
-            x, flag, mess = newton_for_jvp(
+            x, f, flag, mess = newton_for_jvp(
                 jvp_partial, jacobian, x_init, verbose, **newton_args)
         else:
             # define function returning value and jacobian calculated in slices
             value_and_jac_func = get_jac_and_value_sliced(
                 (horizon-1)*nvars, jvp_partial, newton_args)
-            x, flag, mess = newton_jax_jit_wrapper(
+            x, f, flag, mess = newton_jax_jit_wrapper(
                 value_and_jac_func, x_init[1:-1].flatten(), **newton_args)
         x_out = x_init.at[1:-1].set(x.reshape((horizon - 1, nvars)))
 
@@ -152,4 +152,4 @@ def find_path_stacking(
     elif verbose:
         print(mess)
 
-    return x_out, flag
+    return x_out, (flag, f)

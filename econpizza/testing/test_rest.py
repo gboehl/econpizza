@@ -45,7 +45,7 @@ def test_hank_labor(create=False):
 
     path = os.path.join(filepath, "cache", "hank_labor.npy")
 
-    assert flag == 0
+    assert flag[0] == 0
     if create:
         jnp.save(path, x)
         print(f'Test file updated at {path}')
@@ -67,7 +67,7 @@ def test_solid(create=False):
 
     path = os.path.join(filepath, "cache", "hank_solid.npy")
 
-    assert flag == 0
+    assert flag[0] == 0
     if create:
         jnp.save(path, x)
         print(f'Test file updated at {path}')

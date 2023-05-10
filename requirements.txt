@@ -4,3 +4,7 @@ jaxlib
 grgrjax>=0.4.3
 scipy
 pyyaml
+pytest
+testbook
+ipykernel
+grgrlib

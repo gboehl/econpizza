@@ -1,6 +1,8 @@
 Installation
 ============
 
+The package is under active development. Stable releases can be installed from the official Python repositories, which are updated frequently. The `changelog and release history <https://github.com/gboehl/econpizza/releases>`_ can be found on GitHub.
+
 On Linux & MacOS
 ----------------
 

@@ -1,5 +1,6 @@
 """Functions that write other functions.
 """
+import re
 import jax
 from .build_functions import func_forw_generic, func_forw_stst_generic
 
@@ -84,11 +85,13 @@ def compile_eqn_func_str(evars, eqns, par, eqns_aux, shocks, distributions, deci
 
     # start compiling root_container
     for i, eqn in enumerate(eqns):
-        if "=" in eqn:
-            lhs, rhs = eqn.split("=")
-            eqns[i] = f"root_container{i} = {lhs} - ({rhs})"
-        else:
+        eqsplit = re.split("(?<!=)=(?!=)", eqn)
+        if len(eqsplit) == 1:
             eqns[i] = f"root_container{i} = {eqn}"
+        elif len(eqsplit) == 2:
+            eqns[i] = f"root_container{i} = {eqsplit[0]} - ({eqsplit[1]})"
+        else:
+            raise SyntaxError(f'More than one " = " in equation {i}: "{eqn}"')
 
     if isinstance(eqns_aux, str):
         eqns_aux = eqns_aux.splitlines()

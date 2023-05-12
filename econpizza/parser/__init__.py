@@ -87,6 +87,7 @@ def _eval_strs(vdict, context={}):
         return None
     else:
         vdict = vdict.copy()
+    context = context.copy()
 
     for v in vdict:
         if isinstance(vdict[v], str):
@@ -95,7 +96,7 @@ def _eval_strs(vdict, context={}):
         else:
             context[v] = vdict[v]
 
-    return vdict
+    return vdict, context
 
 
 def _parse_external_functions_file(model):
@@ -233,14 +234,14 @@ def compile_stst_inputs(model):
     # collect fixed values and ensure ordering and lenght is fine
     fixed_values = _define_subdict_if_absent(
         model["steady_state"], "fixed_values")
-    fixed_values_evaluated = _eval_strs(fixed_values, context=context)
+    fixed_values_evaluated, context = _eval_strs(fixed_values, context=context)
     fixed_values_names = tuple(
         sorted([k for k in fixed_values_evaluated if k in par_names or k in evars]))
     fixed_evaluated = {
         k: fixed_values_evaluated[k] for k in fixed_values_names}
 
     # collect initial guesses
-    init_guesses = _eval_strs(model["steady_state"].get(
+    init_guesses, context = _eval_strs(model["steady_state"].get(
         "init_guesses"), context=context)
     init_vals = _compile_init_values(
         evars, par_names, init_guesses, fixed_evaluated)
@@ -317,11 +318,13 @@ def load(
     model['cache'] = _initialize_cache()
     _load_external_functions_file(model, model['context'])
 
-    # compile definitions
+    # compile definitions & globals
     defs = model.get("definitions")
     defs = '' if defs is None else defs
     defs = '\n'.join(defs) if isinstance(defs, list) else defs
     exec(defs, model['context'])
+    _ = _define_subdict_if_absent(model, "globals")
+    model['context'].update(model['globals'])
     # get aggregate equations
     eqns = model["equations"].copy()
 

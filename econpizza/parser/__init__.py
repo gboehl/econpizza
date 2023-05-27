@@ -318,13 +318,13 @@ def load(
     model['cache'] = _initialize_cache()
     _load_external_functions_file(model, model['context'])
 
-    # compile definitions & globals
+    # compile globals & definitions
+    _ = _define_subdict_if_absent(model, "globals")
+    model['context'].update(model['globals'])
     defs = model.get("definitions")
     defs = '' if defs is None else defs
     defs = '\n'.join(defs) if isinstance(defs, list) else defs
     exec(defs, model['context'])
-    _ = _define_subdict_if_absent(model, "globals")
-    model['context'].update(model['globals'])
     # get aggregate equations
     eqns = model["equations"].copy()
 

@@ -5,7 +5,7 @@
 name: 'nk_capital'
 description: 'A medium scale NK model with capital, capital adjustement costs, capital utilization costs, and habits'
 variables: [ y, c, pi, R, Rn, Rk, beta, w, q, mc, k, i, n, z, eps_i, eps_u, lamda, g, b, qb, t, ds, bprof, dd, MPK, cap_util, cap_util_costs, y_prod, pitilde, piwntilde, piwn, price_markup, wage_markup, Rstar, wn, div ]
-parameters: [ theta, kappa, delta, alpha, h, psi_i, psi_p, psi_w, phi_pi, phi_y, rho, sigma_l, chi, psi_u, omega_p, omega_w, theta_w, iota_w, elb, rho_beta, rho_z, rho_g, rho_p, rho_w, rho_i, rho_r ]
+parameters: [ theta, kappa, delta, alpha, h, psi_i, psi_p, psi_w, phi_pi, phi_y, rho, sigma_l, chi, psi_u, omega_p, omega_w, theta_w, iota_w, elb, rho_beta, rho_z, rho_g, rho_p, rho_w, rho_i, rho_r, rho_u ]
 shocks: [ e_beta, e_z, e_g, e_p, e_w, e_i, e_r, e_u ]
 
 equations:

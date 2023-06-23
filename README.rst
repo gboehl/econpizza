@@ -28,9 +28,16 @@ The package builds heavily on `automatic differentiation <https://en.wikipedia.o
 Documentation
 -------------
 
+Installing the `repository version <https://pypi.org/project/econpizza/>`_ from PyPi is as simple as typing
+
+.. code-block:: bash
+
+   pip install econpizza
+
+in your terminal or Anaconda Prompt.
+
 Guides and tutorials are provided on ReadTheDocs:
 
- * `Installation <https://econpizza.readthedocs.io/en/stable/guide/installation.html>`_
  * `User guide <https://econpizza.readthedocs.io/en/stable/index.html>`_
  * `Quickstart tutorial <https://econpizza.readthedocs.io/en/stable/tutorial/quickstart.html>`_
 

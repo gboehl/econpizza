@@ -1,7 +1,7 @@
 Installation
 ============
 
-The package is under active development. Stable releases can be installed from the official Python repositories, which are updated frequently. The `changelog and release history <https://github.com/gboehl/econpizza/releases>`_ can be found on GitHub.
+The package is under active development. Stable releases can be installed from the official Python repositories, which are updated frequently.
 
 Installing the `repository version <https://pypi.org/project/econpizza/>`_ from PyPi is as simple as typing
 
@@ -12,3 +12,4 @@ Installing the `repository version <https://pypi.org/project/econpizza/>`_ from 
 in your terminal or Anaconda Prompt.
 
 The current version is supporting Python versions 3.9 to 3.11 on Windows, Mac and Linux.
+The `changelog and release history <https://github.com/gboehl/econpizza/releases>`_ can be found on GitHub.

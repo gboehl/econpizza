@@ -18,7 +18,7 @@ definitions: |
     from econpizza.tools import percentile, jax_print
 
 # these lists define the relevant models objects
-variables: [ div, y, y_prod, w, pi, R, Rn, Rr, Rstar, tax, z, beta, C, n, B, Top10C, Top10A ]
+variables: [ div, mc, y, y_prod, w, pi, R, Rn, Rr, Rstar, tax, z, beta, C, n, B, Top10C, Top10A ]
 parameters: [ sigma_c, sigma_l, theta, psi, phi_pi, phi_y, rho, rho_beta, rho_r, rho_z ]
 shocks: [ e_beta, e_rstar, e_z ]
 
@@ -89,7 +89,8 @@ equations:
     ~ n = y_prod/z # production function
     ~ div = -w*n + (1 - psi*(pi/piSS - 1)**2/2)*y_prod # dividends
     ~ y = (1 - psi*(pi/piSS - 1)**2/2)*y_prod # "effective" output
-    ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*piPrime/R*(piPrime/piSS - 1)*piPrime/piSS*y_prodPrime/y_prod # NKPC
+    ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*mc + psi*piPrime/R*(piPrime/piSS - 1)*piPrime/piSS*y_prodPrime/y_prod # NKPC
+    ~ mc = w/z # marginal costs
 
     # government
     ~ tax = (Rr-1)*BLag # balanced budget
@@ -129,10 +130,11 @@ steady_state:
         beta: 0.98 # discount factor
         B: 5.6 # bond supply
         # definitions can be recursive: theta is defined above
-        w: (theta-1)/theta # wages
-        n: w**(1/sigma_l) # labor supply
-        div: 1 - w*n # dividends
-        z: y/n # technology
+        mc: (theta-1)/theta # marginal costs
+        #w: mc*z # wages
+        #n: w**(1/sigma_l) # labor supply
+        #div: 1 - w*n # dividends
+        #z: y/n # technology
 
     init_guesses:
         Rstar: 1.002 # steady state target rage

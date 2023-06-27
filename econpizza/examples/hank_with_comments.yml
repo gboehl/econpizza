@@ -131,10 +131,10 @@ steady_state:
         B: 5.6 # bond supply
         # definitions can be recursive: theta is defined above
         mc: (theta-1)/theta # marginal costs
-        #w: mc*z # wages
-        #n: w**(1/sigma_l) # labor supply
-        #div: 1 - w*n # dividends
-        #z: y/n # technology
+        w: (mc*y)**(sigma_l/(1+sigma_l)) # wages
+        n: w**(1/sigma_l) # labor supply
+        z: y/n # technology
+        div: 1 - w*n # dividends
 
     init_guesses:
         Rstar: 1.002 # steady state target rage

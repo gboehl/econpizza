@@ -5,7 +5,7 @@ econpizza:
 
 .. image:: https://img.shields.io/badge/GitHub-gboehl%2Feconpizza-blue.svg?style=flat
     :target: https://github.com/gboehl/econpizza
-.. image:: https://github.com/dfm/emcee/workflows/Tests/badge.svg
+.. image:: https://github.com/gboehl/econpizza/actions/workflows/continuous-integration.yml/badge.svg
     :target: https://github.com/gboehl/econpizza/actions
 .. image:: https://readthedocs.org/projects/econpizza/badge/?version=latest
     :target: http://econpizza.readthedocs.io/en/latest/?badge=latest

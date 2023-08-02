@@ -15,14 +15,14 @@ def solver(jval, fval):
     return jnp.linalg.pinv(jval) @ fval
 
 
-def _get_stst_dist_objs(model, res, maxit_backwards, maxit_forwards):
+def _get_stst_dist_objs(self, res, maxit_backwards, maxit_forwards):
     """Get the steady state distribution and decision outputs, which is an auxilliary output of the steady state function. Compile error messages if things go wrong.
     """
 
     res_backw, res_forw = res['aux']
     wfSS, decisions_output, cnt_backwards = res_backw
     distSS, cnt_forwards = res_forw
-    decisions_output_names = model['decisions']['outputs']
+    decisions_output_names = self['decisions']['outputs']
 
     # compile informative message
     mess = ''
@@ -38,21 +38,19 @@ def _get_stst_dist_objs(model, res, maxit_backwards, maxit_forwards):
         mess += f'Maximum of {maxit_forwards} forwards calls reached. '
 
     # TODO: this should loop over the objects in distSS/wfSS and store under the name of the distribution/decisions (i.e. 'D' or 'Va')
-    model['steady_state']["distributions"] = distSS
-    model['steady_state']['value_functions'] = wfSS
-    model['steady_state']['decisions'] = {
+    self['steady_state']["distributions"] = distSS
+    self['steady_state']['value_functions'] = wfSS
+    self['steady_state']['decisions'] = {
         oput: decisions_output[i] for i, oput in enumerate(decisions_output_names)}
 
     return mess
 
 
-def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, raise_errors=True, check_rank=False, verbose=True, **newton_kwargs):
+def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=2000, tol_forwards=None, maxit_forwards=5000, force=False, raise_errors=True, check_rank=False, verbose=True, **newton_kwargs):
     """Solves for the steady state.
 
     Parameters
     ----------
-    model : PizzaModel
-        PizzaModel instance
     tol : float, optional
         tolerance of the Newton method, defaults to ``1e-8``
     maxit : int, optional
@@ -83,9 +81,9 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     """
 
     st = time.time()
-    evars = model["variables"]
-    par_names = model["parameters"]
-    shocks = model.get("shocks") or ()
+    evars = self["variables"]
+    par_names = self["parameters"]
+    shocks = self.get("shocks") or ()
 
     # default setup
     tol_backwards = tol if tol_backwards is None else tol_backwards
@@ -94,38 +92,38 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
 
     # parse and compile steady_state section from yaml
     init_vals, fixed_vals, init_wf, pre_stst_mapping = compile_stst_inputs(
-        model)
+        self)
 
     # check if model is already cached
     key = str(f'{setup};{d2jnp(fixed_vals)};{d2jnp(init_vals)};{init_wf.sum()}')
-    cache = model['cache']
-    if key in model['cache']['steady_state_keys'] and not force:
-        model['steady_state'] = cache['steady_state'][cache['steady_state_keys'].index(
+    cache = self['cache']
+    if key in self['cache']['steady_state_keys'] and not force:
+        self['steady_state'] = cache['steady_state'][cache['steady_state_keys'].index(
             key)]
-        model["stst"], model["pars"] = deepcopy(
-            model['steady_state']["values_and_pars"])
+        self["stst"], self["pars"] = deepcopy(
+            self['steady_state']["values_and_pars"])
         if verbose:
             print(
-                f"(solve_stst:) Steady state already {'known' if model['steady_state']['newton_result']['success'] else 'FAILED'}.")
-        return model["steady_state"]["newton_result"]
+                f"(solve_stst:) Steady state already {'known' if self['steady_state']['newton_result']['success'] else 'FAILED'}.")
+        return self["steady_state"]["newton_result"]
 
     # get all necessary functions
-    func_eqns = model['context']['func_eqns']
-    func_backw = model['context'].get('func_backw')
-    func_forw_stst = model['context'].get('func_forw_stst')
-    func_pre_stst = model['context']['func_pre_stst']
+    func_eqns = self['context']['func_eqns']
+    func_backw = self['context'].get('func_backw')
+    func_forw_stst = self['context'].get('func_forw_stst')
+    func_pre_stst = self['context']['func_pre_stst']
 
     # get initial values for heterogenous agents
-    decisions_output_init = model['context']['init_run'].get(
+    decisions_output_init = self['context']['init_run'].get(
         'decisions_output')
 
     # get the actual steady state function
     func_stst = get_func_stst(func_backw, func_forw_stst, func_eqns, shocks, init_wf, decisions_output_init, fixed_values=d2jnp(
         fixed_vals), pre_stst_mapping=pre_stst_mapping, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
     # store jitted stst function that returns jacobian and func. value
-    model["context"]['func_stst'] = func_stst
+    self["context"]['func_stst'] = func_stst
 
-    if not model['steady_state'].get('skip'):
+    if not self['steady_state'].get('skip'):
         # actual root finding
         res = newton_jax(func_stst, d2jnp(init_vals), maxit, tol,
                          solver=solver, verbose=verbose, **newton_kwargs)
@@ -144,19 +142,19 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
         res['x'], d2jnp(fixed_vals), pre_stst_mapping)
     res['initial_values'] = {'guesses': init_vals, 'fixed': fixed_vals}
 
-    model["stst"] = dict(zip(evars, stst_vals))
-    model["pars"] = dict(zip(par_names, par_vals))
-    model['steady_state']["newton_result"] = res
-    model['steady_state']["values_and_pars"] = deepcopy(
-        model["stst"]), deepcopy(model["pars"])
+    self["stst"] = dict(zip(evars, stst_vals))
+    self["pars"] = dict(zip(par_names, par_vals))
+    self['steady_state']["newton_result"] = res
+    self['steady_state']["values_and_pars"] = deepcopy(
+        self["stst"]), deepcopy(self["pars"])
 
     # calculate dist objects and compile message
-    mess = _get_stst_dist_objs(model, res, maxit_backwards,
-                               maxit_forwards) if model.get('distributions') else ''
+    mess = _get_stst_dist_objs(self, res, maxit_backwards,
+                               maxit_forwards) if self.get('distributions') else ''
     # calculate error
     err, errarg = amax(res['fun'], True)
 
-    if err > tol and model['steady_state'].get('skip'):
+    if err > tol and self['steady_state'].get('skip'):
         mess += f"They do not satisfy the required tolerance."
     elif err > tol or not res['success'] or check_rank:
         rank = jnp.linalg.matrix_rank(res['jac'])
@@ -169,7 +167,7 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
     # check if any of the fixed variables are neither a parameter nor variable
     if mess:
         not_var_nor_par = list(
-            set(model['steady_state']['fixed_values']) - set(evars) - set(par_names))
+            set(self['steady_state']['fixed_values']) - set(evars) - set(par_names))
         mess += f"Fixed value(s) ``{'``, ``'.join(not_var_nor_par)}`` not declared. " if not_var_nor_par else ''
 
     if err > tol or not res['success']:
@@ -187,8 +185,8 @@ def solve_stst(model, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=20
             ' WARNING: ' + mess if mess else '')
 
     # cache everything if search was successful
-    model['cache']['steady_state'] += model['steady_state'],
-    model['cache']['steady_state_keys'] += key,
+    self['cache']['steady_state'] += self['steady_state'],
+    self['cache']['steady_state_keys'] += key,
 
     if mess:
         print(f"(solve_stst:) {mess}")

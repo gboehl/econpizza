@@ -269,7 +269,7 @@ def compile_stst_inputs(model):
 
 
 def load(
-    model,
+    model_ref,
     raise_errors=True,
     verbose=True
 ):
@@ -277,7 +277,7 @@ def load(
 
     Parameters
     ----------
-    model : dict or string
+    model_ref : dict or string
         either a dictionary or the path to a YAML file to be parsed
     raise_errors : bool, optional
         whether to raise errors while checking. False will let the model fail siliently for debugging. Defaults to True
@@ -294,13 +294,13 @@ def load(
     from ..__init__ import PizzaModel
 
     # parse if this is a path to yaml file
-    if isinstance(model, str):
-        full_path = model
-        model = parse(model)
-        model['path'] = full_path
+    if isinstance(model_ref, str):
+        full_path = model_ref
+        model_ref = parse(model_ref)
+        model_ref['path'] = full_path
 
     # define the model dictionary as key for cached models
-    mdict = deepcopy(model)
+    mdict = deepcopy(model_ref)
     stst_subdict = mdict.pop('steady_state') if 'steady_state' in mdict else {}
     # check if model is already cached
     if mdict in cached_mdicts:
@@ -312,7 +312,7 @@ def load(
         return model
 
     # make it a model
-    model = PizzaModel(model)
+    model = PizzaModel(model_ref)
     # initialize objects
     model['context'] = _initialize_context()
     model['cache'] = _initialize_cache()

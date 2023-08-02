@@ -20,7 +20,7 @@ def write_cache(model, horizon, pars, stst):
 
 
 def find_path_stacking(
-    model,
+    self,
     shock=None,
     init_state=None,
     init_dist=None,
@@ -36,8 +36,6 @@ def find_path_stacking(
 
     Parameters
     ----------
-    model : PizzaModel
-        PizzaModel instance
     shock : tuple, optional
         shock in period 0 as in `(shock_name_as_str, shock_size)`
     init_state : array, optional
@@ -69,19 +67,19 @@ def find_path_stacking(
 
     st = time.time()
     # only skip jacobian calculation if it exists
-    skip_jacobian = skip_jacobian if model['cache'].get(
+    skip_jacobian = skip_jacobian if self['cache'].get(
         'jac_factorized') else False
 
     # get variables
-    stst = d2jnp(model["stst"])
-    nvars = len(model["variables"])
-    pars = d2jnp(pars if pars is not None else model["pars"])
-    shocks = model.get("shocks") or ()
+    stst = d2jnp(self["stst"])
+    nvars = len(self["variables"])
+    pars = d2jnp(pars if pars is not None else self["pars"])
+    shocks = self.get("shocks") or ()
 
     # get initial guess
     x0 = jnp.array(list(init_state)) if init_state is not None else stst
     dist0 = jnp.array(init_dist) if init_dist is not None else jnp.array(
-        model['steady_state'].get('distributions'))
+        self['steady_state'].get('distributions'))
     x_stst = jnp.ones((horizon + 1, nvars)) * stst
     x_init = x_stst.at[0].set(x0)
 
@@ -94,44 +92,44 @@ def find_path_stacking(
         except ValueError:
             raise ValueError(f"Shock '{shock[0]}' is not defined.")
 
-    if not model.get('distributions'):
+    if not self.get('distributions'):
 
-        if not check_if_compiled(model, horizon, pars, stst) or not model['context'].get('jav_func'):
+        if not check_if_compiled(self, horizon, pars, stst) or not self['context'].get('jav_func'):
             # get transition function
-            func_eqns = model['context']["func_eqns"]
+            func_eqns = self['context']["func_eqns"]
             jav_func_eqns = val_and_jacrev(func_eqns, (0, 1, 2))
             jav_func_eqns_partial = jax.tree_util.Partial(
                 jav_func_eqns, XSS=stst, pars=pars, distributions=[], decisions_outputs=[])
-            model['context']['jav_func'] = jav_func_eqns_partial
+            self['context']['jav_func'] = jav_func_eqns_partial
             # mark as compiled
-            write_cache(model, horizon, pars, stst)
+            write_cache(self, horizon, pars, stst)
 
         # actual newton iterations
-        jav_func_eqns_partial = model['context']['jav_func']
+        jav_func_eqns_partial = self['context']['jav_func']
         x_out, f, flag, mess = newton_for_banded_jac(
             jav_func_eqns_partial, nvars, horizon, x_init, shock_series, verbose, **newton_args)
 
     else:
-        if not check_if_compiled(model, horizon, pars, stst) or not model['context'].get('jvp_func'):
+        if not check_if_compiled(self, horizon, pars, stst) or not self['context'].get('jvp_func'):
             # get derivatives via AD and compile functions
             zero_shocks = jnp.zeros_like(shock_series).T
-            build_aggr_het_agent_funcs(model, jnp.zeros_like(
+            build_aggr_het_agent_funcs(self, jnp.zeros_like(
                 pars), nvars, stst, zero_shocks, horizon)
 
             if not use_solid_solver and not skip_jacobian:
                 # get steady state partial jacobians
                 derivatives = get_stst_derivatives(
-                    model, nvars, pars, stst, x_stst, zero_shocks, horizon, verbose)
+                    self, nvars, pars, stst, x_stst, zero_shocks, horizon, verbose)
                 # accumulate steady stat jacobian
-                get_stst_jacobian(model, derivatives, horizon, nvars, verbose)
+                get_stst_jacobian(self, derivatives, horizon, nvars, verbose)
             # mark as compiled
-            write_cache(model, horizon, pars, stst)
+            write_cache(self, horizon, pars, stst)
 
         # get jvp function and steady state jacobian
         jvp_partial = jax.tree_util.Partial(
-            model['context']['jvp_func'], x0=x0, dist0=dist0, shocks=shock_series.T, pars=pars)
+            self['context']['jvp_func'], x0=x0, dist0=dist0, shocks=shock_series.T, pars=pars)
         if not use_solid_solver:
-            jacobian = model['cache']['jac_factorized']
+            jacobian = self['cache']['jac_factorized']
             # actual newton iterations
             x, f, flag, mess = newton_for_jvp(
                 jvp_partial, jacobian, x_init, verbose, **newton_args)

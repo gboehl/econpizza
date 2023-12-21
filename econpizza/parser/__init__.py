@@ -344,6 +344,9 @@ def load(
     _ = _define_subdict_if_absent(model, "func_strings")
     _ = _define_subdict_if_absent(model, "steady_state")
     par_names = _define_subdict_if_absent(model, "parameters")
+    if 'lambda' in evars + par_names:
+        raise NameError(
+            "Variables or parameters must not use the name of python's build-in functions \"lambda\".")
     if isinstance(par_names, dict):
         raise TypeError(
             f'parameters must be a list and not {type(par_names)}.')

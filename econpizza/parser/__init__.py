@@ -84,7 +84,7 @@ def _eval_strs(vdict, context={}):
     """
 
     if vdict is None:
-        return None
+        return None, context
     else:
         vdict = vdict.copy()
     context = context.copy()

@@ -23,7 +23,8 @@ The YAML files follow a simple structure:
 4. optionally provide auxiliary equations that are not directly part of the nonlinear system
 5. optionally provide initial guesses for all other steady state values and parameters
 
-I will first briefly discuss the YAML of the small scale *representative* agents NK model `from the quickstart tutorial <../tutorial/quickstart.ipynb>`_ and then turn to a more complex HANK model.
+I will first briefly discuss `the YAML <https://github.com/gboehl/econpizza/blob/master/econpizza/examples/nk.yml>`_ of the small scale *representative* agents NK model `from the quickstart tutorial <../tutorial/quickstart.ipynb>`_ and then turn to a more complex HANK model.
+A collection of examples is provided `with the package <https://github.com/gboehl/econpizza/tree/master/econpizza/examples>`_.
 
 YAML: representative agent models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

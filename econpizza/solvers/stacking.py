@@ -78,8 +78,9 @@ def find_path_stacking(
 
     # get initial guess
     x0 = jnp.array(list(init_state)) if init_state is not None else stst
-    dist0 = jnp.array(init_dist) if init_dist is not None else jnp.array(
-        self['steady_state'].get('distributions'))
+    init_dist = init_dist if init_dist is not None else self['steady_state'].get(
+        'distributions')
+    dist0 = jnp.array(init_dist if init_dist is not None else jnp.nan)
     x_stst = jnp.ones((horizon + 1, nvars)) * stst
     x_init = x_stst.at[0].set(x0)
 

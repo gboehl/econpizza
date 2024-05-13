@@ -1,8 +1,5 @@
 econpizza
 =========
-
-**Solve nonlinear heterogeneous agent models using automatic differentiation**
-
 .. |badge0| image:: https://img.shields.io/badge/GitHub-gboehl%2Feconpizza-blue.svg?style=flat
     :target: https://github.com/gboehl/econpizza
 .. |badge1| image:: https://github.com/gboehl/econpizza/actions/workflows/continuous-integration.yml/badge.svg
@@ -14,6 +11,7 @@ econpizza
 
 |badge0| |badge1| |badge2| |badge3|
 
+**Solve nonlinear heterogeneous agent models using automatic differentiation**
 
 Econpizza is a framework to solve and simulate **fully nonlinear** perfect foresight models, with or without heterogeneous agents.
 The package implements the solution method proposed in `HANK on Speed: Robust Nonlinear Solutions using Automatic Differentiation <https://gregorboehl.com/live/hank_speed_boehl.pdf>`_ *(Gregor Boehl, 2023, SSRN No. 4433585)*.

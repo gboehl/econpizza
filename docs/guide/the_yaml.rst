@@ -33,14 +33,14 @@ The GitHub version of the YAML file for the small scale NK model can be found `h
 
 .. code-block:: yaml
 
-    variables: [y, c, pi, r, rn, beta, w, chi]
+    variables: [y, c, pi, r, rn, beta, w]
     shocks: [e_beta]
 
 Note that it is not necessary to define shocks. You can also simply set the initial values of any (exogenous) state.
 
 .. code-block:: yaml
 
-    parameters: [ theta, psi, phi_pi, phi_y, rho, h, eta, rho_beta, chi ]
+    parameters: [ theta, psi, phi_pi, phi_y, rho, h, sigma_l, rho_beta, chi ]
 
 Use the ``parameters`` block to define any *parameters*. Parameters are treated the same as variables, but they are time invariant. During steady state search they are treated exactly equally. For this reason their values are provided in the ``steady_state`` block.
 
@@ -54,7 +54,7 @@ The second block (``definitions``) defines general definitions and imports, whic
 .. code-block:: yaml
 
     equations:
-        ~ w = chi*(c - h*cLag)*y**eta  # labor supply
+        ~ w = chi*(c - h*cLag)*y**sigma_l  # labor supply
         ~ 1 = r*betaPrime*(c - h*cLag)/(cPrime - h*c)/piPrime  # euler equation
         ~ psi*(pi/piSS - 1)*pi/piSS = (1-theta) + theta*w + psi*betaPrime*(c-h*cLag)/(cPrime-h*c)*(piPrime/piSS - 1)*piPrime/piSS*yPrime/y  # Phillips curve
         ~ c = (1-psi*(pi/piSS - 1)**2/2)*y  # market clearing
@@ -71,23 +71,23 @@ Note that you need one equation for each variable defined in ``variables``.
         fixed_values:
             # parameters
             theta: 6.  # demand elasticity
-            psi: 96  # price adjustment costs
-            phi_pi: 4  # monetary policy rule coefficient #1
-            phi_y: 1.5  # monetary policy rule coefficient #2
+            psi: 60  # price adjustment costs
+            phi_pi: 1.5  # monetary policy rule coefficient #1
+            phi_y: 0.1  # monetary policy rule coefficient #2
             rho: .8  # interest rate smoothing
-            h: .44  # habit formation
-            eta: .33  # inverse Frisch elasticity
+            h: .74  # habit formation
+            sigma_l: 2  # inverse Frisch elasticity
             rho_beta: .9  # autocorrelation of discount factor shock
 
             # steady state values
-            beta: 0.9984
+            beta: 0.995
             y: .33
             pi: 1.02^.25
 
-        init_guesses: # the default initial guess is always 1.1
+        init_guesses: # the default initial guess for values not specified here is always 0.95
             chi: 6
 
-Finally, the ``steady_state`` block allows to fix parameters and, if desired, some steady state values, and provide initial guesses for others. Note that the default initial guess for any variable/parameter not specified here will be ``1.1``.
+Finally, the ``steady_state`` block allows to fix parameters and, if desired, some steady state values, and provide initial guesses for others. Note that the default initial guess for any variable/parameter not specified here will be ``0.95``.
 
 
 YAML: heterogeneous agent models

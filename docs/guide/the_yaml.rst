@@ -84,10 +84,10 @@ Note that you need one equation for each variable defined in ``variables``.
             y: .33
             pi: 1.02^.25
 
-        init_guesses: # the default initial guess is always 1.1
+        init_guesses: # the default initial guess for values not specified here is always 0.95
             chi: 6
 
-Finally, the ``steady_state`` block allows to fix parameters and, if desired, some steady state values, and provide initial guesses for others. Note that the default initial guess for any variable/parameter not specified here will be ``1.1``.
+Finally, the ``steady_state`` block allows to fix parameters and, if desired, some steady state values, and provide initial guesses for others. Note that the default initial guess for any variable/parameter not specified here will be ``0.95``.
 
 
 YAML: heterogeneous agent models

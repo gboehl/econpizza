@@ -19,10 +19,6 @@ from .write_dynamic_functions import *
 from .checks import *
 from ..utilities import grids, dists, interp
 
-# initialize model cache
-cached_mdicts = ()
-cached_models = ()
-
 
 def d2jnp(x): return jnp.array(list(x.values()))
 
@@ -130,13 +126,6 @@ def _initialize_context():
 
     context.update(default_funcs)
     return context
-
-
-def _initialize_cache():
-    cache = {}
-    cache['steady_state'] = ()
-    cache['steady_state_keys'] = ()
-    return cache
 
 
 def _load_external_functions_file(model, context):
@@ -290,7 +279,6 @@ def load(
         The parsed model
     """
 
-    global cached_mdicts, cached_models
     from ..__init__ import PizzaModel
 
     # parse if this is a path to yaml file
@@ -299,23 +287,11 @@ def load(
         model_ref = parse(model_ref)
         model_ref['path'] = full_path
 
-    # define the model dictionary as key for cached models
-    mdict = deepcopy(model_ref)
-    stst_subdict = mdict.pop('steady_state') if 'steady_state' in mdict else {}
-    # check if model is already cached
-    if mdict in cached_mdicts:
-        model = copy(cached_models[cached_mdicts.index(mdict)])
-        # always use the fresh current stst sec from yaml
-        model['steady_state'] = stst_subdict
-        if verbose:
-            print("(load:) Loading cached model.")
-        return model
-
     # make it a model
     model = PizzaModel(model_ref)
     # initialize objects
     model['context'] = _initialize_context()
-    model['cache'] = _initialize_cache()
+    model['cache'] = {}
     _load_external_functions_file(model, model['context'])
 
     # compile globals & definitions
@@ -384,9 +360,6 @@ def load(
     except:
         if raise_errors:
             raise
-    # add new model to cache
-    cached_mdicts += (mdict,)
-    cached_models += (model,)
 
     if verbose:
         print("(load:) Parsing done.")

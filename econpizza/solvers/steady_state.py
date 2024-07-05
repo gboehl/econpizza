@@ -129,11 +129,11 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
         res['x'], d2jnp(fixed_vals), pre_stst_mapping)
     res['initial_values'] = {'guesses': init_vals, 'fixed': fixed_vals}
 
-    self["stst"] = dict(zip(evars, stst_vals))
-    self["pars"] = dict(zip(par_names, par_vals))
-    self['steady_state']["newton_result"] = res
-    self['steady_state']["values_and_pars"] = deepcopy(
-        self["stst"]), deepcopy(self["pars"])
+    # store results
+    self['steady_state']['root_finding_result'] = res
+    self['steady_state']['found_values'] = dict(zip(init_vals.keys(),res['x']))
+    self['stst'] = self['steady_state']['all_values'] = dict(zip(evars, stst_vals))
+    self['pars'] = dict(zip(par_names, par_vals))
 
     # calculate dist objects and compile message
     mess = _get_stst_dist_objs(self, res, maxit_backwards,
@@ -149,7 +149,7 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
             nvars = len(evars)+len(par_names)
             nfixed = len(fixed_vals)
             if rank != nvars - nfixed:
-                mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of freedom ({nvars} variables/parameters, {nfixed} fixed). "
+                mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of freedom ({nfixed} out of a total of {nvars} variables/parameters were fixed). "
 
     # check if any of the fixed variables are neither a parameter nor variable
     if mess:

@@ -60,7 +60,7 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
     maxit_backwards : int, optional
         maximum of iterations for the backward iteration. Defaults to ``2000``
     tol_forwards : float, optional
-        tolerance required for forward iteration. Defaults to ``tol*1e-2``
+        tolerance required for forward iteration. Defaults to ``tol*1e-2``. Note that this default is somewhat arbitrary and may not be sufficient.
     maxit_forwards : int, optional
         maximum of iterations for the forward iteration. Defaults to ``5000``
     force : bool, optional
@@ -93,19 +93,6 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
     # parse and compile steady_state section from yaml
     init_vals, fixed_vals, init_wf, pre_stst_mapping = compile_stst_inputs(
         self)
-
-    # check if model is already cached
-    key = str(f'{setup};{d2jnp(fixed_vals)};{d2jnp(init_vals)};{init_wf.sum()}')
-    cache = self['cache']
-    if key in self['cache']['steady_state_keys'] and not force:
-        self['steady_state'] = cache['steady_state'][cache['steady_state_keys'].index(
-            key)]
-        self["stst"], self["pars"] = deepcopy(
-            self['steady_state']["values_and_pars"])
-        if verbose:
-            print(
-                f"(solve_stst:) Steady state already {'known' if self['steady_state']['newton_result']['success'] else 'FAILED'}.")
-        return self["steady_state"]["newton_result"]
 
     # get all necessary functions
     func_eqns = self['context']['func_eqns']
@@ -142,11 +129,11 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
         res['x'], d2jnp(fixed_vals), pre_stst_mapping)
     res['initial_values'] = {'guesses': init_vals, 'fixed': fixed_vals}
 
-    self["stst"] = dict(zip(evars, stst_vals))
-    self["pars"] = dict(zip(par_names, par_vals))
-    self['steady_state']["newton_result"] = res
-    self['steady_state']["values_and_pars"] = deepcopy(
-        self["stst"]), deepcopy(self["pars"])
+    # store results
+    self['steady_state']['root_finding_result'] = res
+    self['steady_state']['found_values'] = dict(zip(init_vals.keys(),res['x']))
+    self['stst'] = self['steady_state']['all_values'] = dict(zip(evars, stst_vals))
+    self['pars'] = dict(zip(par_names, par_vals))
 
     # calculate dist objects and compile message
     mess = _get_stst_dist_objs(self, res, maxit_backwards,
@@ -162,7 +149,7 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
             nvars = len(evars)+len(par_names)
             nfixed = len(fixed_vals)
             if rank != nvars - nfixed:
-                mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of freedom ({nvars} variables/parameters, {nfixed} fixed). "
+                mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of freedom ({nfixed} out of a total of {nvars} variables/parameters were fixed). "
 
     # check if any of the fixed variables are neither a parameter nor variable
     if mess:
@@ -183,10 +170,6 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
         duration = time.time() - st
         mess = f"Steady state found ({duration:1.5g}s). {res['message']}" + (
             ' WARNING: ' + mess if mess else '')
-
-    # cache everything if search was successful
-    self['cache']['steady_state'] += self['steady_state'],
-    self['cache']['steady_state_keys'] += key,
 
     if mess:
         print(f"(solve_stst:) {mess}")

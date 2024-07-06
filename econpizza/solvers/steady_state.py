@@ -91,7 +91,7 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
     setup = tol, maxit, tol_backwards, maxit_backwards, tol_forwards, maxit_forwards
 
     # parse and compile steady_state section from yaml
-    init_vals, fixed_vals, init_wf, pre_stst_mapping = compile_stst_inputs(
+    init_vals, fixed_vals, wf_init, pre_stst_mapping = compile_stst_inputs(
         self)
 
     # get all necessary functions
@@ -105,7 +105,7 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
         'decisions_output')
 
     # get the actual steady state function
-    func_stst = get_func_stst(func_backw, func_forw_stst, func_eqns, shocks, init_wf, decisions_output_init, fixed_values=d2jnp(
+    func_stst = get_func_stst(func_backw, func_forw_stst, func_eqns, shocks, wf_init, decisions_output_init, fixed_values=d2jnp(
         fixed_vals), pre_stst_mapping=pre_stst_mapping, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
     # store jitted stst function that returns jacobian and func. value
     self["context"]['func_stst'] = func_stst
@@ -127,7 +127,7 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
     # exchange those values that are identified via stst_equations
     stst_vals, par_vals = func_pre_stst(
         res['x'], d2jnp(fixed_vals), pre_stst_mapping)
-    res['initial_values'] = {'guesses': init_vals, 'fixed': fixed_vals}
+    res['initial_values'] = {'guesses': init_vals, 'fixed': fixed_vals, 'value_functions': wf_init, 'decisions': decisions_output_init}
 
     # store results
     self['steady_state']['root_finding_result'] = res

@@ -296,7 +296,7 @@ def load(
 
     # compile globals & definitions
     _ = _define_subdict_if_absent(model, "globals")
-    model['context'].update(model['globals'])
+    _, model['context'] = _eval_strs(model['globals'], context=model['context'])
     defs = model.get("definitions")
     defs = '' if defs is None else defs
     defs = '\n'.join(defs) if isinstance(defs, list) else defs

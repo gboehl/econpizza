@@ -62,7 +62,9 @@ class PizzaModel(dict):
                          ) if pars is None else pars
         shocks = self.get("shocks") or ()
         dist_names = list(self['distributions'].keys())
+        decisions_inputs = self['decisions']['inputs']
         decisions_outputs = self['decisions']['outputs']
+
         x = trajectory[1:-1].flatten()
         x0 = trajectory[0]
 
@@ -75,14 +77,13 @@ class PizzaModel(dict):
         # get functions and execute
         backwards_sweep = self['context']['backwards_sweep']
         forwards_sweep = self['context']['forwards_sweep']
-        decisions_output_storage = backwards_sweep(x, x0, shock_series.T, pars)
+        wf_storage, decisions_output_storage = backwards_sweep(x, x0, shock_series.T, pars, return_wf=True)
         dists_storage = forwards_sweep(decisions_output_storage, dist0)
 
         # store this
-        rdict = {oput: decisions_output_storage[i]
-                 for i, oput in enumerate(decisions_outputs)}
-        rdict.update({oput: dists_storage[i]
-                     for i, oput in enumerate(dist_names)})
+        rdict = {oput: wf_storage[i] for i, oput in enumerate(decisions_inputs)}
+        rdict.update({oput: decisions_output_storage[i] for i, oput in enumerate(decisions_outputs)})
+        rdict.update({oput: dists_storage[i] for i, oput in enumerate(dist_names)})
 
         return rdict
 

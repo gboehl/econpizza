@@ -81,7 +81,7 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
     """
 
     st = time.time()
-    evars = self["vars"]
+    evars = self["var_names"]
     par_names = self["par_names"]
     shocks = self.get("shocks") or ()
 

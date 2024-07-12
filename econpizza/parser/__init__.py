@@ -68,7 +68,7 @@ def parse(mfile):
     mdict = yaml.safe_load(mtxt)
     # create nice shortcuts
     mdict['path'] = mfile
-    mdict["vars"] = mdict["variables"]
+    mdict["var_names"] = mdict["variables"]
     # load file with additional functions as module (if it exists)
     _parse_external_functions_file(mdict)
 
@@ -214,7 +214,7 @@ def _get_pre_stst_mapping(init_vals, fixed_values, evars, par_names):
 def compile_stst_inputs(model):
 
     par_names = model["par_names"]
-    evars = model["vars"]
+    evars = model["var_names"]
     context = model["context"]
     # remove old values from model context
     [context.pop(key) for key in par_names if key in context]
@@ -307,7 +307,7 @@ def load(
     # check if there are dublicate variables
     check_dublicates(model["variables"])
     check_dublicates(model.get("parameters"))
-    evars = model["vars"] = check_determinancy(model["variables"], eqns)
+    evars = model["var_names"] = check_determinancy(model["variables"], eqns)
     # check if each variable is defined in time t (only defining xSS does not give a valid root)
     check_if_defined(evars, eqns, model.get('decisions'),
                      model.get('skip_check_if_defined'))

@@ -72,7 +72,7 @@ def find_path_stacking(
 
     # get variables
     stst = d2jnp(self["stst"])
-    nvars = len(self["vars"])
+    nvars = len(self["var_names"])
     pars = d2jnp(pars if pars is not None else self["pars"])
     shocks = self.get("shocks") or ()
 

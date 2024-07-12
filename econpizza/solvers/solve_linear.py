@@ -46,7 +46,7 @@ def find_path_linear(self, shock=None, init_state=None, pars=None, horizon=200, 
 
     # get model variables
     stst = d2jnp(self['stst'])
-    nvars = len(self["variables"])
+    nvars = len(self["vars"])
     pars = d2jnp((pars if pars is not None else self["pars"]))
     shocks = self.get("shocks") or ()
     x_stst = jnp.ones((horizon + 1, nvars)) * stst

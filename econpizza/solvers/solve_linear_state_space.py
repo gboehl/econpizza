@@ -23,7 +23,7 @@ def solve_linear_state_space(
         raise ImportError(
             "'solve_linear_state_space' requires the 'grgrlib' package to be installed.")
 
-    evars = self["variables"]
+    evars = self["vars"]
     func = self['context']["func_eqns"]
     par = jnp.array(list(self["pars"].values()))
     shocks = self.get("shocks") or ()

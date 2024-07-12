@@ -213,8 +213,8 @@ def _get_pre_stst_mapping(init_vals, fixed_values, evars, par_names):
 
 def compile_stst_inputs(model):
 
-    par_names = model["parameters"]
-    evars = model["variables"]
+    par_names = model["par_names"]
+    evars = model["vars"]
     context = model["context"]
     # remove old values from model context
     [context.pop(key) for key in par_names if key in context]
@@ -307,7 +307,7 @@ def load(
     # check if there are dublicate variables
     check_dublicates(model["variables"])
     check_dublicates(model.get("parameters"))
-    evars = check_determinancy(model["variables"], eqns)
+    evars = model["vars"] = check_determinancy(model["variables"], eqns)
     # check if each variable is defined in time t (only defining xSS does not give a valid root)
     check_if_defined(evars, eqns, model.get('decisions'),
                      model.get('skip_check_if_defined'))
@@ -319,7 +319,8 @@ def load(
     # initialize storages
     _ = _define_subdict_if_absent(model, "func_strings")
     _ = _define_subdict_if_absent(model, "steady_state")
-    par_names = _define_subdict_if_absent(model, "parameters")
+    pars = _define_subdict_if_absent(model, "parameters")
+    par_names = model["par_names"] = [*pars] if isinstance(pars, dict) else pars
     if 'lambda' in evars + par_names:
         raise NameError(
             "Variables or parameters must not use the name of python's build-in functions \"lambda\".")

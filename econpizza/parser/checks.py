@@ -35,6 +35,7 @@ def check_if_defined(evars, eqns, decisions, skipped_vars):
 def check_dublicates(evars):
     """Check if there are dublicates
     """
+    evars = [*evars] if isinstance(evars, dict) else evars
     dubs = [x for i, x in enumerate(evars) if x in evars[:i]]
     dubmess = (
         " The variables list contains dublicate(s): %s" % ", ".join(
@@ -48,6 +49,7 @@ def check_dublicates(evars):
 def check_determinancy(evars, eqns):
     """Check if the numbers of eqns/vars match.
     """
+    evars = [*evars] if isinstance(evars, dict) else evars
     sorted_evars = evars[:] = sorted(list(set(evars)), key=str.lower)
     if len(sorted_evars) != len(eqns):
         raise Exception(

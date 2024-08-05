@@ -56,17 +56,17 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
     maxit : int, optional
         maximum of iterations for the Newton method, defaults to ``15``
     tol_backwards : float, optional
-        tolerance required for backward iteration. Defaults to ``tol``
+        tolerance required for backward iteration. Heterogeneous agent models only. Defaults to ``tol``
     maxit_backwards : int, optional
-        maximum of iterations for the backward iteration. Defaults to ``2000``
+        maximum of iterations for the backward iteration. Heterogeneous agent models only. Defaults to ``2000``
     tol_forwards : float, optional
-        tolerance required for forward iteration. Defaults to ``tol*1e-2``. Note that this default is somewhat arbitrary and may not be sufficient.
+        tolerance required for forward iteration. Heterogeneous agent models only. Defaults to ``tol*1e-2``. Note that this default is somewhat arbitrary and may not be sufficient.
     maxit_forwards : int, optional
-        maximum of iterations for the forward iteration. Defaults to ``5000``
+        maximum of iterations for the forward iteration. Heterogeneous agent models only. Defaults to ``5000``
     force : bool, optional
         force recalculation of steady state, even if it is already evaluated. Defaults to ``False``
     raise_errors : bool, optional
-        raise an error if Newton method does not converge. Useful for debuggin models. Defaults to ``True``
+        raise an error if Newton method does not converge. Useful for debugging models. Defaults to ``True``
     check_rank : bool, optional
         force checking the rank of the Jacobian, even if the Newton method was successful. Defualts to ``False``
     verbose : bool, optional

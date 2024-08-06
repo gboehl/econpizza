@@ -9,7 +9,7 @@ from ..parser import d2jnp
 from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 from ..parser.checks import check_if_compiled
 from ..utilities.jacobian import get_stst_jacobian, get_jac_and_value_sliced
-from ..utilities.newton import newton_for_jvp, newton_for_banded_jac, newton_jax_jit_wrapper
+from ..utilities.newton import newton_for_jvp, newton_for_tridiag_jac, newton_jax_jit_wrapper
 
 
 def write_cache(model, horizon, pars, stst):
@@ -110,7 +110,7 @@ def find_path_stacking(
 
         # actual newton iterations
         jav_func_eqns_partial = self['context']['jav_func']
-        x_out, f, flag, mess = newton_for_banded_jac(
+        x_out, f, flag, mess = newton_for_tridiag_jac(
             jav_func_eqns_partial, nvars, horizon, x_init, shock_series, verbose, **newton_args)
 
     else:

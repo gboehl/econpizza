@@ -7,7 +7,7 @@ Upon failure, the function tries to be as informative as possible. If the search
 
 .. note::
 
-   A classic complaint is "**The Jacobian contains NaNs**". This is usually either due infinite/non-existent derivatives or invalid values (e.g. `sqrt(-1)` or `1/0`) along the way. While the package tries to provide more information about where the error occurred, a good idea is to follow JAX's hints on `how to debug NaNs <https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html#debugging-nans>`_.
+   A classic complaint is "**Function returns NaNs**" or "**The Jacobian contains NaNs**". This is usually either due infinite/non-existent derivatives or invalid values (e.g. `sqrt(-1)` or `1/0`) along the way. While the package tries to provide more information about where the error occurred, a good idea is to follow JAX's hints on `how to debug NaNs <https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html#debugging-nans>`_.
 
 .. tip::
 

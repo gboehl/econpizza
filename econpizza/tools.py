@@ -30,49 +30,66 @@ def percentile(x, dist, share):
     return interpolate(dist_cumsum.T, (share,), x_cumsum.T).flatten()/x_cumsum[-1]
 
 
-def traverse_dict_and_set(d, path, value):
+def traverse_dict(d, path, value=None):
     dd = d
     for q in path:
-        if isinstance(dd[q], dict):
+        if isinstance(dd[q], dict) or value is None:
             dd = dd[q]
         else:
             dd[q] = value
+    if value is None:
+        return eval(str(dd))
 
 
-def traverse_dict_and_get(d, path):
-    dd = d
-    for q in path:
-        dd = dd[q]
-    return eval(str(dd))
+def anneal_stst(mdict, dict_path, target_value, max_sequence=10, **kwargs):
+    """Anneal steady state by iteratively updating initial guesses. Assumes that the current model dictionary provides valid results.
 
+    Parameters
+    ----------
+    mdict : dict
+        the parsed yaml as a dictionary
+    target_value : float
+        desired value of the target
+    dict_path : strng or tuple of strings
+        recursive dictionary keywords which are the path to the target value (e.g. `('steady_state', 'fixed_values')`.
+    max_sequence : int
+        maximum lenght of the sequence before aborting
+    **kwargs : optional
+        arguments passed on to `find_stst`
 
-def anneal_stst(model_dict, target_value, dict_path):
+    Returns
+    -------
+    current_model: PizzaModel instance
+        the target model
+    """
 
     current = target_value
-    last_working = traverse_dict_and_get(model_dict, dict_path)
+    last_working = traverse_dict(mdict, dict_path)
     sequence = current,
 
     while True:
         try:
             # set current guess to last value in sequence
             current = sequence[-1]
-            print(f"(anneal_stst:) Trying '{dict_path[-1]}'={current}...")
+            print(f"(anneal_stst:) {len(sequence)} value(s) in queue. Trying {dict_path[-1]}={current}...")
 
             # update dict and try to solve
-            traverse_dict_and_set(model_dict, dict_path, current)
-            current_model = load(model_dict, raise_errors=True, verbose=len(sequence) == 1)
-            res_stst = current_model.solve_stst(tol=1e-7, maxit=10, tol_forwards=1e-11, verbose=True)
+            traverse_dict(mdict, dict_path, current)
+            current_model = load(mdict, raise_errors=True, verbose=False)
+            res_stst = current_model.solve_stst(verbose=True, **kwargs)
 
             # update initial guesses if successful
-            model_dict['steady_state']['init_guesses'].update(current_model['steady_state']['found_values'])
+            mdict['steady_state']['init_guesses'].update(current_model['steady_state']['found_values'])
             if current == target_value:
                 break
             last_working = current
             sequence = sequence[:-1]
-            print(f"(anneal_stst:) Success with {last_working}! Guesses updated...\n    sequence is {sequence}")
+            print(f"(anneal_stst:) Success with {last_working}! Guesses updated...\n    queue is {sequence}")
         except Exception as e:
-            print(e)
+            if len(sequence) == max_sequence:
+                raise Exception(f"(anneal_stst:) FAILED because lenght of sequence exceeds {max_sequence}. Best guess was {dict_path[-1]}={last_working}")
             sequence += (current/2 + last_working/2),
+            print(str(e) + 'Adding value to queue.')
 
     # print final values
     print('(anneal_stst:) Success! Values are:\n')

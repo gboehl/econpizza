@@ -7,7 +7,7 @@ from .stacking import write_cache
 from ..utilities.jacobian import get_stst_jacobian
 from ..parser import d2jnp
 from ..parser.checks import check_if_compiled
-from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
+from ..parser.build_generic_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 
 
 def find_path_linear(self, shock=None, init_state=None, pars=None, horizon=200, verbose=True):

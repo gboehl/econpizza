@@ -15,7 +15,7 @@ import importlib.util as iu
 from copy import deepcopy, copy
 from inspect import getmembers, isfunction
 from jax.experimental.host_callback import id_print as jax_print
-from .write_dynamic_functions import *
+from .compile_model_functions import *
 from .checks import *
 from ..utilities import grids, dists, interp
 

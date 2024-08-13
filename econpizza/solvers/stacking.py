@@ -6,7 +6,7 @@ import time
 import jax.numpy as jnp
 from grgrjax import val_and_jacrev
 from ..parser import d2jnp
-from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
+from ..parser.build_generic_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 from ..parser.checks import check_if_compiled
 from ..utilities.jacobian import get_stst_jacobian, get_jac_and_value_sliced
 from ..utilities.newton import newton_for_jvp, newton_for_tridiag_jac, newton_jax_jit_wrapper

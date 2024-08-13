@@ -3,7 +3,7 @@
 
 import sys
 import jax.numpy as jnp
-from .build_functions import func_pre_stst
+from .build_generic_functions import func_pre_stst
 import re
 
 

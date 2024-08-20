@@ -6,6 +6,8 @@ from jax._src.api import partial
 from jax._src.typing import Array
 from grgrjax import jax_print
 
+from .cache_decorator import cacheable_function_with_export
+
 
 def accumulate(i_and_j: Array, carry: (Array, Array)) -> (Array, int):
     # accumulate effects over different horizons
@@ -16,7 +18,33 @@ def accumulate(i_and_j: Array, carry: (Array, Array)) -> (Array, int):
     return jac, horizon
 
 
-@jax.jit
+@cacheable_function_with_export(
+    "get_stst_jacobian_jit",
+    {
+        "derivatives": (
+            (
+                ("a, a, 1", jnp.float64),
+                ("a, a, 1", jnp.float64),
+                ("a, a, 1", jnp.float64),
+            ),
+            ("a, b, c, d, e", jnp.float64),
+            ("c, d, e, b, a", jnp.float64),
+        ),
+        "horizon": ("", jnp.int64),
+    },
+    {
+        "derivatives": (
+            (
+                ("a, a, 1", jnp.float64),
+                ("a, a, 1", jnp.float64),
+                ("a, a, 1", jnp.float64),
+            ),
+            ("a, b, c, d, e, f", jnp.float64),
+            ("c, d, e, f, b, a", jnp.float64),
+        ),
+        "horizon": ("", jnp.int64),
+    },
+)
 def get_stst_jacobian_jit(derivatives, horizon):
     # load derivatives
     (jac_f2xLag, jac_f2x, jac_f2xPrime), jac_f2do, jac_do2x = derivatives

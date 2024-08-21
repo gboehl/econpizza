@@ -9,7 +9,7 @@ from .utilities.interp import interpolate
 from .utilities.grids import markov_rouwenhorst, rouwenhorst_grid_from_stationary
 
 
-def percentile(x, dist, share):
+def percentile(x, dist, share, normalize=True):
     """percentiles function
     """
     # reshape inputs flattend for each period t
@@ -27,7 +27,10 @@ def percentile(x, dist, share):
     x_cumsum = jnp.cumsum(x_sorted*dist_sorted, axis=0)
 
     # interpolate
-    return interpolate(dist_cumsum.T, (share,), x_cumsum.T).flatten()/x_cumsum[-1]
+    res = interpolate(dist_cumsum.T, (share,), x_cumsum.T).flatten()
+    if normalize:
+        return res/x_cumsum[-1]
+    return res
 
 
 def traverse_dict(d, path, value=None):

@@ -10,16 +10,23 @@ from ..utilities import grids, dists, interp
 
 
 def func_forw_generic(distributions, decisions_outputs, grids, transition, indices):
-    # prototype for one distribution
-    # should be a for-loop for more than one distribution
+    """prototype for one distribution. should be a for-loop for more than one distribution
+    """
     (dist, ) = distributions
+    # use objects provided in decisions_output if available
+    if isinstance(transition, int):
+        transition = decisions_outputs[transition]
+    if isinstance(grids[0], int):
+        grids[0] = decisions_outputs[grids[0]]
+    # use as inputs to forward distribution
     endog_inds0, endog_probs0 = interp.interpolate_coord_robust(
         grids[0], decisions_outputs[indices[0]])
     if len(indices) == 1:
-        grid = grids[0]
         dist = transition.T @ dists.forward_policy_1d(
             dist, endog_inds0, endog_probs0)
     elif len(indices) == 2:
+        if isinstance(grids[0], int):
+            grids[1] = decisions_outputs[grids[1]]
         endog_inds1, endog_probs1 = interp.interpolate_coord_robust(
             grids[1], decisions_outputs[indices[1]])
         forwarded_dist = dists.forward_policy_2d(
@@ -29,13 +36,22 @@ def func_forw_generic(distributions, decisions_outputs, grids, transition, indic
 
 
 def func_forw_stst_generic(decisions_outputs, tol, maxit, grids, transition, indices):
-    # prototype for one distribution, as with _func_forw
+    """prototype for one distribution, as with _func_forw
+    """
+    # use objects provided in decisions_output if available
+    if isinstance(transition, int):
+        transition = decisions_outputs[transition]
+    if isinstance(grids[0], int):
+        grids[0] = decisions_outputs[grids[0]]
+    # use as inputs to find stationary distribution
     endog_inds0, endog_probs0 = interp.interpolate_coord_robust(
         grids[0], decisions_outputs[indices[0]])
     if len(indices) == 1:
         dist, dist_cnt = dists.stationary_distribution_forward_policy_1d(
             endog_inds0, endog_probs0, transition, tol, maxit)
     elif len(indices) == 2:
+        if isinstance(grids[0], int):
+            grids[1] = decisions_outputs[grids[1]]
         endog_inds1, endog_probs1 = interp.interpolate_coord_robust(
             grids[1], decisions_outputs[indices[1]])
         dist, dist_cnt = dists.stationary_distribution_forward_policy_2d(

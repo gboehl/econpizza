@@ -66,8 +66,17 @@ def get_forw_funcs(model):
             raise NotImplementedError(
                 f"Grid(s) of type {str(*other)} not implemented.")
 
-        transition = model['context'][dist[exog[0]]['transition_name']]
-        grids = [model['context'][dist[i]['grid_name']] for i in endo]
+        # for each object, check if it is provided in decisions_outputs
+        try:
+            transition = model['decisions']['outputs'].index(dist[exog[0]]['transition_name'])
+        except ValueError:
+            transition = model['context'][dist[exog[0]]['transition_name']]
+        grids = []
+        for i in endo:
+            try:
+                grids.append(model['decisions']['outputs'].index(dist[i]['grid_name']))
+            except ValueError:
+                grids.append(model['context'][dist[i]['grid_name']])
         indices = [model['decisions']['outputs'].index(i) for i in endo]
 
         model['context']['func_forw'] = jax.tree_util.Partial(

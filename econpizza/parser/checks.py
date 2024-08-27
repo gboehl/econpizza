@@ -64,7 +64,6 @@ def check_initial_values(model, shocks, init_guesses, fixed_values, init_wf, pre
     # run func_pre_stst to translate init values into vars & pars
     init_vals, par = func_pre_stst(
         d2jnp(init_guesses), d2jnp(fixed_values), pre_stst_mapping)
-    init_vals = init_vals[..., None]
 
     # collect some information needed later
     model['context']['init_run'] = {}
@@ -91,6 +90,7 @@ def check_initial_values(model, shocks, init_guesses, fixed_values, init_wf, pre
     model['context']['init_run']['dists'] = dists_init
 
     # final test of main function
+    init_vals = init_vals[..., None]
     test = model['context']['func_eqns'](init_vals, init_vals, init_vals, init_vals, jnp.zeros(
         len(shocks)), par, jnp.array(dists_init)[..., None], (doi[...,None] for doi in decisions_output_init))
 

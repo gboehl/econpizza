@@ -77,14 +77,15 @@ def func_stst_rep_agent(y, func_pre_stst, func_eqns):
 def func_stst_het_agent(y, func_pre_stst, find_stat_wf, func_forw_stst, func_eqns):
 
     x, par = func_pre_stst(y)
-    x = x[..., None]
 
     wf, decisions_output, cnt_backw = find_stat_wf(
         x, par)
     dist, cnt_forw = func_forw_stst(decisions_output)
 
-    # TODO: for more than one dist this should be a loop...
+    # add time dimension for every object
+    x = x[..., None]
     decisions_output_array = (do[..., None] for do in decisions_output)
+    # TODO: for more than one dist this should be a loop...
     dist_array = dist[..., None]
 
     aux = (wf, decisions_output, cnt_backw), (dist, cnt_forw)

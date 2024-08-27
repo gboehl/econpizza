@@ -72,16 +72,7 @@ def check_initial_values(model, shocks, init_guesses, fixed_values, init_wf, pre
     mess = ''
     if model.get('decisions'):
         # make a test backward and forward run
-        try:
-            _, decisions_output_init = model['context']['func_backw'](
-                init_vals, init_vals, init_vals, init_vals, init_wf, jnp.zeros(len(shocks)), par)
-        except ValueError as e:
-            if str(e) == "All input arrays must have the same shape.":
-                raise type(e)("Each output of the decisions stage must have the same shape as the distribution.").with_traceback(
-                    sys.exc_info()[2])
-            else:
-                raise
-
+        _, decisions_output_init = model['context']['func_backw'](init_vals, init_vals, init_vals, init_vals, init_wf, jnp.zeros(len(shocks)), par)
         dists_init, _ = model['context']['func_forw_stst'](
             decisions_output_init, 1e-8, 1)
 

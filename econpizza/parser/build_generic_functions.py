@@ -112,7 +112,7 @@ def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, ver
 
     func_eqns = model['context']["func_eqns"]
     backwards_sweep = model['context']['backwards_sweep']
-    second_sweep = model['context']['second_sweep']
+    combined_sweep = model['context']['combined_sweep']
 
     distSS = jnp.array(model['steady_state']['distributions'])
     decisions_outputSS = (jnp.array(d)[..., None] for d in list(model['steady_state']['decisions'].values()))
@@ -124,7 +124,7 @@ def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, ver
     # get steady state jacobians for dist transition
     doSS, do2x = jvp_vmap(backwards_sweep)(
         (x_stst[1:-1].flatten(), stst, zshocks, pars), (basis,))
-    _, (f2do,) = vjp_vmap(second_sweep, argnums=1)(
+    _, (f2do,) = vjp_vmap(combined_sweep, argnums=1)(
         (x_stst[1:-1].flatten(), doSS, stst, distSS, zshocks, pars), basis.T)
     f2do = [jnp.moveaxis(f, -1, 1) for f in f2do]
 
@@ -157,12 +157,11 @@ def get_stacked_func_het_agents(func_backw, func_forw, func_eqns, stst, wfSS, ho
         forwards_sweep, horizon=horizon, func_forw=partial_forw)
     final_step_local = jax.tree_util.Partial(
         final_step, stst=stst, horizon=horizon, nshpe=nshpe, func_eqns=func_eqns)
-    second_sweep_local = jax.tree_util.Partial(
-        second_sweep, forwards_sweep=forwards_sweep_local, final_step=final_step_local)
+    combined_sweep_local = jax.tree_util.Partial(combined_sweep, forwards_sweep=forwards_sweep_local, final_step=final_step_local)
     stacked_func_local = jax.tree_util.Partial(
-        stacked_func_het_agents, backwards_sweep=backwards_sweep_local, second_sweep=second_sweep_local)
+        stacked_func_het_agents, backwards_sweep=backwards_sweep_local, combined_sweep=combined_sweep_local)
 
-    return stacked_func_local, backwards_sweep_local, forwards_sweep_local, second_sweep_local
+    return stacked_func_local, backwards_sweep_local, forwards_sweep_local, combined_sweep_local
 
 
 def build_aggr_het_agent_funcs(model, zpars, nvars, stst, zshocks, horizon):
@@ -178,13 +177,13 @@ def build_aggr_het_agent_funcs(model, zpars, nvars, stst, zshocks, horizon):
     distSS = jnp.array(model['steady_state']['distributions'])
 
     # get actual functions
-    func_raw, backwards_sweep, forwards_sweep, second_sweep = get_stacked_func_het_agents(
+    func_raw, backwards_sweep, forwards_sweep, combined_sweep = get_stacked_func_het_agents(
         func_backw, func_forw, func_eqns, stst, wfSS, horizon, nvars)
 
     # store everything
     model['context']['func_raw'] = func_raw
     model['context']['backwards_sweep'] = backwards_sweep
     model['context']['forwards_sweep'] = forwards_sweep
-    model['context']['second_sweep'] = second_sweep
+    model['context']['combined_sweep'] = combined_sweep
     model['context']['jvp_func'] = lambda primals, tangens, x0, dist0, shocks, pars: jax.jvp(
         func_raw, (primals, x0, dist0, shocks, pars), (tangens, jnp.zeros(nvars), jnp.zeros_like(distSS), zshocks, zpars))

@@ -74,7 +74,7 @@ def final_step(x: Array, dists_storage: Array, decisions_output_storage: Array, 
     return out
 
 
-def second_sweep(x: Array, decisions_output_storage: Array, x0: Array, dist0: Array, shocks: Array, pars: Array, forwards_sweep: Callable, final_step: Callable) -> Array:
+def combined_sweep(x: Array, decisions_output_storage: Array, x0: Array, dist0: Array, shocks: Array, pars: Array, forwards_sweep: Callable, final_step: Callable) -> Array:
 
     # forwards step
     dists_storage = forwards_sweep(decisions_output_storage, dist0)
@@ -85,11 +85,11 @@ def second_sweep(x: Array, decisions_output_storage: Array, x0: Array, dist0: Ar
     return out
 
 
-def stacked_func_het_agents(x: Array, x0: Array, dist0: Array, shocks: Array, pars: Array, backwards_sweep: Callable, second_sweep: Callable):
+def stacked_func_het_agents(x: Array, x0: Array, dist0: Array, shocks: Array, pars: Array, backwards_sweep: Callable, combined_sweep: Callable):
 
     # backwards step
     decisions_output_storage = backwards_sweep(x, x0, shocks, pars)
     # combined step
-    out = second_sweep(x, decisions_output_storage, x0, dist0, shocks, pars)
+    out = combined_sweep(x, decisions_output_storage, x0, dist0, shocks, pars)
 
     return out

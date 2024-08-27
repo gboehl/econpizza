@@ -85,9 +85,9 @@ def check_initial_values(model, shocks, init_guesses, fixed_values, init_wf, pre
         dists_init, _ = model['context']['func_forw_stst'](
             decisions_output_init, 1e-8, 1)
 
-        if jnp.isnan(decisions_output_init).any():
+        if any(jnp.isnan(doi).any() for doi in decisions_output_init):
             mess = 'Outputs of decision stage contains `NaN`s'
-        elif jnp.isinf(decisions_output_init).any():
+        elif any(jnp.isinf(doi).any() for doi in decisions_output_init):
             mess = 'Outputs of decision stage are not finite'
         elif jnp.isnan(dists_init).any():
             mess = 'Distribution contains `NaN`s'
@@ -101,7 +101,7 @@ def check_initial_values(model, shocks, init_guesses, fixed_values, init_wf, pre
 
     # final test of main function
     test = model['context']['func_eqns'](init_vals, init_vals, init_vals, init_vals, jnp.zeros(
-        len(shocks)), par, jnp.array(dists_init)[..., None], jnp.array(decisions_output_init)[..., None])
+        len(shocks)), par, jnp.array(dists_init)[..., None], (doi[...,None] for doi in decisions_output_init))
 
     if mess:
         pass

@@ -22,8 +22,7 @@ def get_stst_jacobian_jit(derivatives, horizon):
     (jac_f2xLag, jac_f2x, jac_f2xPrime), jac_f2do, jac_do2x = derivatives
 
     # jacobian is quasi-kronecker of f2do x do2x
-    jac = jnp.tensordot(jac_f2do[:, ::-1],
-                        jac_do2x[..., ::-1, :], jac_f2do.ndim-2)
+    jac = sum([jnp.tensordot(jaci[:, ::-1], jac_do2x[i][..., ::-1, :], jaci.ndim-2) for i, jaci in enumerate(jac_f2do)])
     jac = jnp.moveaxis(jac, 0, 1)
 
     # add direct effects of x on f

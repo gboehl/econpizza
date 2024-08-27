@@ -8,12 +8,12 @@ from .build_generic_functions import func_forw_generic, func_forw_stst_generic
 def compile_func_basics_str(evars, par, shocks):
 
     func_str = f"""
-        \n ({"".join(v + "Lag, " for v in evars)}) = XLag
-        \n ({"".join(v + ", " for v in evars)}) = X
-        \n ({"".join(v + "Prime, " for v in evars)}) = XPrime
-        \n ({"".join(v + "SS, " for v in evars)}) = XSS
-        \n ({"".join(p + ", " for p in par)}) = pars
-        \n ({"".join(s + ", " for s in shocks)}) = shocks"""
+ ({"".join(v + "Lag, " for v in evars)}) = XLag
+ ({"".join(v + ", " for v in evars)}) = X
+ ({"".join(v + "Prime, " for v in evars)}) = XPrime
+ ({"".join(v + "SS, " for v in evars)}) = XSS
+ ({"".join(p + ", " for p in par)}) = pars
+ ({"".join(s + ", " for s in shocks)}) = shocks"""
 
     return func_str
 
@@ -29,7 +29,7 @@ def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls):
             {compile_func_basics_str(evars, par, shocks)}
             \n ({"".join(v + ", " for v in inputs)}) = WFPrime
             \n %s
-            \n return jnp.array(({"".join(v[:-5] + ", " for v in inputs)})), jnp.array(({", ".join(v for v in outputs)}))
+            \n return jnp.array(({"".join(v[:-5] + ", " for v in inputs)})), ({", ".join(v for v in outputs)})
             """ % '\n '.join(calls)
 
     return func_str
@@ -48,10 +48,9 @@ def get_forw_funcs(model):
 
         dist = distributions[dist_name]
 
-        implemented_endo = (
-            'exogenous', 'exogenous_rouwenhorst', 'exogenous_generic')
-        implemented_exo = ('endogenous', 'endogenous_log',
-                           'endogenous_generic')
+        # *_generic should be depreciated at some point
+        implemented_endo = ('exogenous', 'exogenous_rouwenhorst', 'exogenous_generic', 'exogenous_custom')
+        implemented_exo = ('endogenous', 'endogenous_log', 'endogenous_generic', 'endogenous_custom')
         exog = [v for v in dist if dist[v]['type'] in implemented_endo]
         endo = [v for v in dist if dist[v]['type'] in implemented_exo]
         other = [dist[v]['type'] for v in dist if dist[v]
@@ -59,10 +58,10 @@ def get_forw_funcs(model):
 
         if len(exog) > 1:
             raise NotImplementedError(
-                'Exogenous distributions with more than one dimension are not yet implemented.')
+                'Distributions with more than one exogenous variable are not yet implemented.')
         if len(endo) > 2:
             raise NotImplementedError(
-                'Endogenous distributions with more than two dimension are not yet implemented.')
+                'Distributions with more than two endogenous variables are not yet implemented.')
         if other:
             raise NotImplementedError(
                 f"Grid(s) of type {str(*other)} not implemented.")

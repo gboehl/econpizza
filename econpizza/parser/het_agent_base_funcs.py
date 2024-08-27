@@ -40,7 +40,7 @@ def backwards_sweep(x: Array, x0: Array, shocks: Array, pars: Array, stst: Array
 
     _, (wf_storage, decisions_output_storage) = jax.lax.scan(
         _backwards_step, (wfSS, X, shocks, func_backw, stst, pars), jnp.arange(horizon-1), reverse=True)
-    decisions_output_storage = jnp.moveaxis(decisions_output_storage, 0, -1)
+    decisions_output_storage = [jnp.moveaxis(dos, 0, -1) for dos in decisions_output_storage]
     wf_storage = jnp.moveaxis(wf_storage, 0, -1)
 
     if return_wf:
@@ -51,7 +51,7 @@ def backwards_sweep(x: Array, x0: Array, shocks: Array, pars: Array, stst: Array
 def _forwards_step(carry, i):
 
     dist_old, decisions_output_storage, func_forw = carry
-    dist = func_forw(dist_old, decisions_output_storage[..., i])
+    dist = func_forw(dist_old, [dos[..., i] for dos in decisions_output_storage])
 
     return (dist, decisions_output_storage, func_forw), dist_old
 

@@ -68,7 +68,7 @@ def func_stst_het_agent(y, func_pre_stst, find_stat_wf, func_forw_stst, func_eqn
     dist, cnt_forw = func_forw_stst(decisions_output)
 
     # TODO: for more than one dist this should be a loop...
-    decisions_output_array = decisions_output[..., None]
+    decisions_output_array = (do[..., None] for do in decisions_output)
     dist_array = dist[..., None]
 
     aux = (wf, decisions_output, cnt_backw), (dist, cnt_forw)
@@ -115,8 +115,7 @@ def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, ver
     second_sweep = model['context']['second_sweep']
 
     distSS = jnp.array(model['steady_state']['distributions'])
-    decisions_outputSS = jnp.array(
-        list(model['steady_state']['decisions'].values()))[..., None]
+    decisions_outputSS = (jnp.array(d)[..., None] for d in list(model['steady_state']['decisions'].values()))
 
     # basis for steady state jacobian construction
     basis = jnp.zeros((nvars*(horizon-1), nvars))
@@ -127,7 +126,7 @@ def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, ver
         (x_stst[1:-1].flatten(), stst, zshocks, pars), (basis,))
     _, (f2do,) = vjp_vmap(second_sweep, argnums=1)(
         (x_stst[1:-1].flatten(), doSS, stst, distSS, zshocks, pars), basis.T)
-    f2do = jnp.moveaxis(f2do, -1, 1)
+    f2do = [jnp.moveaxis(f, -1, 1) for f in f2do]
 
     # get steady state jacobians for direct effects x on f
     jacrev_func_eqns = jax.jacrev(func_eqns, argnums=(0, 1, 2))
@@ -189,5 +188,3 @@ def build_aggr_het_agent_funcs(model, zpars, nvars, stst, zshocks, horizon):
     model['context']['second_sweep'] = second_sweep
     model['context']['jvp_func'] = lambda primals, tangens, x0, dist0, shocks, pars: jax.jvp(
         func_raw, (primals, x0, dist0, shocks, pars), (tangens, jnp.zeros(nvars), jnp.zeros_like(distSS), zshocks, zpars))
-    # model['context']['vjp_func'] = lambda primals, tangens, x0, dist0, shocks: jax.vjp(
-    # lambda x: func_raw(x, x0, dist0, shocks), primals)[1](tangens)[0]

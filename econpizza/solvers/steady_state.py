@@ -26,7 +26,7 @@ def _get_stst_dist_objs(self, res, maxit_backwards, maxit_forwards):
 
     # compile informative message
     mess = ''
-    if jnp.isnan(jnp.array(wfSS)).any() or jnp.isnan(jnp.array(decisions_output)).any():
+    if jnp.isnan(jnp.array(wfSS)).any() or any(jnp.isnan(do).any() for do in decisions_output):
         mess += f"Backward iteration returns NaNs. "
     elif jnp.isnan(distSS).any():
         mess += f"Forward iteration returns NaNs. "

@@ -7,6 +7,7 @@ import jax.numpy as jnp
 from copy import deepcopy
 
 from . import examples
+from . import tools
 from .__version__ import __version__
 from .solvers.steady_state import solve_stst
 from .solvers.stacking import find_path_stacking

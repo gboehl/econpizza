@@ -99,3 +99,59 @@ def anneal_stst(mdict, dict_path, target_value, max_sequence=10, **kwargs):
     [print(f"        {k}: {v}") for k,v in current_model['steady_state']['found_values'].items()]
     return current_model, mdict
 
+
+def anneal_stack(model, shock, max_sequence=10, **kwargs):
+    """Anneal stacking solution by iteratively updating initial guesses.
+
+    Parameters
+    ----------
+    model: PizzaModel instance
+        the model
+    shock : tuple, optional
+        target shock for period 0 as in `(shock_name_as_str, shock_size)`
+    max_sequence : int
+        maximum lenght of the sequence before aborting
+    **kwargs : optional
+        arguments passed on to `find_stst`
+
+    Returns
+    -------
+    x : array
+        array of the trajectory
+    flag : bool
+        Error flag. Returns `False` if the solver was successful, otherwise returns `True`
+    """
+
+    # ensure no non-keywords args from find_path are used by mistake
+    assert isinstance(max_sequence, int)
+
+    shock_type, target_value = shock
+    current = target_value
+    last_working = 0
+    sequence = current,
+    xst = None
+
+    while True:
+        try:
+            # set current guess to last value in sequence
+            current = sequence[-1]
+            print(f"(anneal_stack:) {len(sequence)} value(s) in queue. Trying {shock_type}={current}...")
+
+            # update dict and try to solve
+            xst, flags = model.find_path(init_guess=xst, shock=(shock_type, current), **kwargs)
+
+            # update initial guesses if successful
+            if current == target_value:
+                break
+            last_working = current
+            sequence = sequence[:-1]
+            print(f"(anneal_stack:) Success with {last_working}! Guesses updated...\n    queue is {sequence}")
+        except Exception as e:
+            if len(sequence) == max_sequence:
+                raise Exception(f"(anneal_stack:) FAILED because lenght of sequence exceeds {max_sequence}. Best guess was {shock_type}={last_working}")
+            sequence += (current/2 + last_working/2),
+            print(str(e) + 'Adding value to queue.')
+
+    # print final values
+    print('(anneal_stack:) Success!')
+    return xst, flags

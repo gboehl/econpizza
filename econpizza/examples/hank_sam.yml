@@ -1,0 +1,168 @@
+# Author: Andreas Koundouros [a.koundouros@fu-berlin.de] 
+# HANK structure based on Auclert et al. (2021, Econometrica) and example one-asset HANK model from Gregor Boehl, PhD, see:
+# https://github.com/gboehl/econpizza/blob/master/econpizza/examples/hank_with_comments.yml
+# SAM extension loosely based on Consolo & Hänsel (2024, ECB WP), Graves (forthcoming, AEJ Macro), Dengler & Gehrke (2022, CESifo WP)
+---
+name: 'hank_sam'
+description: 'A one-asset HANK model with SAM labour market frictions'
+functions_file: 'hank_sam_functions.py'
+
+###############################################################################
+###############################################################################
+# DEFINITIONS BLOCK
+definitions: |
+    # Imports
+    from jax.numpy import log, maximum
+    from econpizza.tools import percentile, jax_print
+    
+    # Parameters for skill-employment grid
+    rho_e = 0.966 # persistence in labour productivity when on a job
+    sigma_e = 0.6 # variance of shocks to labour productivity when on a job
+    N_e = 4 # number of grid points (excl. unemployment state)
+    lambda_w_ss = 0.5837 # steady-state job-finding rate
+    sigma_ss = 0.0423 # steady-state job-destruction rate
+    
+    # Skill-employment grid
+    skills_grid, skills_stationary, skills_stationary_e, skills_transition_stst = sam_markov(rho_e, sigma_e, N_e, lambda_w_ss, sigma_ss) # obtain custom grid
+    skills_grid_n = len(skills_stationary) # number of grid points (incl. unemployment state)
+
+# Variables, parameters and shocks
+variables: [ B, C, E, LS, R, Rr, Rstar, beta, div, div_L, div_W, lambda_f, lambda_w, mc, n, p_L, pi, tax, theta, u, v, w, y, y_prod, z ]
+parameters: [ epsilon, eta, eps_w, kappa, mu, phi_pi, phi_y, psi, rho, rho_beta, rho_r, rho_z, sigma, sigma_c, xi ]
+shocks: [ e_beta, e_rstar, e_z ]
+
+###############################################################################
+###############################################################################
+# HOUSEHOLD BLOCK
+
+# Skill-asset distribution of households
+distributions:
+  dist:
+    skills: # Skill-employment grid
+      type: exogenous_generic
+      n: skills_grid_n
+    a: # Asset grid
+      type: endogenous_log
+      min: 0.0
+      max: 50
+      n: 50
+
+# Decision problem of households
+decisions:
+  inputs: [WaPrime]
+  calls: |
+    tfs = jnp.atleast_1d(div - tax) # lump-sum transfers (dividends minus taxes)
+    finding_rates = lambda_w * skills_stationary_e # probabilities of moving out of unemployment into specific skill state
+    skills_transition_temp = skills_transition_stst.at[0,1:].set(finding_rates) # set job-finding rates in transition matrix
+    row_sums = jnp.sum(skills_transition_temp, axis=1, keepdims=True)
+    skills_transition = skills_transition_temp / row_sums # ensure rows of transition matrix sum to one
+    WaPrimeExp = skills_transition @ WaPrime # expected future marginal continuation value
+    Wa, a, c = egm_step(WaPrimeExp, a_grid, skills_grid, w, n, tfs, xi, Rr, beta, sigma_c) # perform EGM step to update marginal continuation value, asset and consumption demands
+  outputs: [a,c,skills_transition]
+  
+###############################################################################
+###############################################################################
+# AGGREGATE BLOCK
+
+aux_equations: |
+    aggr_c = jnp.sum(dist*c, axis=(0,1)) # aggregate consumption demand
+    aggr_a = jnp.sum(dist*a, axis=(0,1)) # aggregate net asset demand
+    aggr_skills = jnp.sum(dist.sum(1)*skills_grid[:,None], axis=0) # aggregate skill level
+    unemp = get_ur(dist) # aggregate unemployment rate
+
+equations:
+    # Aggregation
+    ~ C = aggr_c # consumption demand
+    ~ E = aggr_skills # skill level
+    ~ u = unemp # unemployment rate
+    
+    # Market clearing conditions
+    ~ C = y # goods market
+    ~ y = (1 - psi*(pi/piSS - 1)**2/2)*y_prod - kappa*v # effective output, i.e. production net of price-adjustment and vacancy-posting costs
+    ~ B = aggr_a # asset market
+    ~ LS = E*n # labour services
+
+    # Corporate sector
+    ~ y_prod = z*LS # final-good production 
+    ~ psi*(pi/piSS - 1)*pi/piSS = (1-epsilon) + epsilon*mc + psi*beta*(piPrime/piSS - 1)*piPrime/piSS*y_prodPrime/y_prod # NKPC
+    ~ div_W = (1 - psi*(pi/piSS - 1)**2/2 - mc)*y_prod # dividends by wholesale firms
+    ~ div_L = LS*(p_L - w) - kappa*v # dividends by labour-services producers
+    ~ div = div_W + div_L # total dividends
+    ~ mc*z = p_L # marginal costs
+    
+    # Labour market
+    ~ n = 1-u # employment
+    ~ theta = v / u # labour-market tightness
+    ~ kappa / (mu*theta**(-eta)) = beta * (EPrime*(p_LPrime - wPrime) + (1-sigma)*(kappa / (mu*thetaPrime**(-eta)))) # vacancy creation
+    ~ lambda_w = mu*theta**(1-eta) # job-finding rate
+    ~ lambda_f = mu*theta**(-eta) # worker-finding rate
+    ~ w = wSS*(p_L/p_LSS)**eps_w # wage determination as in Graves (forthcoming, AEJ Macro)
+
+    # Fiscal authority
+    ~ tax = (Rr-1)*BSS + xi*u # fiscal budget
+    
+    # Monetary authority
+    ~ R = (Rstar*((pi/piSS)**phi_pi)*((y/yLag)**phi_y))**(1-rho)*RLag**rho # Taylor rule for gross nominal interest rate
+    ~ Rr = RLag/pi # gross ex-post real interest rate
+
+    # Exogenous processes
+    ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # discount factor shock
+    ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_r*exp(e_rstar) # monetary policy shock
+    ~ z = zSS*(zLag/zSS)**rho_z*exp(e_z) # technology shock
+    
+###############################################################################
+###############################################################################
+# STEADY STATE BLOCK
+steady_state:
+    # Fixed steady-state values 
+    fixed_values:
+        y: 1.0 # effective output
+    
+        # Household sector 
+        sigma_c: 2. # intertemporal elasticity of substitution
+        beta: 0.98 # discount factor
+        
+        # Corporate sector
+        epsilon: 6. # elasticity of substitution
+        psi: 60. # parameter on the costs of price adjustment
+        mc: (epsilon-1)/epsilon # steady-state marginal costs (from NKPC and steady-state inflation of 1) 
+        
+        # Labour market
+        lambda_w: lambda_w_ss # job-finding rate
+        sigma: sigma_ss # exogenous job-destruction rate
+        mu: 0.6 # matching efficiency
+        eta: 0.5 # elasticity of matches w.r.t. unemployment
+        eps_w: 0.45 # elasticity of wages w.r.t. p_L
+        w: 0.8 # steady-state real wage
+        u: sigma / (sigma + lambda_w) # unemployment rate
+        n: 1.0-u # employment
+        E: 1. # mean skill level
+        LS: E*n # labour services
+        
+        # Fiscal authority
+        B: 5.6 # government bond supply
+        xi: 0.2 # unemployment benefit
+        
+        # Monetary authority
+        pi: 1. # inflation
+        rho: 0.8 # persistence in gross nominal interest rate
+        phi_pi: 1.5 # Taylor rule coefficient on inflation
+        phi_y: 0.1 # Taylor rule coefficient on output
+        
+        # Exogenous processes
+        rho_beta: 0.9 # persistence of discount factor shock
+        rho_r: 0.9 # persistence of monetary policy shock
+        rho_z: 0.9 # persistence of technology shocks
+        
+    # Initial guesses of steady-state values
+    init_guesses:
+        Rstar: 1.002 # steady-state target rate
+        Rr: Rstar # gross real interest rate
+        R: Rstar # gross nominal interest rate
+        tax: 0.028 # tax rate
+        div: 0.25 # total dividends
+        theta: 1. # labour-market tightness
+        p_L: mc # price of labour services
+        kappa: 1. # vacancy-posting cost
+        WaPrime: egm_init(a_grid, skills_stationary) # initialise expected future marginal continuation value
+        

@@ -5,7 +5,7 @@ import jax.numpy as jnp
 
 
 def solve_linear_state_space(
-    model,
+    self,
     raise_error=True,
     check_contraction=False,
     lti_max_iter=1000,
@@ -13,7 +13,7 @@ def solve_linear_state_space(
 ):
     """Does half-way SGU, solves the model using linear time iteration and uses Klein's method to check for determinancy if the solution fails"""
 
-    if model.get('distributions'):
+    if self.get('distributions'):
         raise Exception(
             "A linear state-space solution for models with distributions is not implemented.")
 
@@ -23,11 +23,10 @@ def solve_linear_state_space(
         raise ImportError(
             "'solve_linear_state_space' requires the 'grgrlib' package to be installed.")
 
-    evars = model["variables"]
-    func = model['context']["func_eqns"]
-    par = jnp.array(list(model["pars"].values()))
-    shocks = model.get("shocks") or ()
-    stst = jnp.array(list(model["stst"].values()))
+    func = self['context']["func_eqns"]
+    par = jnp.array(list(self["pars"].values()))
+    shocks = self.get("shocks") or ()
+    stst = jnp.array(list(self["stst"].values()))
     nshc = len(shocks)
     nsts = len(stst)
 
@@ -50,7 +49,7 @@ def solve_linear_state_space(
     B = jax.scipy.linalg.block_diag(BB, jnp.eye(nshc))
     C = jnp.block([[CC, DD], [jnp.zeros((nshc, A.shape[1]))]])
 
-    model["ABC"] = A, B, C
+    self["ABC"] = A, B, C
 
     I = jnp.eye(nsts + nshc)
     Z = jnp.zeros_like(I)
@@ -69,7 +68,7 @@ def solve_linear_state_space(
         except:
             _, lam = klein(P, M, nsts + nshc, verbose=verbose - 1)
 
-        model["lin_pol"] = -lam[:nsts, :nsts], -lam[:nsts, nsts:]
+        self["lin_pol"] = -lam[:nsts, :nsts], -lam[:nsts, nsts:]
         mess = "All eigenvalues are good"
 
     except Exception as error:
@@ -109,16 +108,14 @@ def solve_linear_state_space(
     if mess and verbose:
         print(f"(solve_linear:) {mess}{'' if mess[-1] in '.?!' else '.'}")
 
-    return model["ABC"]
+    return self["ABC"]
 
 
-def find_path_linear_state_space(model, init_state=None, shock=None, T=30, verbose=True):
-    """Solves the expected trajectory given the linear model.
+def find_path_linear_state_space(self, init_state=None, shock=None, T=30, verbose=True):
+    """Solves the expected trajectory as implied by the linear model.
 
     Parameters
     ----------
-    model : dict
-        model dict or PizzaModel instance
     init_state : array
         initial state
     shock : tuple, optional
@@ -136,13 +133,13 @@ def find_path_linear_state_space(model, init_state=None, shock=None, T=30, verbo
         for consistency. Always returns `True`
     """
 
-    stst = jnp.array(list(model["stst"].values()))
+    stst = jnp.array(list(self["stst"].values()))
     sel = jnp.isclose(stst, 0)
 
     x0 = jnp.array(list(init_state)) if init_state is not None else stst
     x0 = x0.at[~sel].set(x0[~sel] / stst[~sel] - 1)
 
-    shocks = model.get("shocks") or ()
+    shocks = self.get("shocks") or ()
     tshock = jnp.zeros(len(shocks))
     if shock is not None:
         tshock[shocks.index(shock[0])] = shock[1]
@@ -151,10 +148,10 @@ def find_path_linear_state_space(model, init_state=None, shock=None, T=30, verbo
     x_lin = x_lin.at[0].set(x0)
 
     for t in range(T):
-        x_lin = x_lin.at[t + 1].set(model["lin_pol"][0] @ x_lin[t])
+        x_lin = x_lin.at[t + 1].set(self["lin_pol"][0] @ x_lin[t])
 
         if not t:
-            x_lin = x_lin.at[t + 1].add(model["lin_pol"][1] @ tshock)
+            x_lin = x_lin.at[t + 1].add(self["lin_pol"][1] @ tshock)
 
     x_lin = x_lin.at[:, ~sel].set(((1 + x_lin) * stst)[:, ~sel])
 

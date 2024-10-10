@@ -45,6 +45,7 @@ aux_equations: |
     # calculate consumption and wealth share of top-10% cumsumers
     top10c = 1 - percentile(c, dist, .9)
     top10a = 1 - percentile(a, dist, .9)
+
 equations:
     # definitions
     ~ C = aggr_c

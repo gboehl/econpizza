@@ -43,7 +43,7 @@ The following example shows how to use the shooting method on the simple New Key
     x, _, flag = mod.find_path_shooting(state.values())
 
     # plotting
-    for i,v in enumerate(mod['variables']):
+    for i,v in enumerate(mod.var_names):
 
         plt.figure()
         plt.plot(x[:,i])
@@ -63,14 +63,14 @@ Lets go for a second, numerically more challenging example: the chaotic rational
     _ = mod.solve_stst()
 
     # choose an interesting initial state
-    state = np.zeros(len(mod['variables']))
+    state = np.zeros(len(mod.var_names))
     state[:-1] = [.1, .2, 0.]
 
     # solve and simulate
     x, _, flag = ep.find_path_shooting(mod, state, T=500, max_horizon=1000, tol=1e-5)
 
     # plotting
-    for i,v in enumerate(mod['variables']):
+    for i,v in enumerate(mod.var_names):
 
         plt.figure()
         plt.plot(x[:,i])

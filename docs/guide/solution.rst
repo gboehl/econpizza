@@ -21,9 +21,9 @@ Any additional argument will be passed on to the specific Newton method. For mod
 
 .. autofunction:: econpizza.utilities.newton.newton_for_jvp
 
-For models with representative agents, the Newton method is :meth:`econpizza.utilities.newton.newton_for_banded_jac`:
+For models with representative agents, the Newton method is :meth:`econpizza.utilities.newton.newton_for_tridiag_jac`:
 
-.. autofunction:: econpizza.utilities.newton.newton_for_banded_jac
+.. autofunction:: econpizza.utilities.newton.newton_for_tridiag_jac
 
 If ``use_solid_solver`` is set to `True`, the Newton method `newton_jax_jit <https://grgrjax.readthedocs.io/en/latest/#grgrjax.newton_jax_jit>`_ from the `grgrjax <https://grgrjax.readthedocs.io>`_ package is used.
 

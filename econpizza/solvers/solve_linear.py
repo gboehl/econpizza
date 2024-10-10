@@ -7,16 +7,14 @@ from .stacking import write_cache
 from ..utilities.jacobian import get_stst_jacobian
 from ..parser import d2jnp
 from ..parser.checks import check_if_compiled
-from ..parser.build_functions import build_aggr_het_agent_funcs, get_stst_derivatives
+from ..parser.build_generic_functions import build_aggr_het_agent_funcs, get_stst_derivatives
 
 
-def find_path_linear(model, shock=None, init_state=None, pars=None, horizon=200, verbose=True):
+def find_path_linear(self, shock=None, init_state=None, pars=None, horizon=200, verbose=True):
     """Find the linear expected trajectory given an initial state.
 
     Parameters
     ----------
-    model : PizzaModel
-        PizzaModel instance
     init_state : array
         initial state
     pars : dict, optional
@@ -40,17 +38,17 @@ def find_path_linear(model, shock=None, init_state=None, pars=None, horizon=200,
         raise NotImplementedError(
             "Shocks are not (yet) implemented for the linear solution.")
 
-    if not model.get('distributions'):
+    if not self.get('distributions'):
         raise NotImplementedError(
             "Models without heterogeneous agents are not (yet) implemented for the linear solution.")
 
     st = time.time()
 
     # get model variables
-    stst = d2jnp(model['stst'])
-    nvars = len(model["variables"])
-    pars = d2jnp((pars if pars is not None else model["pars"]))
-    shocks = model.get("shocks") or ()
+    stst = d2jnp(self['stst'])
+    nvars = len(self["var_names"])
+    pars = d2jnp((pars if pars is not None else self["pars"]))
+    shocks = self.get("shocks") or ()
     x_stst = jnp.ones((horizon + 1, nvars)) * stst
 
     # deal with shocks
@@ -58,18 +56,18 @@ def find_path_linear(model, shock=None, init_state=None, pars=None, horizon=200,
 
     x0 = jnp.array(list(init_state)) if init_state is not None else stst
 
-    if not check_if_compiled(model, horizon, pars, stst):
+    if not check_if_compiled(self, horizon, pars, stst):
         # get derivatives via AD and compile functions
-        build_aggr_het_agent_funcs(model, jnp.zeros_like(
+        build_aggr_het_agent_funcs(self, jnp.zeros_like(
             pars), nvars, stst, zero_shocks, horizon)
         derivatives = get_stst_derivatives(
-            model, nvars, pars, stst, x_stst, zero_shocks, horizon, verbose)
+            self, nvars, pars, stst, x_stst, zero_shocks, horizon, verbose)
 
         # accumulate steady stat jacobian
-        get_stst_jacobian(model, derivatives, horizon, nvars, verbose)
-        write_cache(model, horizon, pars, stst)
+        get_stst_jacobian(self, derivatives, horizon, nvars, verbose)
+        write_cache(self, horizon, pars, stst)
 
-    jacobian = model['cache']['jac']
+    jacobian = self['cache']['jac']
 
     x0 -= stst
     x = - \

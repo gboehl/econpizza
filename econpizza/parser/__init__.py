@@ -15,13 +15,9 @@ import importlib.util as iu
 from copy import deepcopy, copy
 from inspect import getmembers, isfunction
 from jax.experimental.host_callback import id_print as jax_print
-from .write_dynamic_functions import *
+from .compile_model_functions import *
 from .checks import *
 from ..utilities import grids, dists, interp
-
-# initialize model cache
-cached_mdicts = ()
-cached_models = ()
 
 
 def d2jnp(x): return jnp.array(list(x.values()))
@@ -72,7 +68,7 @@ def parse(mfile):
     mdict = yaml.safe_load(mtxt)
     # create nice shortcuts
     mdict['path'] = mfile
-    mdict["vars"] = mdict["variables"]
+    mdict["var_names"] = mdict["variables"]
     # load file with additional functions as module (if it exists)
     _parse_external_functions_file(mdict)
 
@@ -84,7 +80,7 @@ def _eval_strs(vdict, context={}):
     """
 
     if vdict is None:
-        return None
+        return None, context
     else:
         vdict = vdict.copy()
     context = context.copy()
@@ -132,13 +128,6 @@ def _initialize_context():
     return context
 
 
-def _initialize_cache():
-    cache = {}
-    cache['steady_state'] = ()
-    cache['steady_state_keys'] = ()
-    return cache
-
-
 def _load_external_functions_file(model, context):
     """Load the functions file as a module.
     """
@@ -148,7 +137,7 @@ def _load_external_functions_file(model, context):
         module = _load_as_module(model["functions_file"])
 
         def func_or_compiled(func): return isinstance(
-            func, jaxlib.xla_extension.CompiledFunction) or isfunction(func)
+            func, jaxlib.xla_extension.PjitFunction) or isfunction(func)
         for m in getmembers(module, func_or_compiled):
             context[m[0]] = m[1]
 
@@ -224,8 +213,8 @@ def _get_pre_stst_mapping(init_vals, fixed_values, evars, par_names):
 
 def compile_stst_inputs(model):
 
-    par_names = model["parameters"]
-    evars = model["variables"]
+    par_names = model["par_names"]
+    evars = model["var_names"]
     context = model["context"]
     # remove old values from model context
     [context.pop(key) for key in par_names if key in context]
@@ -259,7 +248,7 @@ def compile_stst_inputs(model):
         # check if initial decision functions and the distribution have same shapes
         check_shapes(model['distributions'], init_wf, dist_names)
     else:
-        init_wf = jnp.array(None)
+        init_wf = jnp.array(jnp.nan)
 
     # define func_pre_stst
     mapping = _get_pre_stst_mapping(
@@ -269,7 +258,7 @@ def compile_stst_inputs(model):
 
 
 def load(
-    model,
+    model_ref,
     raise_errors=True,
     verbose=True
 ):
@@ -277,7 +266,7 @@ def load(
 
     Parameters
     ----------
-    model : dict or string
+    model_ref : dict or string
         either a dictionary or the path to a YAML file to be parsed
     raise_errors : bool, optional
         whether to raise errors while checking. False will let the model fail siliently for debugging. Defaults to True
@@ -290,37 +279,24 @@ def load(
         The parsed model
     """
 
-    global cached_mdicts, cached_models
     from ..__init__ import PizzaModel
 
     # parse if this is a path to yaml file
-    if isinstance(model, str):
-        full_path = model
-        model = parse(model)
-        model['path'] = full_path
-
-    # define the model dictionary as key for cached models
-    mdict = deepcopy(model)
-    stst_subdict = mdict.pop('steady_state') if 'steady_state' in mdict else {}
-    # check if model is already cached
-    if mdict in cached_mdicts:
-        model = copy(cached_models[cached_mdicts.index(mdict)])
-        # always use the fresh current stst sec from yaml
-        model['steady_state'] = stst_subdict
-        if verbose:
-            print("(load:) Loading cached model.")
-        return model
+    if isinstance(model_ref, str):
+        full_path = model_ref
+        model_ref = parse(model_ref)
+        model_ref['path'] = full_path
 
     # make it a model
-    model = PizzaModel(model)
+    model = PizzaModel(model_ref)
     # initialize objects
     model['context'] = _initialize_context()
-    model['cache'] = _initialize_cache()
+    model['cache'] = {}
     _load_external_functions_file(model, model['context'])
 
     # compile globals & definitions
     _ = _define_subdict_if_absent(model, "globals")
-    model['context'].update(model['globals'])
+    _, model['context'] = _eval_strs(model['globals'], context=model['context'])
     defs = model.get("definitions")
     defs = '' if defs is None else defs
     defs = '\n'.join(defs) if isinstance(defs, list) else defs
@@ -331,7 +307,7 @@ def load(
     # check if there are dublicate variables
     check_dublicates(model["variables"])
     check_dublicates(model.get("parameters"))
-    evars = check_determinancy(model["variables"], eqns)
+    evars = model["var_names"] = check_determinancy(model["variables"], eqns)
     # check if each variable is defined in time t (only defining xSS does not give a valid root)
     check_if_defined(evars, eqns, model.get('decisions'),
                      model.get('skip_check_if_defined'))
@@ -343,7 +319,11 @@ def load(
     # initialize storages
     _ = _define_subdict_if_absent(model, "func_strings")
     _ = _define_subdict_if_absent(model, "steady_state")
-    par_names = _define_subdict_if_absent(model, "parameters")
+    pars = _define_subdict_if_absent(model, "parameters")
+    par_names = model["par_names"] = [*pars] if isinstance(pars, dict) else pars
+    if 'lambda' in evars + par_names:
+        raise NameError(
+            "Variables or parameters must not use the name of python's build-in functions \"lambda\".")
     if isinstance(par_names, dict):
         raise TypeError(
             f'parameters must be a list and not {type(par_names)}.')
@@ -381,9 +361,6 @@ def load(
     except:
         if raise_errors:
             raise
-    # add new model to cache
-    cached_mdicts += (mdict,)
-    cached_models += (model,)
 
     if verbose:
         print("(load:) Parsing done.")

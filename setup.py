@@ -36,7 +36,7 @@ setup(
     install_requires=[
         "jax>=0.4.13",
         "jaxlib>=0.4.13",
-        "grgrjax>=0.4.4",
+        "grgrjax>=0.4.6",
         "pyyaml",
         "scipy",
     ],

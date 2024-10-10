@@ -43,7 +43,7 @@ def lu_factor_from_sparse(lu):
     pc = lu.perm_c
     n = len(pr)
     pr = jnp.empty(n, dtype=int).at[pr].set(jnp.arange(n))
-    lu_factor = lu.L.A - jnp.eye(n) + lu.U.A
+    lu_factor = lu.L.todense() - jnp.eye(n) + lu.U.todense()
     return (lu_factor, pr), pc
 
 

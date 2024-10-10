@@ -31,18 +31,20 @@ def _backwards_step(carry, i):
     wf, decisions_output = func_backw(
         X[:, i], X[:, i+1], X[:, i+2], WFPrime=wf, shocks=shocks[:, i], pars=pars)
 
-    return (wf, X, shocks, func_backw, stst, pars), decisions_output
+    return (wf, X, shocks, func_backw, stst, pars), (wf, decisions_output)
 
 
-def backwards_sweep(x: Array, x0: Array, shocks: Array, pars: Array, stst: Array, wfSS: Array, horizon: int, func_backw: Callable) -> Array:
+def backwards_sweep(x: Array, x0: Array, shocks: Array, pars: Array, stst: Array, wfSS: Array, horizon: int, func_backw: Callable, return_wf=False) -> Array:
 
     X = jnp.hstack((x0, x, stst)).reshape(horizon+1, -1).T
 
-    _, decisions_output_storage = jax.lax.scan(
+    _, (wf_storage, decisions_output_storage) = jax.lax.scan(
         _backwards_step, (wfSS, X, shocks, func_backw, stst, pars), jnp.arange(horizon-1), reverse=True)
-    decisions_output_storage = jnp.moveaxis(
-        decisions_output_storage, 0, -1)
+    decisions_output_storage = jnp.moveaxis(decisions_output_storage, 0, -1)
+    wf_storage = jnp.moveaxis(wf_storage, 0, -1)
 
+    if return_wf:
+        return wf_storage, decisions_output_storage
     return decisions_output_storage
 
 

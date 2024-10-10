@@ -2,7 +2,7 @@
 """
 import re
 import jax
-from .build_functions import func_forw_generic, func_forw_stst_generic
+from .build_generic_functions import func_forw_generic, func_forw_stst_generic
 
 
 def compile_func_basics_str(evars, par, shocks):

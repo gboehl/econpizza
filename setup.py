@@ -32,6 +32,7 @@ setup(
     package_data={"econpizza": ["examples/*"]},
     extras_require={
         'linear': ['grgrlib>=0.1.22'],
+        'cache': ['absl-py', 'flatbuffers']
     },
     install_requires=[
         "jax>=0.4.13",

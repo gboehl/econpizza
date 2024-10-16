@@ -5,10 +5,10 @@ from grgrjax import jax_print
 import jax
 import time
 import jax.numpy as jnp
-from functools import partial
 from jax._src.lax.linalg import lu_solve
 from grgrjax import callback_func, amax, newton_jax_jit
 
+from .cache_decorator import cacheable_function_with_export
 
 def callback_with_damp(cnt, err, fev, err_inner, dampening, ltime, verbose):
     inner = f' | inner {err_inner:.2e}'
@@ -69,7 +69,14 @@ def sweep_tridiag_down(val, i):
     fmod = jnp.linalg.solve(bmat, fval - jac_f2xLag @ fmod)
     return (jav_func, fmod, forward_mat, X, shocks), (fmod, forward_mat)
 
-
+@cacheable_function_with_export("sweep_tridiag_up", {
+    "val": (
+        ("a, b, b", jnp.float64),
+        ("a, b", jnp.float64),
+        ("b", jnp.float64),
+    ),
+    "i": ("", jnp.int64)
+})
 def sweep_tridiag_up(val, i):
     forward_mat, fvals, fval = val
     # go backwards in time

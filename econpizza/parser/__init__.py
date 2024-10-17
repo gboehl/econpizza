@@ -14,7 +14,6 @@ import jax.numpy as jnp
 import importlib.util as iu
 from copy import deepcopy, copy
 from inspect import getmembers, isfunction
-from jax.experimental.host_callback import id_print as jax_print
 from .compile_model_functions import *
 from .checks import *
 from ..utilities import grids, dists, interp
@@ -296,7 +295,8 @@ def load(
 
     # compile globals & definitions
     _ = _define_subdict_if_absent(model, "globals")
-    _, model['context'] = _eval_strs(model['globals'], context=model['context'])
+    _, model['context'] = _eval_strs(
+        model['globals'], context=model['context'])
     defs = model.get("definitions")
     defs = '' if defs is None else defs
     defs = '\n'.join(defs) if isinstance(defs, list) else defs
@@ -320,7 +320,8 @@ def load(
     _ = _define_subdict_if_absent(model, "func_strings")
     _ = _define_subdict_if_absent(model, "steady_state")
     pars = _define_subdict_if_absent(model, "parameters")
-    par_names = model["par_names"] = [*pars] if isinstance(pars, dict) else pars
+    par_names = model["par_names"] = [
+        *pars] if isinstance(pars, dict) else pars
     if 'lambda' in evars + par_names:
         raise NameError(
             "Variables or parameters must not use the name of python's build-in functions \"lambda\".")
@@ -336,6 +337,11 @@ def load(
             evars, par_names, shocks, decisions_inputs, decisions_outputs, model['decisions']['calls'])
         _define_function(model['func_strings']
                          ['func_backw'], model['context'])
+        if model.get('exp_all'):
+            model['context']['func_backw'] = lambda xl, xc, xp, XSS, WFPrime, shocks, pars: model['context']['func_backw_raw'](
+                jnp.exp(xl), jnp.exp(xc), jnp.exp(xp), jnp.exp(XSS), WFPrime, shocks, jnp.exp(pars))
+        else:
+            model['context']['func_backw'] = model['context']['func_backw_raw']
     else:
         decisions_outputs = []
         decisions_inputs = []
@@ -352,7 +358,12 @@ def load(
         'aux_equations'), shocks=shocks, distributions=dist_names, decisions_outputs=decisions_outputs)
 
     # writing to tempfiles helps to get nice debug traces if the model does not work
-    _define_function(model['func_strings']["func_eqns"], model['context'])
+    _define_function(model['func_strings']['func_eqns'], model['context'])
+    if model.get('exp_all'):
+        model['context']['func_eqns'] = lambda xl, xc, xp, XSS, shocks, pars, distributions, decisions_outputs: model['context']['func_eqns_raw'](
+            jnp.exp(xl), jnp.exp(xc), jnp.exp(xp), jnp.exp(XSS), shocks, jnp.exp(pars), distributions, decisions_outputs)
+    else:
+        model['context']['func_eqns'] = model['context']['func_eqns_raw']
     # compile fixed and initial values
     stst_inputs = compile_stst_inputs(model)
     # try if function works on initvals

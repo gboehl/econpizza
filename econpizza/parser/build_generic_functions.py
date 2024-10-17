@@ -185,7 +185,7 @@ def build_aggr_het_agent_funcs(model, zpars, nvars, stst, zshocks, horizon):
 
     shocks = model.get("shocks") or ()
     # get functions
-    func_eqns = model['context']["func_eqns"]
+    func_eqns = model['context']['func_eqns']
     func_backw = model['context'].get('func_backw')
     func_forw = model['context'].get('func_forw')
 

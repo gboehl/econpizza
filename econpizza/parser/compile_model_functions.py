@@ -25,7 +25,7 @@ def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls):
     if isinstance(calls, str):
         calls = calls.splitlines()
 
-    func_str = f"""def func_backw(XLag, X, XPrime, XSS, WFPrime, shocks, pars):
+    func_str = f"""def func_backw_raw(XLag, X, XPrime, XSS, WFPrime, shocks, pars):
             {compile_func_basics_str(evars, par, shocks)}
             \n ({"".join(v + ", " for v in inputs)}) = WFPrime
             \n %s
@@ -108,7 +108,7 @@ def compile_eqn_func_str(evars, eqns, par, eqns_aux, shocks, distributions, deci
     eqns_stack = "\n ".join(eqns)
 
     # compile the final function string
-    func_str = f"""def func_eqns(XLag, X, XPrime, XSS, shocks, pars, distributions=[], decisions_outputs=[]):
+    func_str = f"""def func_eqns_raw(XLag, X, XPrime, XSS, shocks, pars, distributions=[], decisions_outputs=[]):
         {compile_func_basics_str(evars, par, shocks)}
         \n ({"".join(d+', ' for d in distributions)}) = distributions
         \n ({"".join(d+', ' for d in decisions_outputs)}) = decisions_outputs

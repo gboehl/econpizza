@@ -105,17 +105,24 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
         'decisions_output')
 
     # get the actual steady state function
-    func_stst = get_func_stst(func_backw, func_forw_stst, func_eqns, shocks, wf_init, decisions_output_init, fixed_values=d2jnp(
-        fixed_vals), pre_stst_mapping=pre_stst_mapping, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
+    if self.get('exp_all'):
+        func_stst = get_func_stst(func_backw, func_forw_stst, func_eqns, shocks, wf_init, decisions_output_init, fixed_values=jnp.log(d2jnp(fixed_vals)), pre_stst_mapping=pre_stst_mapping, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
+    else:
+        func_stst = get_func_stst(func_backw, func_forw_stst, func_eqns, shocks, wf_init, decisions_output_init, fixed_values=d2jnp(fixed_vals), pre_stst_mapping=pre_stst_mapping, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
     # store jitted stst function that returns jacobian and func. value
     self["context"]['func_stst'] = func_stst
 
     if not self['steady_state'].get('skip'):
         # actual root finding
-        res = newton_jax(func_stst, d2jnp(init_vals), maxit, tol,
-                         solver=solver, verbose=verbose, **newton_kwargs)
+        if self.get('exp_all'):
+            res = newton_jax(func_stst, jnp.log(d2jnp(init_vals)), maxit, tol, solver=solver, verbose=verbose, **newton_kwargs)
+        else:
+            res = newton_jax(func_stst, d2jnp(init_vals), maxit, tol, solver=solver, verbose=verbose, **newton_kwargs)
     else:
-        f, jac, aux = func_stst(d2jnp(init_vals))
+        if self.get('exp_all'):
+            f, jac, aux = func_stst(jnp.log(d2jnp(init_vals)))
+        else:
+            f, jac, aux = func_stst(d2jnp(init_vals))
         res = {'x': d2jnp(init_vals),
                'fun': f,
                'jac': jac,
@@ -125,15 +132,22 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
                }
 
     # exchange those values that are identified via stst_equations
-    stst_vals, par_vals = func_pre_stst(
-        res['x'], d2jnp(fixed_vals), pre_stst_mapping)
+    if self.get('exp_all'):
+        stst_vals, par_vals = func_pre_stst(res['x'], jnp.log(d2jnp(fixed_vals)), pre_stst_mapping)
+    else:
+        stst_vals, par_vals = func_pre_stst(res['x'], d2jnp(fixed_vals), pre_stst_mapping)
     res['initial_values'] = {'guesses': init_vals, 'fixed': fixed_vals, 'value_functions': wf_init, 'decisions': decisions_output_init}
 
     # store results
     self['steady_state']['root_finding_result'] = res
-    self['steady_state']['found_values'] = dict(zip(init_vals.keys(),res['x']))
-    self['stst'] = self['steady_state']['all_values'] = dict(zip(evars, stst_vals))
-    self['pars'] = dict(zip(par_names, par_vals))
+    if self.get('exp_all'):
+        self['steady_state']['found_values'] = dict(zip(init_vals.keys(),jnp.exp(res['x'])))
+        self['stst'] = self['steady_state']['all_values'] = dict(zip(evars, jnp.exp(stst_vals)))
+        self['pars'] = dict(zip(par_names, jnp.exp(par_vals)))
+    else:
+        self['steady_state']['found_values'] = dict(zip(init_vals.keys(),res['x']))
+        self['stst'] = self['steady_state']['all_values'] = dict(zip(evars, stst_vals))
+        self['pars'] = dict(zip(par_names, par_vals))
 
     # calculate dist objects and compile message
     mess = _get_stst_dist_objs(self, res, maxit_backwards,

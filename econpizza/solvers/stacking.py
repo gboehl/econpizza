@@ -74,13 +74,20 @@ def find_path_stacking(
         'jac_factorized') else False
 
     # get variables
-    stst = d2jnp(self["stst"])
     nvars = len(self["var_names"])
-    pars = d2jnp(pars if pars is not None else self["pars"])
+    if self.get('exp_all'):
+        stst = jnp.log(d2jnp(self["stst"]))
+        pars = jnp.log(d2jnp(pars if pars is not None else self["pars"]))
+    else:
+        stst = d2jnp(self["stst"])
+        pars = d2jnp(pars if pars is not None else self["pars"])
     shocks = self.get("shocks") or ()
 
     # get initial guess
-    x0 = jnp.array(list(init_state)) if init_state is not None else stst
+    if self.get('exp_all'):
+        x0 = jnp.log(jnp.array(list(init_state))) if init_state is not None else stst
+    else:
+        x0 = jnp.array(list(init_state)) if init_state is not None else stst
     init_dist = init_dist if init_dist is not None else self['steady_state'].get(
         'distributions')
     dist0 = jnp.array(init_dist if init_dist is not None else jnp.nan)
@@ -154,4 +161,7 @@ def find_path_stacking(
     elif verbose:
         print(mess)
 
-    return x_out, (flag, f)
+    if self.get('exp_all'):
+        return jnp.exp(x_out), (flag, f)
+    else:
+        return x_out, (flag, f)

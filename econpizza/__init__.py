@@ -15,7 +15,7 @@ from .solvers.solve_linear import find_path_linear
 from .solvers.solve_linear_state_space import solve_linear_state_space, find_path_linear_state_space
 from .solvers.shooting import find_path_shooting
 from .parser import parse, load
-from .config import config
+
 
 # set number of cores for XLA
 os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
@@ -59,8 +59,11 @@ class PizzaModel(dict):
 
         dist0 = jnp.array(init_dist) if init_dist is not None else jnp.array(
             self['steady_state'].get('distributions'))
-        pars = jnp.array(list(self['pars'].values())
-                         ) if pars is None else pars
+        if self.get('exp_all'):
+            pars = jnp.log(jnp.array(list(self['pars'].values())) if pars is None else pars)
+            trajectory = jnp.log(trajectory)
+        else:
+            pars = jnp.array(list(self['pars'].values())) if pars is None else pars
         shocks = self.get("shocks") or ()
         dist_names = list(self['distributions'].keys())
         decisions_inputs = self['decisions']['inputs']

@@ -336,6 +336,10 @@ def load(
             evars, par_names, shocks, decisions_inputs, decisions_outputs, model['decisions']['calls'])
         _define_function(model['func_strings']
                          ['func_backw'], model['context'])
+        if model.get('exp_all'):
+            model['context']['func_backw'] = lambda xl,xc,xp,XSS,WFPrime,shocks,pars: model['context']['func_backw_raw'](jnp.exp(xl), jnp.exp(xc), jnp.exp(xp), jnp.exp(XSS), WFPrime, shocks, jnp.exp(pars))
+        else:
+            model['context']['func_backw'] = model['context']['func_backw_raw']
     else:
         decisions_outputs = []
         decisions_inputs = []
@@ -352,7 +356,11 @@ def load(
         'aux_equations'), shocks=shocks, distributions=dist_names, decisions_outputs=decisions_outputs)
 
     # writing to tempfiles helps to get nice debug traces if the model does not work
-    _define_function(model['func_strings']["func_eqns"], model['context'])
+    _define_function(model['func_strings']['func_eqns'], model['context'])
+    if model.get('exp_all'):
+        model['context']['func_eqns'] = lambda xl,xc,xp,XSS,shocks,pars,distributions,decisions_outputs: model['context']['func_eqns_raw'](jnp.exp(xl), jnp.exp(xc), jnp.exp(xp), jnp.exp(XSS), shocks, jnp.exp(pars), distributions, decisions_outputs)
+    else:
+        model['context']['func_eqns'] = model['context']['func_eqns_raw']
     # compile fixed and initial values
     stst_inputs = compile_stst_inputs(model)
     # try if function works on initvals

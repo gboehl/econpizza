@@ -17,10 +17,7 @@ from .solvers.shooting import find_path_shooting
 from .parser import parse, load
 
 
-# set number of cores for XLA
-os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={
-    os.cpu_count()}"
-
+# setting precision is necessary
 jax.config.update("jax_enable_x64", True)
 
 # create local alias

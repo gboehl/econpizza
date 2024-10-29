@@ -32,7 +32,7 @@ def _get_stst_dist_objs(self, res, maxit_backwards, maxit_forwards):
         mess += f"Forward iteration returns NaNs. "
     elif distSS.min() < 0:
         mess += f"Distribution contains negative values " + \
-            "({distSS.min():0.1e}). "
+            f"({distSS.min():0.1e}). "
     if cnt_backwards == maxit_backwards:
         mess += f'Maximum of {maxit_backwards} backwards calls reached. '
     if cnt_forwards == maxit_forwards:
@@ -157,14 +157,15 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
             nfixed = len(fixed_vals)
             if rank != nvars - nfixed:
                 mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of " + \
-                    "freedom ({nfixed} out of a total of {nvars} variables/parameters were fixed). "
+                    f"freedom ({nfixed} out of a total of {
+                    nvars} variables/parameters were fixed). "
 
     # check if any of the fixed variables are neither a parameter nor variable
     if mess:
         not_var_nor_par = list(
             set(self['steady_state']['fixed_values']) - set(evars) - set(par_names))
         mess += f"Fixed value(s) ``{'``, ``'.join(not_var_nor_par)
-                                    }`` not declared. " if not_var_nor_par else ''
+                                    }`` " + f"not declared. " if not_var_nor_par else ''
 
     if err > tol or not res['success']:
         if not res["success"] or raise_errors:

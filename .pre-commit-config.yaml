@@ -7,6 +7,6 @@ repos:
           - id: trailing-whitespace
 
     - repo: https://github.com/pre-commit/mirrors-autopep8
-      rev: v1.6.0
+      rev: ''
       hooks:
           - id: autopep8

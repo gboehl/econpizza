@@ -31,8 +31,8 @@ def _get_stst_dist_objs(self, res, maxit_backwards, maxit_forwards):
     elif jnp.isnan(distSS).any():
         mess += f"Forward iteration returns NaNs. "
     elif distSS.min() < 0:
-        mess += f"Distribution contains negative values ({
-            distSS.min():0.1e}). "
+        mess += f"Distribution contains negative values " + \
+            "({distSS.min():0.1e}). "
     if cnt_backwards == maxit_backwards:
         mess += f'Maximum of {maxit_backwards} backwards calls reached. '
     if cnt_forwards == maxit_forwards:

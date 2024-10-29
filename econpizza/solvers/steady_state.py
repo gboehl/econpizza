@@ -156,9 +156,7 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
             nvars = len(evars)+len(par_names)
             nfixed = len(fixed_vals)
             if rank != nvars - nfixed:
-                mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of " + \
-                    f"freedom ({nfixed} out of a total of {
-                    nvars} variables/parameters were fixed). "
+                mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of freedom ({nfixed} out of a total of {nvars} variables/parameters were fixed). "
 
     # check if any of the fixed variables are neither a parameter nor variable
     if mess:

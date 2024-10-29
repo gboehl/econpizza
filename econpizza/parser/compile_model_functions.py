@@ -25,7 +25,7 @@ def compile_backw_func_str(evars, par, shocks, inputs, outputs, calls):
     if isinstance(calls, str):
         calls = calls.splitlines()
 
-    func_str = f"""def func_backw_raw(XLag, X, XPrime, XSS, WFPrime, shocks, pars):
+    func_str = f"""def func_backw_raw(XLag, X, XPrime, XSS, pars, WFPrime, shocks):
             {compile_func_basics_str(evars, par, shocks)}
             \n ({"".join(v + ", " for v in inputs)}) = WFPrime
             \n %s
@@ -49,8 +49,10 @@ def get_forw_funcs(model):
         dist = distributions[dist_name]
 
         # *_generic should be depreciated at some point
-        implemented_endo = ('exogenous', 'exogenous_rouwenhorst', 'exogenous_generic', 'exogenous_custom')
-        implemented_exo = ('endogenous', 'endogenous_log', 'endogenous_generic', 'endogenous_custom')
+        implemented_endo = ('exogenous', 'exogenous_rouwenhorst',
+                            'exogenous_generic', 'exogenous_custom')
+        implemented_exo = ('endogenous', 'endogenous_log',
+                           'endogenous_generic', 'endogenous_custom')
         exog = [v for v in dist if dist[v]['type'] in implemented_endo]
         endo = [v for v in dist if dist[v]['type'] in implemented_exo]
         other = [dist[v]['type'] for v in dist if dist[v]
@@ -68,13 +70,15 @@ def get_forw_funcs(model):
 
         # for each object, check if it is provided in decisions_outputs
         try:
-            transition = model['decisions']['outputs'].index(dist[exog[0]]['transition_name'])
+            transition = model['decisions']['outputs'].index(
+                dist[exog[0]]['transition_name'])
         except ValueError:
             transition = model['context'][dist[exog[0]]['transition_name']]
         grids = []
         for i in endo:
             try:
-                grids.append(model['decisions']['outputs'].index(dist[i]['grid_name']))
+                grids.append(model['decisions']
+                             ['outputs'].index(dist[i]['grid_name']))
             except ValueError:
                 grids.append(model['context'][dist[i]['grid_name']])
         indices = [model['decisions']['outputs'].index(i) for i in endo]
@@ -108,7 +112,7 @@ def compile_eqn_func_str(evars, eqns, par, eqns_aux, shocks, distributions, deci
     eqns_stack = "\n ".join(eqns)
 
     # compile the final function string
-    func_str = f"""def func_eqns_raw(XLag, X, XPrime, XSS, shocks, pars, distributions=[], decisions_outputs=[]):
+    func_str = f"""def func_eqns_raw(XLag, X, XPrime, XSS, pars, shocks, distributions=[], decisions_outputs=[]):
         {compile_func_basics_str(evars, par, shocks)}
         \n ({"".join(d+', ' for d in distributions)}) = distributions
         \n ({"".join(d+', ' for d in decisions_outputs)}) = decisions_outputs

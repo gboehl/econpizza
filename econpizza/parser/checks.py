@@ -53,7 +53,8 @@ def check_determinancy(evars, eqns):
     sorted_evars = evars[:] = sorted(list(set(evars)), key=str.lower)
     if len(sorted_evars) != len(eqns):
         raise Exception(
-            f"Model has {len(sorted_evars)} variables but {len(eqns)} equations."
+            f"Model has {len(sorted_evars)} variables but {
+                len(eqns)} equations."
         )
     return sorted_evars
 
@@ -71,7 +72,8 @@ def check_initial_values(model, shocks, init_guesses, fixed_values, init_wf, pre
     mess = ''
     if model.get('decisions'):
         # make a test backward and forward run
-        _, decisions_output_init = model['context']['func_backw'](init_vals, init_vals, init_vals, init_vals, init_wf, jnp.zeros(len(shocks)), par)
+        _, decisions_output_init = model['context']['func_backw'](
+            init_vals, init_vals, init_vals, init_vals, par, init_wf, jnp.zeros(len(shocks)))
         dists_init, _ = model['context']['func_forw_stst'](
             decisions_output_init, 1e-8, 1)
 
@@ -91,8 +93,8 @@ def check_initial_values(model, shocks, init_guesses, fixed_values, init_wf, pre
 
     # final test of main function
     init_vals = init_vals[..., None]
-    test = model['context']['func_eqns'](init_vals, init_vals, init_vals, init_vals, jnp.zeros(
-        len(shocks)), par, jnp.array(dists_init)[..., None], (doi[...,None] for doi in decisions_output_init))
+    test = model['context']['func_eqns'](init_vals, init_vals, init_vals, init_vals, par, jnp.zeros(
+        len(shocks)), jnp.array(dists_init)[..., None], (doi[..., None] for doi in decisions_output_init))
 
     if mess:
         pass

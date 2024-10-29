@@ -188,6 +188,16 @@ def _define_function(func_str, context):
     return tmpf.name
 
 
+def wrap_with_transform(func, transform):
+    if transform:
+        def outfunc(XLag, X, XPrime, XSS, pars, *args, **kwargs):
+            Xandpar = (transform(y) for y in (XLag, X, XPrime, XSS, pars))
+            return func(*Xandpar, *args, **kwargs)
+        return outfunc
+    else:
+        return func
+
+
 def _get_pre_stst_mapping(init_vals, fixed_values, evars, par_names):
     """Define the mapping from init & fixed vals to model variables & parameters
     """
@@ -329,6 +339,11 @@ def load(
         raise TypeError(
             f'parameters must be a list and not {type(par_names)}.')
 
+    # get and evaluate options
+    _ = _define_subdict_if_absent(model, "options")
+    model['options'], _ = _eval_strs(
+        model['options'], context=model['context'])
+
     # get function strings for decisions and distributions, if they exist
     if model.get('decisions'):
         decisions_outputs = model['decisions']['outputs']
@@ -337,11 +352,8 @@ def load(
             evars, par_names, shocks, decisions_inputs, decisions_outputs, model['decisions']['calls'])
         _define_function(model['func_strings']
                          ['func_backw'], model['context'])
-        if model.get('exp_all'):
-            model['context']['func_backw'] = lambda xl, xc, xp, XSS, WFPrime, shocks, pars: model['context']['func_backw_raw'](
-                jnp.exp(xl), jnp.exp(xc), jnp.exp(xp), jnp.exp(XSS), WFPrime, shocks, jnp.exp(pars))
-        else:
-            model['context']['func_backw'] = model['context']['func_backw_raw']
+        model['context']['func_backw'] = wrap_with_transform(
+            model['context']['func_backw_raw'], model['options'].get('transform_to'))
     else:
         decisions_outputs = []
         decisions_inputs = []
@@ -359,11 +371,8 @@ def load(
 
     # writing to tempfiles helps to get nice debug traces if the model does not work
     _define_function(model['func_strings']['func_eqns'], model['context'])
-    if model.get('exp_all'):
-        model['context']['func_eqns'] = lambda xl, xc, xp, XSS, shocks, pars, distributions, decisions_outputs: model['context']['func_eqns_raw'](
-            jnp.exp(xl), jnp.exp(xc), jnp.exp(xp), jnp.exp(XSS), shocks, jnp.exp(pars), distributions, decisions_outputs)
-    else:
-        model['context']['func_eqns'] = model['context']['func_eqns_raw']
+    model['context']['func_eqns'] = wrap_with_transform(
+        model['context']['func_eqns_raw'], model['options'].get('transform_to'))
     # compile fixed and initial values
     stst_inputs = compile_stst_inputs(model)
     # try if function works on initvals

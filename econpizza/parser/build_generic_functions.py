@@ -132,7 +132,8 @@ def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, ver
     combined_sweep = model['context']['combined_sweep']
 
     distSS = jnp.array(model['steady_state']['distributions'])
-    decisions_outputSS = (jnp.array(d)[..., None] for d in list(model['steady_state']['decisions'].values()))
+    decisions_outputSS = (jnp.array(d)[..., None] for d in list(
+        model['steady_state']['decisions'].values()))
 
     # basis for steady state jacobian construction
     basis = jnp.zeros((nvars*(horizon-1), nvars))
@@ -148,7 +149,7 @@ def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, ver
     # get steady state jacobians for direct effects x on f
     jacrev_func_eqns = jax.jacrev(func_eqns, argnums=(0, 1, 2))
     f2X = jacrev_func_eqns(stst[:, None], stst[:, None], stst[:, None],
-                           stst, zshocks[:, 0], pars, distSS[..., None], decisions_outputSS)
+                           stst, pars, zshocks[:, 0], distSS[..., None], decisions_outputSS)
 
     if verbose:
         duration = time.time() - st
@@ -174,7 +175,8 @@ def get_stacked_func_het_agents(func_backw, func_forw, func_eqns, stst, wfSS, ho
         forwards_sweep, horizon=horizon, func_forw=partial_forw)
     final_step_local = jax.tree_util.Partial(
         final_step, stst=stst, horizon=horizon, nshpe=nshpe, func_eqns=func_eqns)
-    combined_sweep_local = jax.tree_util.Partial(combined_sweep, forwards_sweep=forwards_sweep_local, final_step=final_step_local)
+    combined_sweep_local = jax.tree_util.Partial(
+        combined_sweep, forwards_sweep=forwards_sweep_local, final_step=final_step_local)
     stacked_func_local = jax.tree_util.Partial(
         stacked_func_het_agents, backwards_sweep=backwards_sweep_local, combined_sweep=combined_sweep_local)
 

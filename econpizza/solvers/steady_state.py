@@ -31,7 +31,8 @@ def _get_stst_dist_objs(self, res, maxit_backwards, maxit_forwards):
     elif jnp.isnan(distSS).any():
         mess += f"Forward iteration returns NaNs. "
     elif distSS.min() < 0:
-        mess += f"Distribution contains negative values ({distSS.min():0.1e}). "
+        mess += f"Distribution contains negative values ({
+            distSS.min():0.1e}). "
     if cnt_backwards == maxit_backwards:
         mess += f'Maximum of {maxit_backwards} backwards calls reached. '
     if cnt_forwards == maxit_forwards:
@@ -99,30 +100,26 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
     func_backw = self['context'].get('func_backw')
     func_forw_stst = self['context'].get('func_forw_stst')
     func_pre_stst = self['context']['func_pre_stst']
+    # get transformers (experimental)
+    transform_to = self['options'].get('transform_to') or (lambda x: x)
+    transform_back = self['options'].get('transform_back') or (lambda x: x)
 
     # get initial values for heterogenous agents
     decisions_output_init = self['context']['init_run'].get(
         'decisions_output')
 
     # get the actual steady state function
-    if self.get('exp_all'):
-        func_stst = get_func_stst(func_backw, func_forw_stst, func_eqns, shocks, wf_init, decisions_output_init, fixed_values=jnp.log(d2jnp(fixed_vals)), pre_stst_mapping=pre_stst_mapping, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
-    else:
-        func_stst = get_func_stst(func_backw, func_forw_stst, func_eqns, shocks, wf_init, decisions_output_init, fixed_values=d2jnp(fixed_vals), pre_stst_mapping=pre_stst_mapping, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
+    func_stst = get_func_stst(func_backw, func_forw_stst, func_eqns, shocks, wf_init, decisions_output_init, fixed_values=transform_back(d2jnp(
+        fixed_vals)), pre_stst_mapping=pre_stst_mapping, tol_backw=tol_backwards, maxit_backw=maxit_backwards, tol_forw=tol_forwards, maxit_forw=maxit_forwards)
     # store jitted stst function that returns jacobian and func. value
     self["context"]['func_stst'] = func_stst
 
     if not self['steady_state'].get('skip'):
         # actual root finding
-        if self.get('exp_all'):
-            res = newton_jax(func_stst, jnp.log(d2jnp(init_vals)), maxit, tol, solver=solver, verbose=verbose, **newton_kwargs)
-        else:
-            res = newton_jax(func_stst, d2jnp(init_vals), maxit, tol, solver=solver, verbose=verbose, **newton_kwargs)
+        res = newton_jax(func_stst, transform_back(
+            d2jnp(init_vals)), maxit, tol, solver=solver, verbose=verbose, **newton_kwargs)
     else:
-        if self.get('exp_all'):
-            f, jac, aux = func_stst(jnp.log(d2jnp(init_vals)))
-        else:
-            f, jac, aux = func_stst(d2jnp(init_vals))
+        f, jac, aux = func_stst(transform_back(d2jnp(init_vals)))
         res = {'x': d2jnp(init_vals),
                'fun': f,
                'jac': jac,
@@ -132,22 +129,18 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
                }
 
     # exchange those values that are identified via stst_equations
-    if self.get('exp_all'):
-        stst_vals, par_vals = func_pre_stst(res['x'], jnp.log(d2jnp(fixed_vals)), pre_stst_mapping)
-    else:
-        stst_vals, par_vals = func_pre_stst(res['x'], d2jnp(fixed_vals), pre_stst_mapping)
-    res['initial_values'] = {'guesses': init_vals, 'fixed': fixed_vals, 'value_functions': wf_init, 'decisions': decisions_output_init}
+    stst_vals, par_vals = func_pre_stst(
+        res['x'], jnp.log(d2jnp(fixed_vals)), pre_stst_mapping)
+    res['initial_values'] = {'guesses': init_vals, 'fixed': fixed_vals,
+                             'value_functions': wf_init, 'decisions': decisions_output_init}
 
     # store results
     self['steady_state']['root_finding_result'] = res
-    if self.get('exp_all'):
-        self['steady_state']['found_values'] = dict(zip(init_vals.keys(),jnp.exp(res['x'])))
-        self['stst'] = self['steady_state']['all_values'] = dict(zip(evars, jnp.exp(stst_vals)))
-        self['pars'] = dict(zip(par_names, jnp.exp(par_vals)))
-    else:
-        self['steady_state']['found_values'] = dict(zip(init_vals.keys(),res['x']))
-        self['stst'] = self['steady_state']['all_values'] = dict(zip(evars, stst_vals))
-        self['pars'] = dict(zip(par_names, par_vals))
+    self['steady_state']['found_values'] = dict(
+        zip(init_vals.keys(), transform_to(res['x'])))
+    self['stst'] = self['steady_state']['all_values'] = dict(
+        zip(evars, transform_to(stst_vals)))
+    self['pars'] = dict(zip(par_names, transform_to(par_vals)))
 
     # calculate dist objects and compile message
     mess = _get_stst_dist_objs(self, res, maxit_backwards,
@@ -163,13 +156,15 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
             nvars = len(evars)+len(par_names)
             nfixed = len(fixed_vals)
             if rank != nvars - nfixed:
-                mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of freedom ({nfixed} out of a total of {nvars} variables/parameters were fixed). "
+                mess += f"Jacobian has rank {rank} for {nvars - nfixed} degrees of freedom ({
+                    nfixed} out of a total of {nvars} variables/parameters were fixed). "
 
     # check if any of the fixed variables are neither a parameter nor variable
     if mess:
         not_var_nor_par = list(
             set(self['steady_state']['fixed_values']) - set(evars) - set(par_names))
-        mess += f"Fixed value(s) ``{'``, ``'.join(not_var_nor_par)}`` not declared. " if not_var_nor_par else ''
+        mess += f"Fixed value(s) ``{'``, ``'.join(not_var_nor_par)
+                                    }`` not declared. " if not_var_nor_par else ''
 
     if err > tol or not res['success']:
         if not res["success"] or raise_errors:
@@ -177,7 +172,8 @@ def solve_stst(self, tol=1e-8, maxit=15, tol_backwards=None, maxit_backwards=200
                 err) else f" (max. error is {err:1.2e} in eqn. {errarg})"
             mess = f"Steady state FAILED{location}. {res['message']} {mess}"
         else:
-            mess = f"{res['message']} WARNING: Steady state error is {err:1.2e} in eqn. {errarg}. {mess}"
+            mess = f"{res['message']} WARNING: Steady state error is {
+                err:1.2e} in eqn. {errarg}. {mess}"
         if raise_errors:
             raise Exception(mess)
     elif verbose:

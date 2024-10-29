@@ -72,22 +72,19 @@ def find_path_stacking(
     # only skip jacobian calculation if it exists
     skip_jacobian = skip_jacobian if self['cache'].get(
         'jac_factorized') else False
+    # get transformers (experimental)
+    transform_to = self['options'].get('transform_to') or (lambda x: x)
+    transform_back = self['options'].get('transform_back') or (lambda x: x)
 
     # get variables
     nvars = len(self["var_names"])
-    if self.get('exp_all'):
-        stst = jnp.log(d2jnp(self["stst"]))
-        pars = jnp.log(d2jnp(pars if pars is not None else self["pars"]))
-    else:
-        stst = d2jnp(self["stst"])
-        pars = d2jnp(pars if pars is not None else self["pars"])
+    stst = transform_back(d2jnp(self["stst"]))
+    pars = transform_back(d2jnp(pars if pars is not None else self["pars"]))
     shocks = self.get("shocks") or ()
 
     # get initial guess
-    if self.get('exp_all'):
-        x0 = jnp.log(jnp.array(list(init_state))) if init_state is not None else stst
-    else:
-        x0 = jnp.array(list(init_state)) if init_state is not None else stst
+    x0 = transform_back(jnp.array(list(init_state))
+                        ) if init_state is not None else stst
     init_dist = init_dist if init_dist is not None else self['steady_state'].get(
         'distributions')
     dist0 = jnp.array(init_dist if init_dist is not None else jnp.nan)
@@ -110,7 +107,7 @@ def find_path_stacking(
             func_eqns = self['context']["func_eqns"]
             jav_func_eqns = val_and_jacrev(func_eqns, (0, 1, 2))
             jav_func_eqns_partial = jax.tree_util.Partial(
-                jav_func_eqns, XSS=stst, pars=pars, distributions=[], decisions_outputs=[])
+                jav_func_eqns, pars=pars, XSS=stst, distributions=[], decisions_outputs=[])
             self['context']['jav_func'] = jav_func_eqns_partial
             # mark as compiled
             write_cache(self, horizon, pars, stst)
@@ -161,7 +158,4 @@ def find_path_stacking(
     elif verbose:
         print(mess)
 
-    if self.get('exp_all'):
-        return jnp.exp(x_out), (flag, f)
-    else:
-        return x_out, (flag, f)
+    return transform_to(x_out), (flag, f)

@@ -53,8 +53,7 @@ def check_determinancy(evars, eqns):
     sorted_evars = evars[:] = sorted(list(set(evars)), key=str.lower)
     if len(sorted_evars) != len(eqns):
         raise Exception(
-            f"Model has {len(sorted_evars)} variables but {
-                len(eqns)} equations."
+            f"Model has {len(sorted_evars)} variables but {len(eqns)} equations."
         )
     return sorted_evars
 

@@ -16,7 +16,7 @@ def callback_with_damp(cnt, err, fev, err_inner, dampening, ltime, verbose):
     return callback_func(cnt, err, inner, damp, fev=fev, ltime=ltime, verbose=verbose)
 
 
-def iteration_step(carry):
+def inner_iteration_body(carry):
     (y, dampening, fev), (x, f, jvp_func, jacobian, factor), (_, tol, maxit) = carry
     _, v = jvp_func(x, y)
     v = lu_solve(*jacobian[0], v, 0)[jacobian[1]]
@@ -27,15 +27,16 @@ def iteration_step(carry):
     return (y, dampening, fev+1), (x, f, jvp_func, jacobian, factor), (eps, tol, maxit)
 
 
-def iteration_cond(carry):
+def inner_iteration_cond(carry):
     (_, _, fev), _, (eps, tol, maxit) = carry
-    return jnp.logical_and(fev <= maxit, eps > tol)
+    return jnp.logical_and(fev < maxit, eps > tol)
 
 
 def jvp_while_body(carry):
-    (x, _, _, cnt, fev, _), statics = carry
+    (x, y, _, _, cnt, fev, _), statics = carry
     (jvp_func, jacobian, maxit, relaxation, nsteps, tol, factor, verbose) = statics
     # first iteration
+    x -= relaxation*y
     f, _ = jvp_func(x, jnp.zeros_like(x))
     f = lu_solve(*jacobian[0], f, 0)[jacobian[1]]
     # other iterations
@@ -43,21 +44,50 @@ def jvp_while_body(carry):
     init = ((f, 1., 0), (x, f, jvp_func, jacobian, factor),
             (1e8, iteration_tol, nsteps))
     (y, dampening, fev_inner), _, (err_inner, _, _) = jax.lax.while_loop(
-        iteration_cond, iteration_step, init)
-    return (x-relaxation*y, f, dampening, cnt+1, fev+fev_inner, err_inner), statics
+        inner_iteration_cond, inner_iteration_body, init)
+    return (x, y, f, dampening, cnt+1, fev+fev_inner, err_inner), statics
 
 
 def jvp_while_cond(carry):
-    (_, f, dampening, cnt, fev, err_inner), (_,
-                                             _, maxit, _, nsteps, tol, _, verbose) = carry
+    (_, _, f, dampening, cnt, fev, err_inner), (_, _, maxit, _, nsteps, tol, _, verbose) = carry
     err = amax(f)
     cond = jnp.logical_and(err > tol, cnt < maxit)
     verbose = jnp.logical_and(cond, verbose)
     verbose = jnp.logical_and(fev, verbose)
-    jax.debug.callback(callback_with_damp, cnt, err, fev=fev,
-                       err_inner=err_inner, dampening=dampening, ltime=None, verbose=verbose)
+    jax.debug.callback(callback_with_damp, cnt, err, fev=fev, err_inner=err_inner, dampening=dampening, ltime=None, verbose=verbose)
     return cond
 
+
+def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=20, nsteps=30, relaxation=1, factor=1.5):
+    """Newton solver for heterogeneous agents models as described in the paper.
+
+    Parameters
+    ----------
+    tol : float, optional
+        tolerance of the Newton method, defaults to ``1e-8``
+    maxit : int, optional
+        maximum of iterations for the Newton method, defaults to 20
+    nsteps : int, optional
+        number of function evaluations per Newton iteration, defaults to 30
+    relaxation : float, optional
+        relaxation factor applied to each newton iteration, defaults to 1
+    factor : float, optional
+        dampening factor (gamma in the paper), Defaults to 1.5
+    """
+
+    start_time = time.time()
+    x = x_init[1:-1].flatten()
+
+    (x, _, f, dampening, cnt, fev, err_inner), _ = jax.lax.while_loop(jvp_while_cond, jvp_while_body, ((x, jnp.zeros_like(x), x, 0., 0, 0, 0), (jvp_func, jacobian, maxit, relaxation, nsteps, tol, factor, verbose)))
+    err = amax(f)
+    ltime = time.time() - start_time
+    callback_with_damp(cnt, err, fev=fev, err_inner=err_inner, dampening=dampening, ltime=ltime, verbose=verbose)
+    _, (success, mess) = check_status(err, cnt, maxit, tol)
+    # compile error/report message
+    if not success and not jnp.isnan(err):
+        mess += f" Max. error is {err:1.2e}."
+
+    return x, f, not success, mess
 
 def sweep_tridiag_down(val, i):
     jav_func, fmod, forward_mat, X, shocks = val
@@ -89,39 +119,6 @@ def check_status(err, cnt, maxit, tol):
     else:
         return False, (False, "")
 
-
-def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=20, nsteps=30, relaxation=1, factor=1.5):
-    """Newton solver for heterogeneous agents models as described in the paper.
-
-    Parameters
-    ----------
-    tol : float, optional
-        tolerance of the Newton method, defaults to ``1e-8``
-    maxit : int, optional
-        maximum of iterations for the Newton method, defaults to 20
-    nsteps : int, optional
-        number of function evaluations per Newton iteration, defaults to 30
-    relaxation : float, optional
-        relaxation factor applied to each newton iteration, defaults to 1
-    factor : float, optional
-        dampening factor (gamma in the paper), Defaults to 1.5
-    """
-
-    start_time = time.time()
-    x = x_init[1:-1].flatten()
-
-    (x, f, dampening, cnt, fev, err_inner), _ = jax.lax.while_loop(jvp_while_cond, jvp_while_body,
-                                                                   ((x, x, 0., 0, 0, 0), (jvp_func, jacobian, maxit, relaxation, nsteps, tol, factor, verbose)))
-    err = amax(f)
-    ltime = time.time() - start_time
-    callback_with_damp(cnt, err, fev=fev, err_inner=err_inner,
-                       dampening=dampening, ltime=ltime, verbose=verbose)
-    _, (success, mess) = check_status(err, cnt, maxit, tol)
-    # compile error/report message
-    if not success and not jnp.isnan(err):
-        mess += f" Max. error is {err:1.2e}."
-
-    return x, f, not success, mess
 
 
 def newton_for_tridiag_jac(jav_func, nvars, horizon, X, shocks, verbose, maxit=30, relaxation=1, tol=1e-8):

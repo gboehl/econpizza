@@ -16,7 +16,7 @@ def _backwards_stst_cond(carry):
 
 def _backwards_stst_body(carry):
     (x, par), (wf, _), (_, cnt), (func, tol, maxit) = carry
-    return (x, par), func(x, x, x, x, wf, pars=par), (wf, cnt + 1), (func, tol, maxit)
+    return (x, par), func(x, x, x, x, pars=par, WFPrime=wf), (wf, cnt + 1), (func, tol, maxit)
 
 
 def backwards_sweep_stst(x, par, carry):
@@ -29,7 +29,7 @@ def _backwards_step(carry, i):
 
     wf, X, shocks, func_backw, stst, pars = carry
     wf, decisions_output = func_backw(
-        X[:, i], X[:, i+1], X[:, i+2], WFPrime=wf, shocks=shocks[:, i], pars=pars)
+        X[:, i], X[:, i+1], X[:, i+2], pars=pars, WFPrime=wf, shocks=shocks[:, i])
 
     return (wf, X, shocks, func_backw, stst, pars), (wf, decisions_output)
 
@@ -40,7 +40,8 @@ def backwards_sweep(x: Array, x0: Array, shocks: Array, pars: Array, stst: Array
 
     _, (wf_storage, decisions_output_storage) = jax.lax.scan(
         _backwards_step, (wfSS, X, shocks, func_backw, stst, pars), jnp.arange(horizon-1), reverse=True)
-    decisions_output_storage = [jnp.moveaxis(dos, 0, -1) for dos in decisions_output_storage]
+    decisions_output_storage = [jnp.moveaxis(
+        dos, 0, -1) for dos in decisions_output_storage]
     wf_storage = jnp.moveaxis(wf_storage, 0, -1)
 
     if return_wf:
@@ -51,7 +52,8 @@ def backwards_sweep(x: Array, x0: Array, shocks: Array, pars: Array, stst: Array
 def _forwards_step(carry, i):
 
     dist_old, decisions_output_storage, func_forw = carry
-    dist = func_forw(dist_old, [dos[..., i] for dos in decisions_output_storage])
+    dist = func_forw(dist_old, [dos[..., i]
+                     for dos in decisions_output_storage])
 
     return (dist, decisions_output_storage, func_forw), dist_old
 
@@ -69,7 +71,7 @@ def final_step(x: Array, dists_storage: Array, decisions_output_storage: Array, 
 
     X = jnp.hstack((x0, x, stst)).reshape(horizon+1, -1).T
     out = func_eqns(X[:, :-2].reshape(nshpe), X[:, 1:-1].reshape(nshpe), X[:, 2:].reshape(
-        nshpe), stst, shocks, pars, dists_storage, decisions_output_storage)
+        nshpe), stst, pars, shocks, dists_storage, decisions_output_storage)
 
     return out
 

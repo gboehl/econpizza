@@ -17,9 +17,7 @@ from .solvers.shooting import find_path_shooting
 from .parser import parse, load
 
 
-# set number of cores for XLA
-os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.cpu_count()}"
-
+# setting precision is necessary
 jax.config.update("jax_enable_x64", True)
 
 # create local alias
@@ -57,13 +55,14 @@ class PizzaModel(dict):
             a dictionary of the distributions
         """
 
+        # get transformers (experimental)
+        transform_back = self['options'].get('transform_back') or (lambda x: x)
+
         dist0 = jnp.array(init_dist) if init_dist is not None else jnp.array(
             self['steady_state'].get('distributions'))
-        if self.get('exp_all'):
-            pars = jnp.log(jnp.array(list(self['pars'].values())) if pars is None else pars)
-            trajectory = jnp.log(trajectory)
-        else:
-            pars = jnp.array(list(self['pars'].values())) if pars is None else pars
+        pars = transform_back(
+            jnp.array(list(self['pars'].values())) if pars is None else pars)
+        trajectory = transform_back(trajectory)
         shocks = self.get("shocks") or ()
         dist_names = list(self['distributions'].keys())
         decisions_inputs = self['decisions']['inputs']
@@ -81,13 +80,17 @@ class PizzaModel(dict):
         # get functions and execute
         backwards_sweep = self['context']['backwards_sweep']
         forwards_sweep = self['context']['forwards_sweep']
-        wf_storage, decisions_output_storage = backwards_sweep(x, x0, shock_series.T, pars, return_wf=True)
+        wf_storage, decisions_output_storage = backwards_sweep(
+            x, x0, shock_series.T, pars, return_wf=True)
         dists_storage = forwards_sweep(decisions_output_storage, dist0)
 
         # store this
-        rdict = {oput: wf_storage[i] for i, oput in enumerate(decisions_inputs)}
-        rdict.update({oput: decisions_output_storage[i] for i, oput in enumerate(decisions_outputs)})
-        rdict.update({oput: dists_storage[i] for i, oput in enumerate(dist_names)})
+        rdict = {oput: wf_storage[i]
+                 for i, oput in enumerate(decisions_inputs)}
+        rdict.update(
+            {oput: decisions_output_storage[i] for i, oput in enumerate(decisions_outputs)})
+        rdict.update({oput: dists_storage[i]
+                     for i, oput in enumerate(dist_names)})
 
         return rdict
 

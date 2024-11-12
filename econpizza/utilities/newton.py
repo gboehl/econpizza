@@ -32,22 +32,6 @@ def inner_iteration_cond(carry):
     return jnp.logical_and(fev < maxit, eps > tol)
 
 
-def jvp_while_body(carry):
-    (x, y, _, _, cnt, fev, _), statics = carry
-    (jvp_func, jacobian, maxit, relaxation, nsteps, tol, factor, verbose) = statics
-    # first iteration
-    x -= relaxation*y
-    f, _ = jvp_func(x, jnp.zeros_like(x))
-    f = lu_solve(*jacobian[0], f, 0)[jacobian[1]]
-    # other iterations
-    iteration_tol = jnp.minimum(1e-5, 1e-1*amax(f))
-    init = ((f, 1., 0), (x, f, jvp_func, jacobian, factor),
-            (1e8, iteration_tol, nsteps))
-    (y, dampening, fev_inner), _, (err_inner, _, _) = jax.lax.while_loop(
-        inner_iteration_cond, inner_iteration_body, init)
-    return (x, y, f, dampening, cnt+1, fev+fev_inner, err_inner), statics
-
-
 def jvp_while_cond(carry):
     (_, _, f, dampening, cnt, fev, err_inner), (_, _, maxit, _, nsteps, tol, _, verbose) = carry
     err = amax(f)
@@ -78,7 +62,34 @@ def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=20, nste
     start_time = time.time()
     x = x_init[1:-1].flatten()
 
-    (x, _, f, dampening, cnt, fev, err_inner), _ = jax.lax.while_loop(jvp_while_cond, jvp_while_body, ((x, jnp.zeros_like(x), x, 0., 0, 0, 0), (jvp_func, jacobian, maxit, relaxation, nsteps, tol, factor, verbose)))
+    carry = ((x, jnp.zeros_like(x), x, 0., 0, 0, 0), (jvp_func, jacobian, maxit, relaxation, nsteps, tol, factor, verbose))
+
+    while jvp_while_cond(carry):
+        (x, y, _, _, cnt, fev, _), statics = carry
+        (jvp_func, jacobian, maxit, relaxation, nsteps, tol, factor, verbose) = statics
+        not_found = True
+        relaxation_loc = 1
+        # relaxation_loc = relaxation
+        while not_found:
+            # first iteration
+            print(relaxation_loc)
+            xi = x - relaxation_loc*y
+            f, _ = jvp_func(xi, jnp.zeros_like(x))
+            f = lu_solve(*jacobian[0], f, 0)[jacobian[1]]
+            # other iterations
+            iteration_tol = jnp.minimum(1e-5, 1e-1*amax(f))
+            init = ((f, 1., 0), (xi, f, jvp_func, jacobian, factor),
+                    (1e8, iteration_tol, nsteps))
+            (yi, dampening, fev_inner), _, (err_inner, _, _) = jax.lax.while_loop(inner_iteration_cond, inner_iteration_body, init)
+            not_found = jnp.isnan(yi).any()
+            relaxation_loc /= 2
+
+        x = xi
+        y = yi
+
+        carry = (x, y, f, dampening, cnt+1, fev+fev_inner, err_inner), statics
+
+    (x, _, f, dampening, cnt, fev, err_inner), _ = carry
     err = amax(f)
     ltime = time.time() - start_time
     callback_with_damp(cnt, err, fev=fev, err_inner=err_inner, dampening=dampening, ltime=ltime, verbose=verbose)

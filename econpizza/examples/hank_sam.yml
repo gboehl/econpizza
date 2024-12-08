@@ -84,7 +84,7 @@ equations:
     # Labour market
     ~ n = 1-u # employment
     ~ theta = v/u # labour-market tightness
-    ~ kappa/lambda_f = beta * (n_effPrime*(p_nPrime - wPrime) + (1-sigma)*kappa/lambda_fPrime) # vacancy creation
+    ~ kappa/lambda_f = p_nPrime - wPrime + beta*(1-sigma)*kappa/lambda_fPrime # vacancy creation
     ~ lambda_w = mu*theta**(1-eta) # job-finding rate
     ~ lambda_f = mu*theta**(-eta) # worker-finding rate
     ~ w/wSS = (p_n/p_nSS)**eps_w # wage determination as in Graves (forthcoming, AEJ Macro)

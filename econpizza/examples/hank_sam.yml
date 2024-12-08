@@ -1,7 +1,8 @@
-# Author: Andreas Koundouros [a.koundouros@fu-berlin.de]
-# HANK structure based on Auclert et al. (2021, Econometrica) and example one-asset HANK model from Gregor Boehl, PhD, see:
+# Author: Andreas Koundouros [a.koundouros@fu-berlin.de] & Gregor Boehl
+# HANK structure based on Auclert et al. (2021, Econometrica) and example one-asset HANK model from Gregor Boehl see:
 # https://github.com/gboehl/econpizza/blob/master/econpizza/examples/hank_with_comments.yml
 # SAM extension loosely based on Consolo & Hänsel (2024, ECB WP), Graves (forthcoming, AEJ Macro), Dengler & Gehrke (2022, CESifo WP)
+#
 ---
 name: 'hank_sam'
 description: 'A one-asset HANK model with SAM labour market frictions'
@@ -11,9 +12,9 @@ globals:
     # Parameters for skill-employment grid
     rho_e : 0.966 # persistence in labour productivity when on a job
     sigma_e : 0.6 # variance of shocks to labour productivity when on a job
-    N_e : 4 # number of grid points (excl. unemployment state)
-    lambda_w_ss : 0.5837 # steady-state job-finding rate
-    sigma_ss : 0.0423 # steady-state job-destruction rate
+    n_skills : 4 # number of skill grid points (excl. unemployment state)
+    lambda_w_stst : 0.5837 # steady-state job-finding rate
+    sigma_stst : 0.0423 # steady-state job-destruction rate
 
 definitions: |
     # Imports
@@ -21,8 +22,8 @@ definitions: |
     from econpizza.tools import percentile, jax_print
 
     # Skill-employment grid
-    skills_grid, skills_stationary, skills_stationary_e, skills_transition_stst = sam_markov(rho_e, sigma_e, N_e, lambda_w_ss, sigma_ss) # obtain custom grid
-    skills_grid_n = len(skills_stationary) # number of grid points (incl. unemployment state)
+    e_grid, e_stationary, e_transition_stst = sam_markov(rho_e, sigma_e, n_skills, lambda_w_stst, sigma_stst) # obtain custom grid
+    skills_stationary = e_stationary[1:]/e_stationary[1:].sum() # stationary distribution of skills across employed
 
 # Variables, parameters and shocks
 variables: [ B, C, n_eff, R, Rr, Rstar, beta, div, div_L, div_W, lambda_f, lambda_w, mc, n, p_n, pi, tax, theta, u, v, w, y, y_prod, z ]
@@ -32,9 +33,9 @@ shocks: [ e_beta, e_rstar, e_z ]
 # Skill-asset distribution of households
 distributions:
   dist:
-    skills: # Skill-employment grid
+    e: # Skill-employment grid
       type: exogenous_generic
-      n: skills_grid_n
+      n: n_skills + 1
     a: # Asset grid
       type: endogenous_log
       min: 0.0
@@ -45,25 +46,26 @@ distributions:
 decisions:
   inputs: [WaPrime]
   calls: |
+    # calculate current transition
+    finding_rates = lambda_w * skills_stationary # probabilities of moving out of unemployment into specific skill state
+    e_transition = e_transition_stst.at[0,1:].set(finding_rates) # set job-finding rates in transition matrix
+    e_transition = e_transition.at[0,0].set(1-lambda_w)
+    WaPrimeExp = e_transition @ WaPrime # expected future marginal continuation value
+
     tfs = jnp.atleast_1d(div - tax) # lump-sum transfers (dividends minus taxes)
-    finding_rates = lambda_w * skills_stationary_e # probabilities of moving out of unemployment into specific skill state
-    skills_transition_temp = skills_transition_stst.at[0,1:].set(finding_rates) # set job-finding rates in transition matrix
-    row_sums = jnp.sum(skills_transition_temp, axis=1, keepdims=True)
-    skills_transition = skills_transition_temp / row_sums # ensure rows of transition matrix sum to one
-    WaPrimeExp = skills_transition @ WaPrime # expected future marginal continuation value
-    Wa, a, c = egm_step(WaPrimeExp, a_grid, skills_grid, w, tfs, xi, Rr, beta, sigma_c) # perform EGM step to update marginal continuation value, asset and consumption demands
-  outputs: [a,c,skills_transition]
+    Wa, a, c = egm_step(WaPrimeExp, a_grid, e_grid, w, tfs, xi, Rr, beta, sigma_c) # perform EGM step to update marginal continuation value, asset and consumption demands
+  outputs: [a,c,e_transition]
 
 aux_equations: |
     aggr_c = jnp.sum(dist*c, axis=(0,1)) # aggregate consumption demand
     aggr_a = jnp.sum(dist*a, axis=(0,1)) # aggregate net asset demand
-    aggr_skills = jnp.sum(dist.sum(1)*skills_grid[:,None], axis=0) # aggregate skill level
+    aggr_e = jnp.sum(dist.sum(1)*e_grid[:,None], axis=0) # aggregate skill level
     unemp = get_unemployment(dist) # aggregate unemployment rate
 
 equations:
     # Aggregation
     ~ C = aggr_c # consumption demand
-    ~ n_eff = aggr_skills # skill level
+    ~ n_eff = aggr_e # skill level
     ~ u = unemp # unemployment rate
 
     # Market clearing conditions
@@ -81,11 +83,11 @@ equations:
 
     # Labour market
     ~ n = 1-u # employment
-    ~ theta = v / u # labour-market tightness
-    ~ kappa / (mu*theta**(-eta)) = beta * (n_effPrime*(p_nPrime - wPrime) + (1-sigma)*(kappa / (mu*thetaPrime**(-eta)))) # vacancy creation
+    ~ theta = v/u # labour-market tightness
+    ~ kappa/lambda_f = beta * (n_effPrime*(p_nPrime - wPrime) + (1-sigma)*kappa/lambda_fPrime) # vacancy creation
     ~ lambda_w = mu*theta**(1-eta) # job-finding rate
     ~ lambda_f = mu*theta**(-eta) # worker-finding rate
-    ~ w = wSS*(p_n/p_nSS)**eps_w # wage determination as in Graves (forthcoming, AEJ Macro)
+    ~ w/wSS = (p_n/p_nSS)**eps_w # wage determination as in Graves (forthcoming, AEJ Macro)
 
     # Fiscal authority
     ~ tax = (Rr-1)*BSS + xi*u # fiscal budget
@@ -114,8 +116,8 @@ steady_state:
         mc: (epsilon-1)/epsilon # steady-state marginal costs (from NKPC and steady-state inflation of 1)
 
         # Labour market
-        lambda_w: lambda_w_ss # job-finding rate
-        sigma: sigma_ss # exogenous job-destruction rate
+        lambda_w: lambda_w_stst # job-finding rate
+        sigma: sigma_stst # exogenous job-destruction rate
         mu: 0.6 # matching efficiency
         eta: 0.5 # elasticity of matches w.r.t. unemployment
         eps_w: 0.45 # elasticity of wages w.r.t. p_n
@@ -150,4 +152,4 @@ steady_state:
         p_n: mc # price of labour services
         kappa: 1. # vacancy-posting cost
 
-        WaPrime: egm_init(a_grid, skills_stationary) # initialise expected future marginal continuation value
+        WaPrime: egm_init(a_grid, e_stationary) # initialise expected future marginal continuation value

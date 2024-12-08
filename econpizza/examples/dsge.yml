@@ -10,7 +10,7 @@ shocks: [ e_beta, e_z, e_g, e_p, e_w, e_i, e_r, e_u ]
 
 equations:
     ## households block
-    ~ lamda = 1/(c - h*cLag) - h*beta/(cPrime - h*c) # stochastic discount factor
+    ~ lamda = 1/(c - h*cLag) - h*beta/(cPrime - h*c) # marginal utility of consumption
     ~ lamda = beta*eps_u*lamdaPrime*R/piPrime # Euler equation
     ~ piwn = wn/wnLag*pi # wage inflation
     ~ w = max(iota_w*wLag/pi, wn) # dowards nominal wage rigidity

@@ -11,5 +11,5 @@ Installing the `repository version <https://pypi.org/project/econpizza/>`_ from 
 
 in your terminal or Anaconda Prompt.
 
-The current version is supporting Python versions 3.9 to 3.11 on Windows, Mac and Linux.
+The current version is supporting the latest three minor Python versions on Windows, Mac and Linux.
 The `changelog and release history <https://github.com/gboehl/econpizza/releases>`_ can be found on GitHub.

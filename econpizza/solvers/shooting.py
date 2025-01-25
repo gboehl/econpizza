@@ -42,26 +42,24 @@ def find_path_shooting(
     shock : tuple, optional
         shock in period 0 as in `(shock_name_as_str, shock_size)`
     horizon : int, optional
-        number of periods to simulate
+        number of periods to actually simulate. This is NOT the expectations horizon of agents. Defaults to 30
     init_path : array, optional
-        a first guess on the trajectory. Normally not necessary
+        an initial guess on the trajectory. This should not be necessary
     max_horizon : int, optional
-        number of periods until the system is assumed to be back in the steady state. A good idea to set this corresponding to the respective problem. Note that a horizon too far away may cause the accumulation of numerical errors.
+        number of periods until the system is assumed to be back in the steady state. A good idea to set this corresponding to the respective problem. Note that a horizon too far away may cause the accumulation of numerical errors. Defaults to 200
     max_loops : int, optional
-        number of repetitions to iterate over the whole trajectory. Should eventually be high.
-    max_iterations : int, optional
-        number of iterations. Default is `max_horizon`. It should not be lower than that (and will raise an error). Normally it should not be higher, better use `max_loops` instead.
+        number of repetitions to iterate over the whole trajectory. Should eventually be high. Defaults to 100
+    max_iter : int, optional
+        number of iterations. Defaults to `max_horizon`. It should not be lower than that (and will raise an error). Normally it should not be higher, better use `max_loops` instead.
     tol : float, optional
-        convergence criterion
+        convergence criterion, defaults to `1e-5`
     verbose : bool, optional
-        degree of verbosity. 0/`False` is silent
+        degree of verbosity. 0/`False` is silent. Defualts to `True`
 
     Returns
     -------
     x_fin : array
         array of the trajectory
-    x_lin : array or None
-        array of the trajectory based on the linear model. Will return None if the linear model is unknown
     fin_flag : int
         error code
     """

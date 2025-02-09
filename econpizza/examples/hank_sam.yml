@@ -1,8 +1,8 @@
-# Author: Andreas Koundouros [a.koundouros@fu-berlin.de] & Gregor Boehl
+# Authors: Andreas Koundouros [a.koundouros@fu-berlin.de] & Gregor Boehl
 # HANK structure based on Auclert et al. (2021, Econometrica) and example one-asset HANK model from Gregor Boehl see:
 # https://github.com/gboehl/econpizza/blob/master/econpizza/examples/hank_with_comments.yml
-# SAM extension loosely based on Consolo & Hänsel (2024, ECB WP), Graves (forthcoming, AEJ Macro), Dengler & Gehrke (2022, CESifo WP)
-#
+# SAM extension loosely based on Graves (2025, forthcoming AEJ Macro), Consolo & Hänsel (2024, ECB WP), Dengler & Gehrke (2022, CESifo WP)
+
 ---
 name: 'hank_sam'
 description: 'A one-asset HANK model with SAM labour market frictions'
@@ -10,11 +10,11 @@ functions_file: 'hank_sam_functions.py'
 
 globals:
     # Parameters for skill-employment grid
-    rho_e : 0.966 # persistence in labour productivity when on a job
-    sigma_e : 0.6 # variance of shocks to labour productivity when on a job
-    n_skills : 4 # number of skill grid points (excl. unemployment state)
-    lambda_w_stst : 0.5837 # steady-state job-finding rate
-    sigma_stst : 0.0423 # steady-state job-destruction rate
+    rho_e : 0.966 # persistence in labour productivity when on a job; as in Auclert et al. (2021, Econometrica)
+    sigma_e : 0.5 # variance of shocks to labour productivity when on a job; as in Auclert et al. (2021, Econometrica)
+    n_skills : 4 # number of skill grid points excl. unemployment state
+    lambda_w_stst : 0.5837 # steady-state job-finding rate (parameter choice explained below)
+    sigma_stst : 0.0423 # steady-state job-destruction rate (parameter choice explained below)
 
 definitions: |
     # Imports
@@ -26,7 +26,7 @@ definitions: |
     skills_stationary = e_stationary[1:]/e_stationary[1:].sum() # stationary distribution of skills across employed
 
 # Variables, parameters and shocks
-variables: [ B, C, n_eff, R, Rr, Rstar, beta, div, div_L, div_W, lambda_f, lambda_w, mc, n, p_n, pi, tax, theta, u, v, w, y, y_prod, z ]
+variables: [ B, C, n_eff, R, Rr, Rstar, beta, div, div_L, div_W, lambda_f, lambda_w, mc, n, p_n, pi, tax, theta, u, v, w, W_J, y, y_prod, z ]
 parameters: [ epsilon, eta, eps_w, kappa, mu, phi_pi, phi_y, psi, rho, rho_beta, rho_r, rho_z, sigma, sigma_c, xi ]
 shocks: [ e_beta, e_rstar, e_z ]
 
@@ -70,24 +70,25 @@ equations:
 
     # Market clearing conditions
     ~ C = y # goods market
-    ~ y = (1 - psi*(pi/piSS - 1)**2/2)*y_prod - kappa*v # effective output, i.e. production net of price-adjustment and vacancy-posting costs
+    ~ y = (1 - psi*(pi/piSS - 1)**2/2)*y_prod - kappa*v # effective output
     ~ B = aggr_a # asset market
 
     # Corporate sector
     ~ y_prod = z*n_eff # final-good production
     ~ psi*(pi/piSS - 1)*pi/piSS = (1-epsilon) + epsilon*mc + psi*beta*(piPrime/piSS - 1)*piPrime/piSS*y_prodPrime/y_prod # NKPC
     ~ div_W = (1 - psi*(pi/piSS - 1)**2/2 - mc)*y_prod # dividends by wholesale firms
-    ~ div_L = n_eff*(p_n - w) - kappa*v # dividends by labour-services producers
+    ~ div_L = n_eff*(p_n - w) - kappa*v # dividends by labour-services producers; simplified version as in Dengler & Gehrke (2022, CESifo WP)
     ~ div = div_W + div_L # total dividends
     ~ mc*z = p_n # marginal costs
 
     # Labour market
     ~ n = 1-u # employment
     ~ theta = v/u # labour-market tightness
-    ~ kappa/lambda_f = p_nPrime - wPrime + beta*(1-sigma)*kappa/lambda_fPrime # vacancy creation
+    ~ W_J = (p_n - w) + beta*(1-sigma)*W_JPrime # vacancy creation; as in Graves (2025, forthcoming AEJ Macro)
+    ~ W_JPrime = kappa/(beta*lambda_f) # expected value of a job
     ~ lambda_w = mu*theta**(1-eta) # job-finding rate
     ~ lambda_f = mu*theta**(-eta) # worker-finding rate
-    ~ w/wSS = (p_n/p_nSS)**eps_w # wage determination as in Graves (forthcoming, AEJ Macro)
+    ~ w/wSS = (p_n/p_nSS)**eps_w # ad hoc wage rule; as in appendix J.5 Graves (2025, forthcoming AEJ Macro)
 
     # Fiscal authority
     ~ tax = (Rr-1)*BSS + xi*u # fiscal budget
@@ -104,31 +105,31 @@ equations:
 steady_state:
     # Fixed steady-state values
     fixed_values:
-        y: 1.0 # effective output
+        y: 1.0 # normalize effective output
 
         # Household sector
-        sigma_c: 2. # intertemporal elasticity of substitution
+        sigma_c: 2. # inverse of intertemporal elasticity of substitution
         beta: 0.98 # discount factor
 
         # Corporate sector
-        epsilon: 6. # elasticity of substitution
-        psi: 60. # parameter on the costs of price adjustment
-        mc: (epsilon-1)/epsilon # steady-state marginal costs (from NKPC and steady-state inflation of 1)
+        epsilon: 6. # elasticity of substitution; set as in Auclert et al. (2021, Econometrica)
+        psi: 60. # parameter on the costs of price adjustment; set as in Auclert et al. (2021, Econometrica)
+        mc: (epsilon-1)/epsilon # marginal costs from NKPC and stst inflation equal 1
 
         # Labour market
-        lambda_w: lambda_w_stst # job-finding rate
-        sigma: sigma_stst # exogenous job-destruction rate
-        mu: 0.6 # matching efficiency
-        eta: 0.5 # elasticity of matches w.r.t. unemployment
-        eps_w: 0.45 # elasticity of wages w.r.t. p_n
-        w: 0.8 # steady-state real wage
+        lambda_w: lambda_w_stst # job-finding rate; set to 1-(1-EU_bar)^3 (i.e. quarterly rate), where EU_bar is the mean of the US job-loss rate in 1976:01-2022:12 (data from Shigeru Fujita, Philadelphia Fed)
+        sigma: sigma_stst # exogenous job-destruction rate; set to 1-(1-UE_bar)^3 (i.e. quarterly rate), where UE_bar is the mean of the US job-finding rate in 1976:01-2022:12 (data from Shigeru Fujita, Philadelphia Fed)
+        mu: 0.65 # matching efficiency; as in Consolo & Hänsel (2024, ECB WP)
+        eta: 0.5 # elasticity of matches w.r.t. unemployment; as in Consolo & Hänsel (2024, ECB WP)
+        eps_w: 0.45 # elasticity of wages w.r.t. price of labour serives; set as in Graves (2025, forthcoming AEJ Macro)
+        w: 0.8 # real wage; must lie below p_n
         u: sigma / (sigma + lambda_w) # unemployment rate
         n: 1.0-u # employment
-        n_eff: 1 # labour services
+        n_eff: 1. # labour services
 
         # Fiscal authority
-        B: 5.6 # government bond supply
-        xi: 0.2 # unemployment benefit
+        B: 5.6 # government bond supply; set as in Auclert et al. (2021, Econometrica)
+        xi: 0.4*w # unemployment benefit equals 40% of stst real wage; as in  Consolo & Hänsel (2024, ECB WP) and Shimer (2005, AER)
 
         # Monetary authority
         pi: 1. # inflation
@@ -143,13 +144,13 @@ steady_state:
 
     # Initial guesses of steady-state values
     init_guesses:
-        Rstar: 1.002 # steady-state target rate
+        Rstar: 1.002 # target interest rate
         Rr: Rstar # gross real interest rate
         R: Rstar # gross nominal interest rate
         tax: 0.028 # tax rate
         div: 0.25 # total dividends
-        theta: 1. # labour-market tightness
         p_n: mc # price of labour services
+        theta: 1. # labour-market tightness
         kappa: 1. # vacancy-posting cost
 
         WaPrime: egm_init(a_grid, e_stationary) # initialise expected future marginal continuation value

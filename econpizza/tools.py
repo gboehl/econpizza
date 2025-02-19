@@ -44,6 +44,11 @@ def traverse_dict(d, path, value=None):
         return eval(str(dd))
 
 
+def print_formated_found_values(model):
+    _ = [print(f"        {k}: {v}") for k,v in model['steady_state']['found_values'].items()]
+    return
+
+
 def anneal_stst(mdict, dict_path, target_value, max_sequence=10, **kwargs):
     """Anneal steady state by iteratively updating initial guesses. Assumes that the current model dictionary provides valid results.
 
@@ -96,7 +101,7 @@ def anneal_stst(mdict, dict_path, target_value, max_sequence=10, **kwargs):
 
     # print final values
     print('(anneal_stst:) Success! Values are:\n')
-    [print(f"        {k}: {v}") for k,v in current_model['steady_state']['found_values'].items()]
+    formated_steady_state(current_model)
     return current_model, mdict
 
 

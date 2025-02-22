@@ -49,6 +49,8 @@ def find_path_linear(self, shock=None, init_state=None, pars=None, horizon=200, 
     nvars = len(self["var_names"])
     pars = d2jnp((pars if pars is not None else self["pars"]))
     shocks = self.get("shocks") or ()
+    distSS = jnp.array(self['steady_state'].get('distributions'))
+    doSS = [jnp.array(d)[..., None] for d in list(self['steady_state']['decisions'].values())]
     x_stst = jnp.ones((horizon + 1, nvars)) * stst
 
     # deal with shocks
@@ -63,17 +65,17 @@ def find_path_linear(self, shock=None, init_state=None, pars=None, horizon=200, 
         derivatives = get_stst_derivatives(
             self, nvars, pars, stst, x_stst, zero_shocks, horizon, verbose)
 
-        # accumulate steady stat jacobian
+        # accumulate steady state jacobian
         get_stst_jacobian(self, derivatives, horizon, nvars, verbose)
         write_cache(self, horizon, pars, stst)
 
-    jacobian = self['cache']['jac']
+    # get jacobians
+    jacobian = self['cache']['jac_factorized']
+    combined_sweep = self['context']['combined_sweep']
+    jacobian_f2x0 = jax.jacfwd(combined_sweep, argnums=2)(x_stst[1:-1].flatten(), doSS, stst, distSS, zero_shocks, pars)
 
-    x0 -= stst
-    x = - \
-        jax.scipy.linalg.solve(
-            jacobian[nvars:, nvars:], jacobian[nvars:, :nvars] @ x0)
-    x = jnp.hstack((x0, x)).reshape(-1, nvars) + stst
+    x = -jax._src.lax.linalg.lu_solve(*jacobian[0], jacobian_f2x0 @ (x0-stst), 0)[jacobian[1]]
+    x = jnp.vstack((x0,x.reshape(-1, nvars) + stst, stst))
 
     if verbose:
         duration = time.time() - st

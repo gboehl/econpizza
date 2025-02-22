@@ -89,7 +89,8 @@ def find_path_stacking(
         'distributions')
     dist0 = jnp.array(init_dist if init_dist is not None else jnp.nan)
     x_stst = jnp.ones((horizon + 1, nvars)) * stst
-    x_init = init_guess if init_guess is not None else x_stst.at[0].set(x0)
+    x_init = init_guess if init_guess is not None else x_stst
+    x_init = x_init.at[0].set(x0)
 
     # deal with shocks if any
     shock_series = jnp.zeros((horizon-1, len(shocks)))

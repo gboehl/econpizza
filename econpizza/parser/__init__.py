@@ -348,6 +348,7 @@ def load(
     if model.get('decisions'):
         decisions_outputs = model['decisions']['outputs']
         decisions_inputs = model['decisions']['inputs']
+        check_for_lags(model['decisions']['calls'], evars)
         model['func_strings']["func_backw"] = compile_backw_func_str(
             evars, par_names, shocks, decisions_inputs, decisions_outputs, model['decisions']['calls'])
         _define_function(model['func_strings']

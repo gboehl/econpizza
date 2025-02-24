@@ -34,8 +34,10 @@ def _backwards_step(carry, i):
     return (wf, X, shocks, func_backw, stst, pars), (wf, decisions_output)
 
 
-def backwards_sweep(x: Array, x0: Array, shocks: Array, pars: Array, stst: Array, wfSS: Array, horizon: int, func_backw: Callable, return_wf=False) -> Array:
+def backwards_sweep(x: Array, x0: Array, shocks: Array, pars: Array, stst: Array, wfSS: Array, func_backw: Callable, return_wf=False) -> Array:
 
+    # get horizon from input size
+    horizon = len(x)//len(stst) + 1
     X = jnp.hstack((x0, x, stst)).reshape(horizon+1, -1).T
 
     _, (wf_storage, decisions_output_storage) = jax.lax.scan(

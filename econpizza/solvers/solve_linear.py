@@ -67,12 +67,14 @@ def find_path_linear(self, shock=None, init_state=None, pars=None, horizon=200, 
 
         # accumulate steady state jacobian
         get_stst_jacobian(self, derivatives, horizon, nvars, verbose)
+        jac_f2xLag = derivatives[0][0]
+        self['cache']['jacobian_f2x0'] = jnp.zeros(((horizon-1)*nvars, nvars)).at[:nvars].set(jac_f2xLag[...,0])
         write_cache(self, horizon, pars, stst)
 
     # get jacobians
     jacobian = self['cache']['jac_factorized']
+    jacobian_f2x0 = self['cache']['jacobian_f2x0']
     combined_sweep = self['context']['combined_sweep']
-    jacobian_f2x0 = jax.jacfwd(combined_sweep, argnums=2)(x_stst[1:-1].flatten(), doSS, stst, distSS, zero_shocks, pars)
 
     x = -jax._src.lax.linalg.lu_solve(*jacobian[0], jacobian_f2x0 @ (x0-stst), 0)[jacobian[1]]
     x = jnp.vstack((x0,x.reshape(-1, nvars) + stst, stst))

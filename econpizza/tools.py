@@ -101,7 +101,7 @@ def anneal_stst(mdict, dict_path, target_value, max_sequence=10, **kwargs):
 
     # print final values
     print('(anneal_stst:) Success! Values are:\n')
-    formated_steady_state(current_model)
+    print_formated_found_values(current_model)
     return current_model, mdict
 
 

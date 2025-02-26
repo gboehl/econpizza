@@ -129,3 +129,10 @@ def check_if_compiled(model, horizon, pars, stst):
         return jnp.allclose(model['cache']['pars'], pars)
     except:
         return False
+
+
+def check_for_lags(calls, evars):
+    for v in evars:
+        if v+'Lag' in calls:
+            raise Exception(
+                f"`{v}Lag` in decisions calls detected. For efficiency reasons, the use of lagged values is not supported here. This can be circumvented by defining an auxilliary variable, e.g. `{v}_lagged = {v}Lag`.")

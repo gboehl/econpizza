@@ -76,7 +76,7 @@ steady_state:
         rho: 0.8 # persistence in (notional) nominal interest rate
         omega_p: 0.44 # coefficient on steady state inflation in price indexation
         omega_w: 0.66 # coefficient on steady state wage inflation in wage indexation
-        iota_w: 1 # degree of dowards nominal wage rigidity
+        iota_w: 0 # degree of dowards nominal wage rigidity
         elb: 1 # position of ELB
         rho_beta: 0.9 # persistence of discount factor shock
         rho_z: 0.9 # persistence of technology shocks

@@ -170,7 +170,7 @@ def get_stacked_func_het_agents(func_backw, func_forw, func_eqns, stst, wfSS, ho
 
     # build partials of output functions
     backwards_sweep_local = jax.tree_util.Partial(
-        backwards_sweep, stst=stst, wfSS=wfSS, horizon=horizon, func_backw=partial_backw)
+        backwards_sweep, stst=stst, wfSS=wfSS, func_backw=partial_backw)
     forwards_sweep_local = jax.tree_util.Partial(
         forwards_sweep, horizon=horizon, func_forw=partial_forw)
     final_step_local = jax.tree_util.Partial(

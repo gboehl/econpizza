@@ -35,8 +35,9 @@ def inner_iteration_cond(carry):
 def jvp_while_body(carry):
     (x, y, _, _, cnt, fev, _), statics = carry
     (jvp_func, jacobian, maxit, relaxation, nsteps, tol, factor, verbose) = statics
-    # first iteration
+    # apply newton
     x -= relaxation*y
+    # first iteration
     f, _ = jvp_func(x, jnp.zeros_like(x))
     f = lu_solve(*jacobian[0], f, 0)[jacobian[1]]
     # other iterations

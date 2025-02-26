@@ -44,15 +44,15 @@ def find_path_stacking(
     init_dist : array, optional
         initial distribution, defaults to the steady state distribution
     init_guess : array, optional
-        initial guess on the sequence trajectory, defaults to the steady state
+        initial guess on the sequence trajectory (the solution), defaults to the steady state
     pars : dict, optional
-        alternative parameters. Warning: do only change those parameters that are invariant to the steady state.
+        alternative parameters. Warning: it will only be effective to change those parameters that are invariant to the steady state.
     horizon : int, optional
-        number of periods until the system is assumed to be back in the steady state. Defaults to ``200``
+        number of periods until the system is assumed to be back in the steady state. Finding trajectories with a low horizon is quicker, but chosing a larger horizon may be necessary if the simulated time series do not converge. Defaults to ``200``
     use_solid_solver : bool, optional
-        calculate the full jacobian and use a standard Newton method. Defaults to ``False``
+        calculate the full jacobian instead of the iterative approximation, and use a standard Newton method. This usually takes a very long time. Defaults to ``False``
     skip_jacobian : bool, optional
-        whether to skip the calculation of the steady state sequence space Jacobian. If True, the last cached Jacobian will be used. Defaults to ``False``
+        whether to skip the calculation of the steady state sequence space Jacobian. If True, the last cached Jacobian will be used. Only use this if you know what you are doing. Defaults to ``False``
     verbose : bool, optional
         degree of verbosity. ``0``/``False`` is silent. Defaults to ``False``
     raise_errors : bool, optional
@@ -89,7 +89,8 @@ def find_path_stacking(
         'distributions')
     dist0 = jnp.array(init_dist if init_dist is not None else jnp.nan)
     x_stst = jnp.ones((horizon + 1, nvars)) * stst
-    x_init = init_guess if init_guess is not None else x_stst.at[0].set(x0)
+    x_init = init_guess if init_guess is not None else x_stst
+    x_init = x_init.at[0].set(x0)
 
     # deal with shocks if any
     shock_series = jnp.zeros((horizon-1, len(shocks)))

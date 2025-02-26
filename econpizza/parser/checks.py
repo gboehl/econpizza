@@ -61,9 +61,11 @@ def check_determinancy(evars, eqns):
 def check_initial_values(model, shocks, init_guesses, fixed_values, init_wf, pre_stst_mapping):
 
     from . import d2jnp
+
     # run func_pre_stst to translate init values into vars & pars
-    init_vals, par = func_pre_stst(
-        d2jnp(init_guesses), d2jnp(fixed_values), pre_stst_mapping)
+    transform_back = model['options'].get('transform_back') or (lambda x: x)
+    init_vals, par = func_pre_stst(transform_back(
+        d2jnp(init_guesses)), transform_back(d2jnp(fixed_values)), pre_stst_mapping)
 
     # collect some information needed later
     model['context']['init_run'] = {}

@@ -136,14 +136,14 @@ def get_stst_derivatives(model, nvars, pars, stst, x_stst, zshocks, horizon, ver
         model['steady_state']['decisions'].values()))
 
     # basis for steady state jacobian construction
-    basis = jnp.zeros((nvars*(horizon-1), nvars))
-    basis = basis.at[-nvars:].set(jnp.eye(nvars))
+    basis = jnp.zeros((nvars, nvars*(horizon-1)))
+    basis = basis.at[:,-nvars:].set(jnp.eye(nvars))
 
     # get steady state jacobians for dist transition
     doSS, do2x = jvp_vmap(backwards_sweep)(
         (x_stst[1:-1].flatten(), stst, zshocks, pars), (basis,))
     _, (f2do,) = vjp_vmap(combined_sweep, argnums=1)(
-        (x_stst[1:-1].flatten(), doSS, stst, distSS, zshocks, pars), basis.T)
+        (x_stst[1:-1].flatten(), doSS, stst, distSS, zshocks, pars), basis)
     f2do = [jnp.moveaxis(f, -1, 1) for f in f2do]
 
     # get steady state jacobians for direct effects x on f

@@ -58,8 +58,6 @@ aux_equations: |
     top10c = 1 - percentile(c, dist, .9)
 
     # misc definitions
-    dI = i/iLag
-    dIPrime = iPrime/i
     assetshareLag = equityLag / ALag
 
 equations:

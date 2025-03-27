@@ -1,6 +1,5 @@
 # ubuntu seems to have issues with jax v0.4.6. Recheck when v0.4.7 is out
-jax>=0.4.13,<0.5.1
-jaxlib>=0.4.13,<0.5.1
+jax>=0.5.3
 grgrjax>=0.4.7
 scipy
 pyyaml

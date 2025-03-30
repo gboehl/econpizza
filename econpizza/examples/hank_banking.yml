@@ -1,0 +1,194 @@
+# Author: Gregor Boehl [mail@gregorboehl.com]
+---
+name: 'hank'
+description: 'A small example HANK model with one asset'
+functions_file: 'hank_banking_functions.py'
+
+globals:
+    a_n: 200
+    a_min: -4.876562255936303 # target: 20% indebted HH
+    a_max: 180
+    mrr: null
+    fix_Rj: False
+    calvo_distortion: True
+    tax_distortion: False
+    bprof2rich: True
+
+definitions: |
+    from econpizza.tools import percentile, jax_print
+    from jax.numpy import minimum, maximum, log, exp
+    from jax.scipy.stats.norm import cdf, pdf
+    a_grid = special_grid(a_max, a_n, amin=a_min)
+
+variables: [ div, y, w, pi, R, Rstar, Rn, Ra, Rj, Rr, Rar, tax, z, beta, C, n, J, depos, bcost, bprof, borr, MPJ, Jex, f, F, seig, Top10C, Top10A, pricing_s, pricing_f, p_disp, p_tilde, mc, g, equity, seig2y, bcost2y, xi ]
+parameters: [ sigma_c, sigma_l, theta, zeta, phi_pi, phi_y, rho, rho_beta, rho_r, rho_z, rho_g, rho_j, rho_xi, rho_gamma, nu_log, gamma_log, omega, dlb, g2y, div2equity, B ]
+shocks: [ e_beta, e_rstar, e_z, e_Rj, e_g, e_gamma ]
+
+distributions:
+  dist:
+    skills:
+      type: exogenous_rouwenhorst
+      rho: 0.966
+      sigma: 0.6
+      n: 5
+    a:
+      type: endogenous_generic
+      n: a_n
+
+decisions:
+  inputs: [ VPrime, VaPrime ]
+  calls: |
+    tfs_div_rich = please_the_rich(skills_stationary, (1-div2equity)*div + bprof)
+    tfs_div_redi = transfers(skills_stationary, (1-div2equity)*div + bprof, skills_grid)
+    tfs_tax = transfers(skills_stationary, tax, skills_grid)
+    tfs = (tfs_div_rich if bprof2rich else tfs_div_redi) - (0 if tax_distortion else tfs_tax)
+    VPrimeExp = skills_transition @ VPrime
+    VaPrimeExp = skills_transition @ VaPrime
+    V, Va, a, c = egm_step(VPrimeExp, VaPrimeExp, a_grid, skills_grid, (1-tax)*w if tax_distortion else w, n, tfs, Rr, Rar, beta, sigma_c, sigma_l)
+  outputs: [a, c]
+
+aux_equations: |
+    # avoid nu < 0
+    nu = exp(nu_log)
+    gamma = exp(gamma_log)
+
+    # aggregation
+    aggr_c = jnp.sum(dist*c, axis=(0,1))
+    borr_a = -jnp.sum(dist*jnp.where(a < 0, a, 0.), axis=(0,1))
+    depo_a = jnp.sum(dist*jnp.where(a >= 0, a, 0.), axis=(0,1))
+    composite_x = c - skills_grid[:,None,None]*n*w/(1-sigma_l)
+    aggr_muc = jnp.sum(dist*composite_x**-sigma_c, axis=(0,1))
+
+    # useful definition
+    Fmrr = cdf(xi*depos/nu, 0, jnp.sqrt(depos/nu))
+    MPJmrr = Rj - Ra + gamma*(1-Fmrr)
+    top10c = 1 - percentile(c, dist, .9)
+    top10a = 1 - percentile(a, dist, .9)
+
+    # demand elasticity
+    eta = (1+theta)/theta
+
+equations:
+    # definitions
+    ~ C = aggr_c
+    ~ borr = borr_a
+    ~ depos = depo_a
+    ~ f = pdf(J/nu, 0, jnp.sqrt(depos/nu))
+    ~ F = cdf(J/nu, 0, jnp.sqrt(depos/nu))
+    ~ Top10C = top10c
+    ~ Top10A = top10a
+    ~ Rr = RLag/pi
+    ~ Rar = RaLag/pi
+    ~ seig2y = seig/y
+    ~ bcost2y = bcost/y
+
+    # firms
+    ~ (y - z*n*p_disp**eta ) if calvo_distortion else (y - z*n) # production function (adj. by price dispersion)
+    ~ div = y - w*n # dividends
+    ~ mc = w/z # marginal costs
+    ~ div2equity*divPrime + equityPrime = equity * Ra/piPrime # define equity via no arbitrage
+
+    # pricing
+    ~ pricing_s = (1+theta)*aggr_muc*y*mc + beta*zeta*(piSS/piPrime)**(-eta)*pricing_sPrime
+    ~ pricing_f = aggr_muc*y + beta*zeta*(piSS/piPrime)**(-1/theta)*pricing_fPrime
+    ~ pricing_s = pricing_f*p_tilde
+    ~ p_disp**-eta = (1-zeta)*p_tilde**-eta + zeta*((piSS/pi)*p_dispLag)**-eta
+    ~ 1 = (1-zeta)*p_tilde**(-1/theta) + zeta*(piSS/pi)**(-1/theta)
+
+    # central bank + government
+    ~ Rn = (Rstar*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho)*RnLag**rho # Taylor rule for the notional nominal interest rate
+    ~ R = Rn
+    ~ (Rj - RjSS) if fix_Rj else (J - JSS*(JLag/JSS)**rho_j)
+    ~ seig = (RaLag - RjLag)/pi*JLag
+
+    # Banks
+    ~ B + borr + equity = depos # balance sheet
+    ~ MPJ = Rj- Ra + gamma*(1-F)
+    ~ MPJ = 0 if mrr is False else MPJmrr if mrr is True else minimum(0, MPJmrr) 
+    ~ Jex = J/(xi*depos)
+    ~ omega/(omega-1)*R = maximum(omega/(omega-1)*dlb, Ra + xi*MPJ - gamma*0.5*f)
+    ~ bcost = gamma*(depos*f - J*(1-F))
+    ~ bprof = (RjLag - Ra)/pi*JLag + (Rar - Rr)*deposLag + div2equity*div + equity - Rar*equityLag - bcostLag
+
+    # clearing conditions 
+    ~ C + bcost + g = y # market clearing
+    ~ n**sigma_l = (1-tax)*w if tax_distortion else w # labor market clearing
+
+    # exogenous
+    ~ g = (g2y*ySS)**(1-rho_g)*gLag**rho_g*exp(e_g)
+    ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # exogenous beta
+    ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_r*exp(e_rstar) # exogenous rstar
+    ~ xi = xiSS*(xiLag/xiSS)**rho_xi
+    ~ z = zSS*(zLag/zSS)**rho_z*exp(e_z) # exogenous technology
+
+steady_state:
+    fixed_values:
+        # parameters:
+        sigma_c: 4 # intertemporal elasticity of substitution
+        sigma_l: 2 # inverse Frisch elasticity of labour supply
+        zeta: 2/3 # calvo stickiness
+        theta: 0.1 # net markup
+        phi_pi: 1.5 # Taylor rule coefficient on inflation
+        phi_y: 0 # Taylor rule coefficient on output
+        rho: 0. # persistence in (notional) nominal interest rate
+        rho_beta: 0.9 # persistence of discount factor shock
+        rho_r: 0.9 # persistence of MP shock
+        rho_z: 0.9 # persistence of technology shocks
+        rho_g: 0.8 # persistence of government spending
+        rho_j: 0.5 # persistence of reserves shock spending
+        rho_xi: 0.5 # persistence of shock to banking market imperfection
+        rho_gamma: 0.9 # persistence of shock to intermediation costs
+        dlb: 0 # activate DLB
+        beta: 0.98 # discount factor
+        g2y: 0.2 # government spending over output
+        seig2y: 0.005 # from literature
+        xi: 0.036 # banking market imperfection
+
+        # steady state
+        bprof: 0 # normalize
+        y: 1 # normalize
+        p_disp: 1 
+        p_tilde: 1 
+        pi: 1.02**0.25 # inflation
+        mc: 1/(1+theta) # marginal costs
+        B: 2.8 # standard value
+        Jex: 1 # went up to 20 for EA
+        Rj: 1.00 
+        bcost2y: 0.007
+        MPJ: -0.003
+
+    init_guesses:
+
+        bcost: 0.007
+        borr: 0.44821832328201566
+        C: 0.7929999999999902
+        depos: 12.359658862193275
+        div: 0.09090909090909086
+        equity: 9.11144053891126
+        f: 0.037532216562974334
+        F: 0.6401279006953771
+        g: 0.20000000000000984
+        J: 0.44494771903895786
+        n: 0.9687293061514652
+        pricing_f: 4.275660172851834
+        pricing_s: 4.2756601728518335
+        R: 1.0103173260025733
+        Ra: 1.011293045099139
+        Rar: 1.0062988527507435
+        Rn: 1.0103173260025733
+        Rr: 1.0053279521673377
+        Rstar: 1.0103173260025733
+        seig: 0.005
+        tax: 0.2126367957846024
+        Top10A: 0.41007733476591063
+        Top10C: 0.20597247653886233
+        w: 0.9384364685966974
+        z: 1.0322801154563672
+        nu_log: -2.084058361983392
+        gamma_log: -3.7703314649420303
+        omega: 2322.154806400522
+        div2equity: 0.6313078453193467
+
+        VPrime: egm_init_ones(a_grid, skills_stationary)*-1e2
+        VaPrime: egm_init_ones(a_grid, skills_stationary)*1e0
+

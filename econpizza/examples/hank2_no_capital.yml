@@ -1,7 +1,7 @@
 # Author: Gregor Boehl [mail@gregorboehl.com]
 ---
 
-name: 'hank2'
+name: 'hank2_no_capital'
 description: 'A HANK model with two assets and portfolio choice'
 functions_file: 'hank2_functions.py'
 # NOTE: the file hank_with_comments.yaml contains a detailed explanation of the objects defined here
@@ -13,28 +13,26 @@ definitions: |
     from econpizza.tools import percentile, jax_print
     kappa_grid = log_grid(amax=1., n=4)[::-1]
 
-variables: [ C, mc, y, pi, div, equity, n, z, w, wn, Rr, R, Rn, Rstar, tax, g, Rb, Ra, wealth, A, B, beta, transfers, AJC, MUC, Top10A, Top10B, Top10C ]
-# cheaper because percentiles are costly:
-#variables: [ C, mc, y, pi, div, equity, n, z, w, wn, Rr, R, Rn, Rstar, tax, g, Rb, Ra, wealth, A, B, beta, transfers, AJC, MUC ]
-parameters: [ sigma_c, sigma_l, psi_p, psi_a0, psi_a1, psi_a2, Bgov, phi_pi, phi_y, rho, zeta, rho_beta, rho_r, rho_g, rho_z, rho_t, theta, chi, iota, elb ]
+variables: [ C, mc, y, pi, div, equity, n, z, w, wn, Rr, R, Rn, Rstar, tax, g, Rb, Ra, wealth, A, B, beta, transfers, Top10A, Top10B, Top10C, Bgov, tax_target ]
+parameters: [ sigma_c, sigma_l, psi_p, psi_a0, psi_a1, psi_a2, phi_pi, phi_y, rho, zeta, rho_beta, rho_r, rho_g, rho_z, rho_t, theta, chi, iota, elb, rho_tax ]
 shocks: [ e_beta, e_z, e_g, e_r, e_t ]
 
 distributions:
   dist:
     skills:
-      type: exogenous_rouwenhorst
+      type: exogenous
       grid_variables: [skills_grid, skills_stationary, skills_transition]
       rho: 0.966
       sigma: 0.92
       n: 3
     b:
-      type: endogenous_log
+      type: endogenous
       grid_variables: b_grid
       min: 0.0
       max: 80
       n: 10
     a:
-      type: endogenous_log
+      type: endogenous
       grid_variables: a_grid
       min: 0.0
       max: 180
@@ -48,8 +46,6 @@ decisions:
       WaPrimeExp = expect_transition(skills_transition, WaPrime)
       WbPrimeExp = expect_transition(skills_transition, WbPrime)
       Wa, Wb, a, b, c, uce = egm_step(WaPrimeExp, WbPrimeExp, a_grid, b_grid, z_grid, skills_grid, kappa_grid, beta, sigma_c, Rb-1, Ra-1, psi_a0, psi_a1, psi_a2, Psi1)
-      #adj = adjustment_costs(a, a_grid, Ra-1, psi_a0, psi_a1, psi_a2)
-  #outputs: [a,b,c,uce,adj] # interesting but costly
   outputs: [a,b,c,uce]
 
 aux_equations: |
@@ -73,7 +69,6 @@ equations:
     ~ A = aggr_a
     ~ B = aggr_b
     ~ C = aggr_c
-    ~ aggr_muc = MUC
     ~ Top10A = top10a
     ~ Top10B = top10b
     ~ Top10C = top10c
@@ -93,7 +88,9 @@ equations:
     ~ Rb = Rr - zeta # bond return
     ~ Ra = assetshareLag*(div + equity)/equityLag + (1 - assetshareLag)*Rr # illiquid bonds' return
     ~ Rr = RLag/pi # ex-post real rate
-    ~ tax = ((Rr-1) * Bgov + g + transfers) / w / n # government budget
+    ~ tax = (1-rho_tax)*tax_target + rho_tax*taxLag
+    ~ tax*w*n + Bgov = Rr*BgovLag + g + transfers  # government budget
+    ~ tax_target*w*n = (Rr-1)*BgovLag + g + transfers  # implicit LOM for debt
 
     # unions
     ~ wn = chi*n**sigma_l/(1 - tax)/aggr_muc # notional wage
@@ -106,14 +103,11 @@ equations:
     ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # exogenous discount factor
     ~ transfers = transfersSS**(1-rho_t)*transfersLag**rho_t*exp(e_t) # exogenous transfers
 
-    # check
-    ~ C + g + AJC + price_adj_cost + zeta*BLag = y
-
 steady_state:
-    #skip: True
     fixed_values:
       # parameters
         sigma_c: 2. # intertemporal elasticity of substitution
+        # Frisch should be > 2 to avoid complex EVs with transfers
         sigma_l: 2.9 # inverse Frisch elasticity of labour supply
         chi: .5 # utility weight of labor disutility
         theta: 6. # elasticity of substitution
@@ -125,12 +119,13 @@ steady_state:
         phi_pi: 1.5 # Taylor rule coefficient on inflation
         phi_y: 0.1 # Taylor rule coefficient on output
         rho: 0.8 # persistence in (notional) nominal interest rate
-        rho_beta: 0.9 # persistence of discount factor shock
-        rho_z: 0.9 # persistence of technology shocks
-        rho_g: 0.9 # persistence of government spending shock
-        rho_r: 0.9 # persistence of MP shock
+        rho_beta: 0.8 # persistence of discount factor shock
         rho_t: 0.8 # persistence of transfer shock
+        rho_z: 0.8 # persistence of technology shocks
+        rho_g: 0.8 # persistence of government spending shock
+        rho_r: 0.8 # persistence of MP shock
         Bgov: 2.8 # government bond supply
+        rho_tax: .0 # coefficient for debt financed government spending
         iota: 0. # degree of DNWR
         elb: 0. # effective lower bound
 
@@ -141,29 +136,29 @@ steady_state:
         g: 0.2 # government spending
         mc: (theta-1)/theta # marginal costs
         w: mc # wages
-        wn: mc # notional wages
+        wn: mc # notional wages 
         transfers: 1e-5 # government transfers
 
     init_guesses:
-        # guesses:
-        MUC: 1.4131353 # aggregate marginal utility of consumption
-        AJC: 0.02485704 # aggregate portfolio adjustment costs
-        Rr: 1.01059989 # real interest rate
-        B: 6.36509168 # bond supply
-        wealth: 21.10905459 # total wealth
-        # infered from guesses:
-        equity: wealth - Bgov
-        A: wealth - B
-        Rstar: Rr*pi # target interest rate
-        Ra: Rr # asset return
-        Rb: Rr - zeta # bond return
-        Rn: Rstar # notional interest rate
-        R: Rstar # nominal interest
-        div: equity*(Rr - 1)
-        y: div/(1 - w)
-        n: y
-        tax: ((Rr-1)*Bgov + g + transfers)/w/n
-        C: y - g - AJC - zeta*B
+        A: 20.0699916940882
+        B: 6.166531798956089
+        C: 0.9854064311575466
+        div: 0.206880576495912
+        equity: 23.436523493044287
+        n: 1.2412834589754722
+        R: 1.013834013101255
+        Ra: 1.008827272379282
+        Rb: 1.003827272379255
+        Rn: 1.013834013101255
+        Rr: 1.0088272723792548
+        Rstar: 1.0138340131012555
+        tax: 0.21725225873619056
+        tax_target: 0.21725225873619056
+        Top10A: 0.3825358621006073
+        Top10B: 0.4607028372221949
+        Top10C: 0.21379243576715748
+        wealth: 26.236523493044288
+        y: 1.2412834589754722
 
         # get rough idea on initial value functions
         z_grid: income(skills_grid, tax, w, n, transfers)

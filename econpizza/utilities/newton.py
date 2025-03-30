@@ -1,7 +1,6 @@
 """Newton heavy lifting functions and helpers
 """
 
-from grgrjax import jax_print
 import jax
 import time
 import jax.numpy as jnp
@@ -80,6 +79,9 @@ def newton_for_jvp(jvp_func, jacobian, x_init, verbose, tol=1e-8, maxit=20, nste
     x = x_init[1:-1].flatten()
 
     (x, _, f, dampening, cnt, fev, err_inner), _ = jax.lax.while_loop(jvp_while_cond, jvp_while_body, ((x, jnp.zeros_like(x), x, 0., 0, 0, 0), (jvp_func, jacobian, maxit, relaxation, nsteps, tol, factor, verbose)))
+    # be sure that the while loop is done
+    _ = x.block_until_ready()
+    # document last result
     err = amax(f)
     ltime = time.time() - start_time
     callback_with_damp(cnt, err, fev=fev, err_inner=err_inner, dampening=dampening, ltime=ltime, verbose=verbose)

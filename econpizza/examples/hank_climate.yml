@@ -1,0 +1,201 @@
+# Author: Gregor Boehl [mail@gregorboehl.com]
+---
+name: 'hank_climate'
+description: 'HANK model with green & brown energy and RND sector'
+functions_file: 'hank_climate_functions.py'
+
+globals:
+    a_n: 50
+    a_min: 0
+    a_max: 250
+    tax_distortion: False
+
+definitions: |
+    from econpizza.tools import percentile, jax_print
+    from jax.numpy import minimum, maximum, log, exp
+    from jax.scipy.stats.norm import cdf, pdf
+    a_grid = special_grid(a_max, a_n, amin=a_min)
+
+options:
+    transform_to: jnp.exp
+    transform_back: jnp.log
+
+variables: [ div, y, w, pi, R, Rstar, Rr, tax, z, beta, C, n, Top10C, Top10A, pricing_s, pricing_f, p_disp, p_tilde, mc, g, k, i, e, ky, qe, rk, kBR, kGR, BR, GR, qBR, qGR, Am, xi, s, VE, divRND, tau_qBR, tau_qGR, BR2E ]
+parameters: [ sigma_c, sigma_l, zeta, phi_pi, phi_y, rho, rho_beta, rho_r, rho_z, rho_g, rho_tau, g2y, alphaK, delta, alphaE, eps, alphaGBR, phisRND, zRND, nu, ABR, AGR, B ]
+shocks: [ e_beta, e_rstar, e_z, e_g, e_f, e_r, e_tau_qBR, e_tau_qGR ]
+
+distributions:
+  dist:
+    skills:
+      type: exogenous_rouwenhorst
+      rho: 0.966
+      sigma: 0.6
+      n: 5
+    a:
+      type: endogenous_generic
+      n: a_n
+
+decisions:
+  inputs: [ VPrime, VaPrime ]
+  calls: |
+    tfs_div = please_the_rich(skills_stationary, div)
+    tfs_tax = transfers(skills_stationary, tax, skills_grid)
+    tfs = tfs_div - (0 if tax_distortion else tfs_tax)
+    VPrimeExp = skills_transition @ VPrime
+    VaPrimeExp = skills_transition @ VaPrime
+    V, Va, a, c = egm_step(VPrimeExp, VaPrimeExp, a_grid, skills_grid, (1-tax)*w if tax_distortion else w, n, tfs, Rr, beta, sigma_c, sigma_l)
+  outputs: [a, c]
+
+aux_equations: |
+    # allow negative values
+    tau_qBR = jnp.log(tau_qBR); tau_qBRLag = jnp.log(tau_qBRLag); tau_qBRSS = jnp.log(tau_qBRSS)
+    tau_qGR = jnp.log(tau_qGR); tau_qGRLag = jnp.log(tau_qGRLag); tau_qGRSS = jnp.log(tau_qGRSS)
+
+    # aggregation
+    aggr_c = jnp.sum(dist*c, axis=(0,1))
+    aggr_a = jnp.sum(dist*a, axis=(0,1))
+    composite_x = c - skills_grid[:,None,None]*n*w/(1-sigma_l)
+    aggr_muc = jnp.sum(dist*composite_x**-sigma_c, axis=(0,1))
+
+    # useful definition
+    top10c = 1 - percentile(c, dist, .9)
+    top10a = 1 - percentile(a, dist, .9)
+
+    # demand elasticity
+    theta = 1/(eps-1)
+
+equations:
+    # definitions
+    ~ C = aggr_c
+    ~ B = aggr_a
+    ~ Top10C = top10c
+    ~ Top10A = top10a
+    ~ Rr = RLag/pi
+    ~ BR2E = BR/e
+
+    # pricing
+    ~ pricing_s = (1+theta)*aggr_muc*y*mc + beta*zeta*(piSS/piPrime)**(-eps)*pricing_sPrime
+    ~ pricing_f = aggr_muc*y + beta*zeta*(piSS/piPrime)**(-1/theta)*pricing_fPrime
+    ~ pricing_s = pricing_f*p_tilde
+    ~ p_disp**-eps = (1-zeta)*p_tilde**-eps + zeta*((piSS/pi)*p_dispLag)**-eps
+    ~ 1 = (1-zeta)*p_tilde**(-1/theta) + zeta*(piSS/pi)**(-1/theta)
+
+    # capital accumulation
+    ~ k = (1-delta)*kLag + i # law of motion for capital
+    ~ R/piPrime = rkPrime + (1-delta) # return to capital
+
+    # goods production
+    ~ y*p_disp**-eps = z*ky**alphaK*n**(1-alphaK-alphaE)*e**alphaE # production function
+    ~ kLag = ky + kBR + kGR
+    ~ ky*rk = alphaK*mc*y*p_disp**-eps
+    ~ n*w = (1-alphaK-alphaE)*mc*y*p_disp**-eps
+    ~ e*qe = alphaE*mc*y*p_disp**-eps
+
+    # energy production
+    ~ e = BR + GR
+    ~ (1+tau_qBR)*qBR = qe
+    ~ (1+tau_qGR)*qGR = qe
+    ~ eps/(eps-1)*rk = alphaGBR*ABR*kBR^(alphaGBR-1)*qBR
+    ~ eps/(eps-1)*rk = alphaGBR*AGR*kGR^(alphaGBR-1)*qGR*AmLag^(eps/(eps-1)-alphaGBR)
+    ~ BR = ABR*kBR^alphaGBR
+    ~ GR = AGR*kGR^alphaGBR*AmLag^(eps/(eps-1)-alphaGBR)
+
+    # R&D sector
+    ~ Am = xi*s + phisRND*AmLag
+    ~ xi = zRND*(AmLag/s)**nu
+    ~ VE = divRND + piPrime/R*phisRND*VEPrime
+    ~ divRND = (eps/(eps-1)/alphaGBR-1)*rk*kGR/AmLag
+    ~ R/piPrime = VEPrime*xi
+
+    # central bank + government
+    ~ R = (Rstar*((pi/piSS)**phi_pi)*((y/ySS)**phi_y))**(1-rho)*RLag**rho # Taylor rule for the notional nominal interest rate
+
+    # clearing conditions 
+    ~ n**sigma_l = (1-tax)*w if tax_distortion else w # labor market clearing
+    ~ C + g + i + s = y # market clearing
+    ~ div = y - w*n - i - s - tau_qBR*BR*qBR - tau_qGR*GR*qGR # dividents
+
+    # exogenous
+    ~ g = (g2y*ySS)**(1-rho_g)*gLag**rho_g*exp(e_g)
+    ~ beta = betaSS*(betaLag/betaSS)**rho_beta*exp(e_beta) # exogenous beta
+    ~ Rstar = RstarSS*(RstarLag/RstarSS)**rho_r*exp(e_rstar) # exogenous rstar
+    ~ z = zSS*(zLag/zSS)**rho_z*exp(e_z) # exogenous technology
+    ~ tau_qBR = rho_tau*tau_qBRLag + (1-rho_tau)*tau_qBRSS + e_tau_qBR
+    ~ tau_qGR = rho_tau*tau_qGRLag + (1-rho_tau)*tau_qGRSS + e_tau_qGR
+
+steady_state:
+    fixed_values:
+        # parameters:
+        sigma_c: 1.5 # intertemporal elasticity of substitution
+        sigma_l: 3 # inverse Frisch elasticity of labour supply
+        eps : 6
+        zeta: 2/3 # calvo stickiness
+        phi_pi: 1.5 # Taylor rule coefficient on inflation
+        phi_y: 1e-8 # Taylor rule coefficient on output
+        rho: 1e-8 # persistence in (notional) nominal interest rate
+        rho_beta: 0.9 # persistence of discount factor shock
+        rho_r: 0.9 # persistence of MP shock
+        rho_z: 0.9 # persistence of technology shocks
+        rho_g: 0.8 # persistence of government spending
+        rho_tau: 0.8 # persistence of tau
+        delta: 0.025 # capital depreciation
+        beta: 0.985 # discount factor
+        g2y: 0.2 # government spending over GDP
+
+        # steady state
+        y: 1
+        p_disp: 1
+        p_tilde: 1
+        pi: 1.02**0.25 # inflation
+        mc: (eps-1)/eps
+        B: 15
+        Am: 1
+        BR2E: 0.66
+
+        # additional parameters
+        alphaK: .2
+        alphaE: .1
+        alphaGBR : 0.5
+        tau_qBR : 1
+        tau_qGR : 1
+        phisRND: 0.98
+        nu : 0.2
+        ABR: 1
+
+    init_guesses:
+
+        BR: 0.942314698066155
+        C: 0.5890327903757677
+        div: 0.20569945704243453
+        divRND: 0.0165277777648872
+        e: 1.4277495425244773
+        g: 0.20000000000000015
+        GR: 0.48543484445832213
+        i: 0.1950814600351045
+        k: 7.803258401404175
+        kBR: 0.887956989902018
+        kGR: 0.4574323887374031
+        ky: 6.457869022764755
+        n: 0.873935132504735
+        pricing_f: 8.760942901937417
+        pricing_s: 8.760942901937417
+        qBR: 0.05836691299398524
+        qe: 0.05836691299398524
+        qGR: 0.05836691299398524
+        R: 1.0057752502003687
+        rk: 0.025808307054562985
+        Rr: 1.000808307054563
+        Rstar: 1.0057752502003687
+        s: 0.015885749589127623
+        tax: 0.20452651950438158
+        Top10A: 0.7307997775406381
+        Top10C: 0.38433815764327656
+        VE: 0.7949295076397833
+        w: 0.6674789828641046
+        xi: 1.2589900067125095
+        z: 0.7302667238893975
+        AGR: 0.7177405625652733
+        zRND: 3.38176514957549
+
+        VPrime: egm_init_ones(a_grid, skills_stationary)*-1e2
+        VaPrime: egm_init_ones(a_grid, skills_stationary)*1e0

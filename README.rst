@@ -14,7 +14,7 @@ econpizza
 **Solve nonlinear heterogeneous agent models using automatic differentiation**
 
 Econpizza is a framework to solve and simulate **fully nonlinear** perfect foresight models, with or without heterogeneous agents.
-The package implements the solution method proposed in `HANK on Speed: Robust Nonlinear Solutions using Automatic Differentiation <https://gregorboehl.com/live/hank_speed_boehl.pdf>`_ *(Gregor Boehl, 2023, SSRN No. 4433585)*.
+The package implements the solution method proposed in `HANK on Speed: Robust Nonlinear Solutions using Automatic Differentiation <https://gregorboehl.com/live/hank_speed_boehl.pdf>`_ *(Gregor Boehl, Journal of Economic Theory, forthcoming)*.
 It allows to specify and solve nonlinear macroeconomic models quickly in a simple, high-level fashion and provides generic and robust routines for steady state search.
 
 The package can solve nonlinear models with heterogeneous agents, such as HANK models with one or two assets and portfolio choice. Steady state and nonlinear impulse responses (including, e.g., the ELB) can typically be found within a few seconds.

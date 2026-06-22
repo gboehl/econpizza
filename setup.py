@@ -34,8 +34,8 @@ setup(
         'linear': ['grgrlib>=0.1.22'],
     },
     install_requires=[
-        "jax>=0.5.3",
-        "grgrjax>=0.4.7",
+        "jax>=0.10.0",
+        "grgrjax>=0.4.8",
         "pyyaml",
         "scipy",
     ],
